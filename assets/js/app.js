@@ -107,6 +107,11 @@
   function refreshStats() {
     const db = Store.getDB();
     qs('#stat-subjects').textContent = (db.subjectsCatalog || []).length;
+    // total periods = sum of all allocations (all subjects across all classes)
+    const totalPeriods = Object.values(db.allocations || {}).reduce((sum, map) => {
+      return sum + Object.values(map || {}).reduce((s, v) => s + (parseInt(v, 10) || 0), 0);
+    }, 0);
+    const sp = qs('#stat-periods'); if (sp) sp.textContent = totalPeriods;
     qs('#stat-classes').textContent = db.classes.length;
     qs('#stat-teachers').textContent = db.teachers.length;
     qs('#stat-invoices').textContent = db.invoices.length;
@@ -237,6 +242,75 @@
     db.school = { name: '', address: '', phone: '', email: '', logo: '' };
     Store.setDB(db);
     loadSchoolForm();
+  });
+
+  // Times editor (working days + per-day settings)
+  function renderDaysList() {
+    const host = qs('#daysList'); if (!host) return;
+    const db = Store.getDB(); const t = db.times || {}; const wd = t.workingDays || {};
+    host.innerHTML = '';
+    const days = db.timetable.days || [];
+    days.forEach(d => {
+      const item = document.createElement('div'); item.className = 'list-item';
+      const left = document.createElement('div'); left.innerHTML = `<div class="list-title">${d}</div>`;
+      const actions = document.createElement('div'); actions.className = 'item-actions';
+      const toggle = document.createElement('input'); toggle.type = 'checkbox'; toggle.checked = wd[d] !== false; toggle.title = 'يوم عمل';
+      actions.append(toggle); item.append(left, actions); host.appendChild(item);
+      toggle.addEventListener('change', () => {
+        const db2 = Store.getDB(); db2.times = db2.times || {}; db2.times.workingDays = db2.times.workingDays || {};
+        db2.times.workingDays[d] = toggle.checked; Store.setDB(db2);
+      });
+    });
+  }
+
+  function renderTimesEditor() {
+    const host = qs('#timesEditor'); if (!host) return;
+    const db = Store.getDB(); const t = db.times || {};
+    const g = t.global || { lessonMinutes: 40, breakMinutes: 10, defaultPeriods: 6 };
+    qs('#globalLessonDuration').value = g.lessonMinutes;
+    qs('#globalBreakDuration').value = g.breakMinutes;
+    qs('#globalPeriods').value = g.defaultPeriods;
+
+    host.innerHTML = '';
+    const days = db.timetable.days || [];
+    days.forEach(d => {
+      const row = document.createElement('div'); row.className = 'list-item';
+      const left = document.createElement('div'); left.innerHTML = `<div class="list-title">${d}</div>`;
+      const actions = document.createElement('div'); actions.className = 'item-actions'; actions.style.gap = '8px';
+
+      const start = document.createElement('input'); start.type = 'time'; start.className = 'input'; start.style.minWidth = '140px';
+      start.value = (t.perDay?.[d]?.start) || '08:00';
+
+      const mode = document.createElement('select'); mode.className = 'input'; mode.style.minWidth = '120px';
+      mode.innerHTML = `<option value="صباحي">صباحي</option><option value="مسائي">مسائي</option>`;
+      mode.value = (t.perDay?.[d]?.mode) || 'صباحي';
+
+      const periods = document.createElement('input'); periods.type = 'number'; periods.min = '1'; periods.max = '12'; periods.className = 'input'; periods.style.minWidth = '100px';
+      periods.value = (t.perDay?.[d]?.periods) || (t.global?.defaultPeriods || 6);
+
+      actions.append(start, mode, periods); row.append(left, actions); host.appendChild(row);
+
+      [start, mode, periods].forEach(ctrl => ctrl.addEventListener('change', () => {
+        const db2 = Store.getDB(); db2.times = db2.times || {}; db2.times.perDay = db2.times.perDay || {};
+        const cur = db2.times.perDay[d] || { mode: 'صباحي', start: '08:00', periods: 6 };
+        cur.start = start.value; cur.mode = mode.value; cur.periods = Math.max(1, Math.min(12, parseInt(periods.value, 10) || 6));
+        db2.times.perDay[d] = cur; Store.setDB(db2);
+      }));
+    });
+  }
+
+  const btnSaveTimes = qs('#btnSaveTimes'); if (btnSaveTimes) btnSaveTimes.addEventListener('click', () => {
+    const db = Store.getDB(); db.times = db.times || {}; db.times.global = db.times.global || {};
+    db.times.global.lessonMinutes = Math.max(10, parseInt(qs('#globalLessonDuration').value, 10) || 40);
+    db.times.global.breakMinutes = Math.max(0, parseInt(qs('#globalBreakDuration').value, 10) || 10);
+    db.times.global.defaultPeriods = Math.max(1, Math.min(12, parseInt(qs('#globalPeriods').value, 10) || 6));
+    Store.setDB(db); showToast('تم حفظ الأوقات');
+  });
+
+  const btnResetTimes = qs('#btnResetTimes'); if (btnResetTimes) btnResetTimes.addEventListener('click', () => {
+    if (!confirm('إعادة ضبط إعدادات الأوقات إلى القيم الافتراضية؟')) return;
+    const db = Store.getDB(); db.times = undefined; // سيُعاد إنشاؤها عند العرض حسب القيم الافتراضية
+    Store.setDB(db); renderDaysList(); renderTimesEditor(); showToast('تمت إعادة الضبط');
   });
 
   // Catalog (subjects list used in allocations)
@@ -773,6 +847,8 @@
   function hydrate() {
     refreshStats();
     loadSchoolForm();
+    renderDaysList();
+    renderTimesEditor();
     renderCatalog();
     renderClasses();
     renderTeachers();

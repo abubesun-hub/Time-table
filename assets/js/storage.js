@@ -23,6 +23,19 @@
   classes: [], // each class: { name, students, sections?: [{ name, students, teacherId }] }
     teachers: [],
     timetable: { days: ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'], slots: ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة'], grid: {} },
+    // new: working days and time settings
+    times: {
+      workingDays: { 'السبت': true, 'الأحد': true, 'الاثنين': true, 'الثلاثاء': true, 'الأربعاء': true, 'الخميس': false },
+      global: { lessonMinutes: 40, breakMinutes: 10, defaultPeriods: 6 },
+      perDay: {
+        'السبت':   { mode: 'صباحي', start: '08:00', periods: 6 },
+        'الأحد':   { mode: 'صباحي', start: '08:00', periods: 6 },
+        'الاثنين': { mode: 'صباحي', start: '08:00', periods: 6 },
+        'الثلاثاء':{ mode: 'صباحي', start: '08:00', periods: 6 },
+        'الأربعاء':{ mode: 'صباحي', start: '08:00', periods: 6 },
+        'الخميس':  { mode: 'صباحي', start: '08:00', periods: 6 },
+      }
+    },
     invoices: [],
     settings: { theme: 'auto', density: 'comfortable' },
   });

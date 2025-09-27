@@ -85,6 +85,13 @@
             <div id="stat-subjects" class="stat-value">0</div>
           </div>
         </div>
+        <div class="stat neo-surface" title="عدد الحصص (المجمّعة)">
+          <div class="stat-icon"><i class="bi bi-calendar-week"></i></div>
+          <div class="stat-info">
+            <div class="stat-label">عدد الحصص</div>
+            <div id="stat-periods" class="stat-value">0</div>
+          </div>
+        </div>
         <div class="stat neo-surface" title="عدد الصفوف">
           <div class="stat-icon"><i class="bi bi-grid-3x3-gap"></i></div>
           <div class="stat-info">
@@ -215,6 +222,35 @@
           <button type="button" id="btnSchoolClear" class="btn danger"><i class="bi bi-trash3"></i> مسح</button>
         </div>
       </form>
+
+      <h2 class="section-title">الأوقات</h2>
+      <div class="neo-surface pad-16">
+        <h3 class="sub-title">الأيام</h3>
+        <div id="daysList" class="list" style="padding:8px"></div>
+
+        <h3 class="sub-title">تخصيص الأوقات</h3>
+        <div class="row wrap" style="gap:12px;margin-bottom:10px">
+          <div class="col" style="min-width:180px">
+            <label class="label" for="globalLessonDuration">مدة الدرس (دقيقة)</label>
+            <input id="globalLessonDuration" class="input" type="number" min="10" value="40" />
+          </div>
+          <div class="col" style="min-width:180px">
+            <label class="label" for="globalBreakDuration">فسحة بين الدروس (دقيقة)</label>
+            <input id="globalBreakDuration" class="input" type="number" min="0" value="10" />
+          </div>
+          <div class="col" style="min-width:180px">
+            <label class="label" for="globalPeriods">عدد الحصص اليومي (افتراضي)</label>
+            <input id="globalPeriods" class="input" type="number" min="1" max="12" value="6" />
+          </div>
+        </div>
+
+        <div id="timesEditor" class="list"></div>
+        <div class="row gap-8" style="margin-top:10px">
+          <button id="btnSaveTimes" class="btn primary"><i class="bi bi-save2"></i> حفظ</button>
+          <button id="btnResetTimes" class="btn"><i class="bi bi-arrow-counterclockwise"></i> إعادة ضبط</button>
+        </div>
+        <small class="muted">يمكنك تحديد إن كان اليوم صباحيًا أو مسائيًا، وقت البداية لكل يوم، عدد الحصص في ذلك اليوم، ومدة الدرس والفسحة بشكل عام.</small>
+      </div>
     </section>
 
     <!-- تخصيص -->
