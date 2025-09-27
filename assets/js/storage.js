@@ -14,7 +14,12 @@
     meta: { createdAt: nowIso(), updatedAt: nowIso(), version: 1 },
     auth: { users: [] /* [{user, passHash}] */, currentUser: null },
     school: { name: '', address: '', phone: '', email: '', logo: '' },
-    subjects: [],
+  // subjectsCatalog: list of available subjects to use in allocations
+  subjectsCatalog: [],
+  // allocations: { [subjectId]: { [classIndex]: weeklyCount } }
+  allocations: {},
+  // legacy subjects (deprecated, may be empty). Kept for backward compatibility/migration if needed.
+  subjects: [],
   classes: [], // each class: { name, students, sections?: [{ name, students, teacherId }] }
     teachers: [],
     timetable: { days: ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'], slots: ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة'], grid: {} },

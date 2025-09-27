@@ -56,7 +56,8 @@
     <nav class="nav">
       <button class="nav-btn" data-route="#/dashboard"><i class="bi bi-house"></i><span>الرئيسية</span></button>
       <button class="nav-btn" data-route="#/school"><i class="bi bi-building"></i><span>المدرسة</span></button>
-      <button class="nav-btn" data-route="#/subjects"><i class="bi bi-book"></i><span>المواد</span></button>
+  <button class="nav-btn" data-route="#/subjects"><i class="bi bi-sliders"></i><span>تخصيص</span></button>
+  <button class="nav-btn" data-route="#/catalog"><i class="bi bi-book"></i><span>المواد</span></button>
       <button class="nav-btn" data-route="#/classes"><i class="bi bi-grid-3x3-gap"></i><span>الصفوف</span></button>
       <button class="nav-btn" data-route="#/teachers"><i class="bi bi-people"></i><span>المعلمون</span></button>
       <button class="nav-btn" data-route="#/timetable"><i class="bi bi-calendar-week"></i><span>الجدول الأسبوعي</span></button>
@@ -115,9 +116,14 @@
           <div class="card-desc">تحديث بيانات المدرسة والشعار والعنوان.</div>
         </a>
         <a class="card neo-surface" data-route-link="#/subjects">
+          <div class="card-icon"><i class="bi bi-sliders"></i></div>
+          <div class="card-title">تخصيص</div>
+          <div class="card-desc">توزيع حصص المواد على الصفوف.</div>
+        </a>
+        <a class="card neo-surface" data-route-link="#/catalog">
           <div class="card-icon"><i class="bi bi-book"></i></div>
-          <div class="card-title">المواد الدراسية</div>
-          <div class="card-desc">إدارة المواد وعدد الحصص الأسبوعية.</div>
+          <div class="card-title">المواد</div>
+          <div class="card-desc">إضافة المواد المعتمدة للاستخدام في التخصيص.</div>
         </a>
         <a class="card neo-surface" data-route-link="#/classes">
           <div class="card-icon"><i class="bi bi-grid-3x3-gap"></i></div>
@@ -211,20 +217,46 @@
       </form>
     </section>
 
-    <!-- Subjects -->
+    <!-- تخصيص -->
     <section id="view-subjects" class="view">
       <div class="header-row">
-        <h2 class="section-title">المواد الدراسية</h2>
-        <button id="btnAddSubject" class="btn primary"><i class="bi bi-plus-circle"></i> إضافة مادة</button>
+        <h2 class="section-title">تخصيص الحصص حسب الصف</h2>
       </div>
-      <div id="subjectsGuard" class="alert hidden">
-        <div class="alert-title">لا يمكن إدارة المواد الآن</div>
-        <div class="alert-desc">الرجاء إضافة صف دراسي واحد على الأقل أولًا.</div>
-        <div class="row" style="margin-top:8px">
-          <button class="btn" data-route-link="#/classes"><i class="bi bi-grid-3x3-gap"></i> إضافة صف الآن</button>
+      <div class="neo-surface pad-16">
+        <div id="allocGuardNoSubjects" class="alert hidden">
+          <div class="alert-title">لا توجد مواد معتمدة بعد</div>
+          <div class="alert-desc">أضف المواد أولًا من صفحة "المواد".</div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" data-route-link="#/catalog"><i class="bi bi-book"></i> الذهاب إلى المواد</button>
+          </div>
         </div>
+        <div id="allocGuardNoClasses" class="alert hidden">
+          <div class="alert-title">لا توجد صفوف بعد</div>
+          <div class="alert-desc">أضف صفًا واحدًا على الأقل.</div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" data-route-link="#/classes"><i class="bi bi-grid-3x3-gap"></i> إضافة صف الآن</button>
+          </div>
+        </div>
+        <div class="row gap-8 wrap">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="allocSubjectSelect">المادة</label>
+            <select id="allocSubjectSelect" class="input"></select>
+          </div>
+          <div class="col" style="align-self:end">
+            <button id="btnSaveAllocations" class="btn primary"><i class="bi bi-save2"></i> حفظ التخصيص</button>
+          </div>
+        </div>
+        <div id="allocationsList" class="list" style="margin-top:10px"></div>
       </div>
-      <div id="subjectsList" class="list neo-surface"></div>
+    </section>
+
+    <!-- Catalog (المواد) -->
+    <section id="view-catalog" class="view">
+      <div class="header-row">
+        <h2 class="section-title">المواد</h2>
+        <button id="btnAddCatalogSubject" class="btn primary"><i class="bi bi-plus-circle"></i> إضافة مادة</button>
+      </div>
+      <div id="catalogList" class="list neo-surface"></div>
     </section>
 
     <!-- Classes -->
@@ -313,16 +345,14 @@
     </section>
   </main>
 
-  <!-- Subject Modal -->
-  <dialog id="modal-subject" class="modal neo-surface">
-    <form method="dialog" id="form-subject">
-      <h3>مادة دراسية</h3>
-      <label class="label" for="subjectName">اسم المادة</label>
-      <input id="subjectName" class="input" required />
-      <label class="label" for="subjectWeekly">عدد الحصص الأسبوعية</label>
-      <input id="subjectWeekly" class="input" type="number" min="0" value="0" required />
+  <!-- Catalog Subject Modal -->
+  <dialog id="modal-catalog" class="modal neo-surface">
+    <form method="dialog" id="form-catalog">
+      <h3>مادة</h3>
+      <label class="label" for="catalogName">اسم المادة</label>
+      <input id="catalogName" class="input" required />
       <menu class="row gap-8">
-        <button type="button" id="btnCancelSubject" class="btn ghost">إلغاء</button>
+        <button type="button" id="btnCancelCatalog" class="btn ghost">إلغاء</button>
         <button type="submit" value="default" class="btn primary">حفظ</button>
       </menu>
     </form>

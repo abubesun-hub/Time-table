@@ -106,7 +106,7 @@
   // Data helpers
   function refreshStats() {
     const db = Store.getDB();
-    qs('#stat-subjects').textContent = db.subjects.length;
+    qs('#stat-subjects').textContent = (db.subjectsCatalog || []).length;
     qs('#stat-classes').textContent = db.classes.length;
     qs('#stat-teachers').textContent = db.teachers.length;
     qs('#stat-invoices').textContent = db.invoices.length;
@@ -239,57 +239,135 @@
     loadSchoolForm();
   });
 
-  // Subjects CRUD
-  function renderSubjects() {
-    const list = qs('#subjectsList');
+  // Catalog (subjects list used in allocations)
+  function renderCatalog() {
+    const list = qs('#catalogList'); if (!list) return;
     const db = Store.getDB();
-    // Guard: require at least one class before managing subjects
-    const guard = qs('#subjectsGuard');
-    const hasClasses = (db.classes || []).length > 0;
-    if (guard) guard.classList.toggle('hidden', hasClasses);
-    const addBtn = qs('#btnAddSubject');
-    if (addBtn) addBtn.disabled = !hasClasses;
-    renderList(list, db.subjects, (s, i) => {
-      const item = document.createElement('div');
-      item.className = 'list-item';
-      const left = document.createElement('div');
-      left.innerHTML = `<div class="list-title">${s.name}</div><div class="list-sub">حصص/أسبوع: ${s.weekly}</div>`;
-      const actions = document.createElement('div');
-      actions.className = 'item-actions';
+    renderList(list, db.subjectsCatalog || [], (s, i) => {
+      const item = document.createElement('div'); item.className = 'list-item';
+      const left = document.createElement('div'); left.innerHTML = `<div class="list-title">${s.name}</div>`;
+      const actions = document.createElement('div'); actions.className = 'item-actions';
+      const up = document.createElement('button'); up.className = 'btn'; up.title = 'نقل للأعلى'; up.innerHTML = '<i class="bi bi-arrow-up"></i>';
+      const down = document.createElement('button'); down.className = 'btn'; down.title = 'نقل للأسفل'; down.innerHTML = '<i class="bi bi-arrow-down"></i>';
       const edit = document.createElement('button'); edit.className = 'btn'; edit.textContent = 'تعديل';
       const del = document.createElement('button'); del.className = 'btn danger'; del.textContent = 'حذف';
-      edit.addEventListener('click', () => openSubjectModal(s, i));
+      up.disabled = i === 0;
+      down.disabled = i === (db.subjectsCatalog?.length || 0) - 1;
+      up.addEventListener('click', () => moveCatalogSubject(i, i - 1));
+      down.addEventListener('click', () => moveCatalogSubject(i, i + 1));
+      edit.addEventListener('click', () => openCatalogModal(s, i));
       del.addEventListener('click', () => {
-        if (!confirm('حذف المادة؟')) return;
-        db.subjects.splice(i, 1); Store.setDB(db); renderSubjects(); refreshStats();
+        if (!confirm('حذف المادة من القائمة المعتمدة؟ سيتم حذف تخصيصاتها أيضًا.')) return;
+        const db2 = Store.getDB();
+        const removedIndex = i;
+        db2.subjectsCatalog.splice(i, 1);
+        const oldAlloc = db2.allocations || {};
+        const newAlloc = {};
+        for (let newIdx = 0; newIdx < db2.subjectsCatalog.length; newIdx++) {
+          const oldIdx = newIdx < removedIndex ? newIdx : newIdx + 1;
+          if (oldAlloc[oldIdx] != null) newAlloc[newIdx] = oldAlloc[oldIdx];
+        }
+        db2.allocations = newAlloc;
+        Store.setDB(db2);
+        renderCatalog();
+        populateAllocSubjectSelect();
+        renderAllocations();
+        refreshStats();
       });
-      actions.append(edit, del);
-      item.append(left, actions);
-      return item;
+      actions.append(up, down, edit, del); item.append(left, actions); return item;
     });
   }
 
-  function openSubjectModal(s = null, index = -1) {
-    const dlg = qs('#modal-subject');
-    qs('#subjectName').value = s?.name || '';
-    qs('#subjectWeekly').value = s?.weekly ?? 0;
-    dlg.returnValue = 'cancel';
-    dlg.showModal();
-    const cancelBtn = qs('#btnCancelSubject');
-    if (cancelBtn) cancelBtn.onclick = () => dlg.close('cancel');
-    const form = qs('#form-subject');
+  function moveCatalogSubject(from, to) {
+    const db = Store.getDB(); const list = db.subjectsCatalog || [];
+    if (from === to || to < 0 || to >= list.length) return;
+    // swap subjects
+    const tmp = list[from]; list[from] = list[to]; list[to] = tmp;
+    // remap allocations keys by swapping entries
+    db.allocations = db.allocations || {};
+    const a = db.allocations[from];
+    const b = db.allocations[to];
+    if (a === undefined) delete db.allocations[to]; else db.allocations[to] = a;
+    if (b === undefined) delete db.allocations[from]; else db.allocations[from] = b;
+    Store.setDB(db);
+    // preserve selection in allocations subject select
+    const sel = qs('#allocSubjectSelect');
+    const beforeVal = sel ? sel.value : null;
+    renderCatalog();
+    populateAllocSubjectSelect();
+    if (sel && beforeVal !== null && beforeVal !== '') {
+      const bIdx = parseInt(beforeVal, 10);
+      let newIdx = bIdx;
+      if (bIdx === from) newIdx = to; else if (bIdx === to) newIdx = from;
+      sel.value = String(newIdx);
+    }
+    renderAllocations();
+  }
+
+  function openCatalogModal(s = null, index = -1) {
+    const dlg = qs('#modal-catalog'); if (!dlg) return;
+    qs('#catalogName').value = s?.name || '';
+    dlg.returnValue = 'cancel'; dlg.showModal();
+    const cancelBtn = qs('#btnCancelCatalog'); if (cancelBtn) cancelBtn.onclick = () => dlg.close('cancel');
+    const form = qs('#form-catalog');
     form.onsubmit = (e) => {
       e.preventDefault(); dlg.returnValue = 'default';
-      const name = qs('#subjectName').value.trim();
-      const weekly = parseInt(qs('#subjectWeekly').value, 10) || 0;
-      if (!name) { showToast('أدخل اسم المادة'); return; }
-      const db = Store.getDB();
-      const item = { name, weekly };
-      if (index >= 0) db.subjects[index] = item; else db.subjects.push(item);
-      Store.setDB(db); renderSubjects(); refreshStats(); dlg.close('default');
+      const name = qs('#catalogName').value.trim(); if (!name) { showToast('أدخل اسم المادة'); return; }
+      const db = Store.getDB(); db.subjectsCatalog = db.subjectsCatalog || [];
+      const dup = db.subjectsCatalog.some((x, ix) => ix !== index && (x.name || '').trim().toLowerCase() === name.toLowerCase());
+      if (dup) { showToast('اسم المادة موجود مسبقًا'); return; }
+      const item = { name };
+      if (index >= 0) db.subjectsCatalog[index] = item; else db.subjectsCatalog.push(item);
+      Store.setDB(db); renderCatalog(); populateAllocSubjectSelect(); renderAllocations(); refreshStats(); dlg.close('default');
     };
   }
-  qs('#btnAddSubject').addEventListener('click', () => openSubjectModal());
+  const addCatalogBtn = qs('#btnAddCatalogSubject'); if (addCatalogBtn) addCatalogBtn.addEventListener('click', () => openCatalogModal());
+
+  // Allocations: map subject -> per-class weekly counts
+  function populateAllocSubjectSelect() {
+    const sel = qs('#allocSubjectSelect'); if (!sel) return;
+    const db = Store.getDB(); const subjects = db.subjectsCatalog || [];
+    sel.innerHTML = subjects.length ? subjects.map((s, i) => `<option value="${i}">${s.name}</option>`).join('') : '';
+  }
+
+  function renderAllocations() {
+    const list = qs('#allocationsList'); if (!list) return;
+    const sel = qs('#allocSubjectSelect');
+    const db = Store.getDB(); const classes = db.classes || [];
+    // guards
+    const g1 = qs('#allocGuardNoSubjects'); const g2 = qs('#allocGuardNoClasses');
+    const hasSubjects = (db.subjectsCatalog || []).length > 0;
+    const hasClasses = classes.length > 0;
+    if (g1) g1.classList.toggle('hidden', hasSubjects);
+    if (g2) g2.classList.toggle('hidden', hasClasses);
+    if (!hasSubjects || !hasClasses) { list.innerHTML = ''; return; }
+    const subjIdx = parseInt(sel.value || '0', 10) || 0;
+    const alloc = (db.allocations && db.allocations[subjIdx]) || {};
+    list.innerHTML = '';
+    classes.forEach((c, ci) => {
+      const item = document.createElement('div'); item.className = 'list-item';
+      const left = document.createElement('div'); left.innerHTML = `<div class="list-title">${c.name}</div>`;
+      const actions = document.createElement('div'); actions.className = 'item-actions';
+      const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.className = 'input'; input.style.minWidth = '100px';
+      input.value = alloc[ci] != null ? alloc[ci] : 0; input.setAttribute('data-class-index', String(ci));
+      actions.append(input); item.append(left, actions); list.appendChild(item);
+    });
+  }
+
+  const allocSel = qs('#allocSubjectSelect'); if (allocSel) allocSel.addEventListener('change', renderAllocations);
+  const btnSaveAllocs = qs('#btnSaveAllocations'); if (btnSaveAllocs) btnSaveAllocs.addEventListener('click', () => {
+    const sel = qs('#allocSubjectSelect'); if (!sel) return;
+    const subjIdx = parseInt(sel.value || '0', 10) || 0;
+    const db = Store.getDB(); db.allocations = db.allocations || {};
+    const map = {};
+    qsa('#allocationsList input[data-class-index]').forEach(inp => {
+      const ci = parseInt(inp.getAttribute('data-class-index'), 10);
+      const v = Math.max(0, parseInt(inp.value, 10) || 0);
+      if (v > 0) map[ci] = v;
+    });
+    if (Object.keys(map).length > 0) db.allocations[subjIdx] = map; else delete db.allocations[subjIdx];
+    Store.setDB(db); showToast('تم حفظ التخصيص');
+  });
 
   // Classes CRUD
   function renderClasses() {
@@ -695,10 +773,12 @@
   function hydrate() {
     refreshStats();
     loadSchoolForm();
-    renderSubjects();
+    renderCatalog();
     renderClasses();
     renderTeachers();
     renderInvoices();
+    populateAllocSubjectSelect();
+    renderAllocations();
     // populate class/section selectors
     const db = Store.getDB();
     const classSel = qs('#ttClassSelect');
