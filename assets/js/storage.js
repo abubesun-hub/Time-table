@@ -18,6 +18,8 @@
   subjectsCatalog: [],
   // allocations: { [subjectId]: { [classIndex]: weeklyCount } }
   allocations: {},
+  // assignments: { [classIndex:sectionIndex]: { [subjectIndex]: { [teacherIndex]: periods } } }
+  assignments: {},
   // legacy subjects (deprecated, may be empty). Kept for backward compatibility/migration if needed.
   subjects: [],
   classes: [], // each class: { name, students, sections?: [{ name, students, teacherId }] }

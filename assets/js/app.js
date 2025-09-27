@@ -442,11 +442,13 @@
     const sel = qs('#allocSubjectSelect');
     const db = Store.getDB(); const classes = db.classes || [];
     // guards
-    const g1 = qs('#allocGuardNoSubjects'); const g2 = qs('#allocGuardNoClasses');
+    const g1 = qs('#allocGuardNoSubjects'); const g2 = qs('#allocGuardNoClasses'); const g3 = qs('#allocGuardNoTeachers');
     const hasSubjects = (db.subjectsCatalog || []).length > 0;
     const hasClasses = classes.length > 0;
+    const hasTeachers = (db.teachers || []).length > 0;
     if (g1) g1.classList.toggle('hidden', hasSubjects);
     if (g2) g2.classList.toggle('hidden', hasClasses);
+    if (g3) g3.classList.toggle('hidden', hasTeachers);
     if (!hasSubjects || !hasClasses) { list.innerHTML = ''; return; }
     const subjIdx = parseInt(sel.value || '0', 10) || 0;
     const alloc = (db.allocations && db.allocations[subjIdx]) || {};
@@ -474,6 +476,144 @@
     });
     if (Object.keys(map).length > 0) db.allocations[subjIdx] = map; else delete db.allocations[subjIdx];
     Store.setDB(db); showToast('تم حفظ التخصيص');
+  });
+
+  // Assign lessons to teachers per class/section/subject
+  function populateAssignSelectors() {
+    const db = Store.getDB();
+    const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect');
+    const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect');
+    if (classSel) classSel.innerHTML = '<option value="">— اختر صف —</option>' + (db.classes || []).map((c, i) => `<option value="${i}">${c.name}</option>`).join('');
+    if (subjSel) subjSel.innerHTML = '<option value="">— اختر مادة —</option>' + (db.subjectsCatalog || []).map((s, i) => `<option value="${i}">${s.name}</option>`).join('');
+    if (teachSel) teachSel.innerHTML = '<option value="">— اختر معلم —</option>' + (db.teachers || []).map((t, i) => `<option value="${i}">${t.name}</option>`).join('');
+    if (sectSel) sectSel.innerHTML = '<option value="">— اختر شعبة —</option>';
+    if (classSel) classSel.onchange = () => {
+      const idx = classSel.value; const sections = idx === '' ? [] : (db.classes[idx].sections || []);
+      if (sectSel) sectSel.innerHTML = '<option value="">— اختر شعبة —</option>' + sections.map((s, si) => `<option value="${si}">${s.name}</option>`).join('');
+      updateAssignRemaining();
+    };
+    if (subjSel) subjSel.onchange = updateAssignRemaining;
+    if (sectSel) sectSel.onchange = updateAssignRemaining;
+  }
+
+  function keyCS(cIdx, sIdx) { return `${cIdx}:${sIdx}`; }
+
+  function calcAssignedFor(db, cIdx, sIdx, subjIdx) {
+    const map = db.assignments?.[keyCS(cIdx, sIdx)]?.[subjIdx] || {};
+    return Object.values(map).reduce((a, v) => a + (parseInt(v, 10) || 0), 0);
+  }
+
+  function updateAssignRemaining() {
+    const db = Store.getDB();
+    const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect'); const subjSel = qs('#asSubjectSelect');
+    const remainingEl = qs('#asRemaining'); const periodsInput = qs('#asPeriods');
+    if (!classSel || !sectSel || !subjSel || !remainingEl) return;
+    const cVal = classSel.value; const sVal = sectSel.value; const subVal = subjSel.value;
+    if (cVal === '' || sVal === '' || subVal === '') { remainingEl.textContent = 'المتبقي: 0'; if (periodsInput) periodsInput.value = 0; return; }
+    const cIdx = parseInt(cVal, 10); const sIdx = parseInt(sVal, 10); const subjIdx = parseInt(subVal, 10);
+    const allocForSubject = (db.allocations?.[subjIdx]?.[cIdx]) || 0;
+    const already = calcAssignedFor(db, cIdx, sIdx, subjIdx);
+    const remaining = Math.max(0, allocForSubject - already);
+    remainingEl.textContent = `المتبقي: ${remaining}`;
+    if (periodsInput && (parseInt(periodsInput.value, 10) || 0) > remaining) periodsInput.value = remaining;
+  }
+
+  function renderAssignStats() {
+    const list = qs('#assignStatsList'); if (!list) return;
+    const db = Store.getDB();
+    list.innerHTML = '';
+    (db.classes || []).forEach((c, ci) => {
+      const sections = c.sections && c.sections.length ? c.sections : [{ name: '—', _virtual: true }];
+      sections.forEach((s, si) => {
+        const row = document.createElement('div'); row.className = 'list-item';
+        const left = document.createElement('div');
+        const title = `${c.name}${s._virtual ? '' : ' — ' + s.name}`;
+        // إجمالي الحصص لهذا الصف عبر كل المواد (من allocations)
+        const total = Object.values(db.allocations || {}).reduce((sum, m) => sum + (parseInt(m?.[ci], 10) || 0), 0);
+        // المخصصة لهذا الصف/الشعبة عبر جميع المواد والمعلمين
+        const assigned = Object.values(db.assignments?.[keyCS(ci, si)] || {}).reduce((subSum, subjMap) => subSum + Object.values(subjMap).reduce((a, v) => a + (parseInt(v, 10) || 0), 0), 0);
+        const vacant = Math.max(0, total - assigned);
+        left.innerHTML = `<div class="list-title">${title}</div><div class="list-sub">الإجمالي: ${total} • المخصصة: ${assigned} • الشاغر: ${vacant}</div>`;
+        list.appendChild(row); row.appendChild(left);
+      });
+    });
+  }
+
+  function renderAssignList() {
+    const list = qs('#assignList'); if (!list) return;
+    const db = Store.getDB(); list.innerHTML = '';
+    (db.classes || []).forEach((c, ci) => {
+      const sections = c.sections && c.sections.length ? c.sections : [{ name: '—', _virtual: true }];
+      sections.forEach((s, si) => {
+        const csKey = keyCS(ci, si);
+        const subjMaps = db.assignments?.[csKey] || {};
+        Object.entries(subjMaps).forEach(([subjIdxStr, teachMap]) => {
+          const subjIdx = parseInt(subjIdxStr, 10);
+          Object.entries(teachMap || {}).forEach(([tIdxStr, count]) => {
+            const tIdx = parseInt(tIdxStr, 10);
+            const item = document.createElement('div'); item.className = 'list-item';
+            const left = document.createElement('div');
+            const subjName = db.subjectsCatalog?.[subjIdx]?.name || '—';
+            const teachName = db.teachers?.[tIdx]?.name || '—';
+            left.innerHTML = `<div class="list-title">${c.name}${s._virtual ? '' : ' — ' + s.name}</div><div class="list-sub">${subjName} • ${teachName} • حصص: ${count}</div>`;
+            const actions = document.createElement('div'); actions.className = 'item-actions';
+            const edit = document.createElement('button'); edit.className = 'btn'; edit.textContent = 'تعديل';
+            const del = document.createElement('button'); del.className = 'btn danger'; del.textContent = 'حذف';
+            edit.addEventListener('click', () => {
+              const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect'); const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect'); const per = qs('#asPeriods');
+              if (classSel) classSel.value = String(ci);
+              if (sectSel) { const ev = new Event('change'); classSel.dispatchEvent(ev); sectSel.value = String(si); }
+              if (subjSel) subjSel.value = String(subjIdx);
+              if (teachSel) teachSel.value = String(tIdx);
+              if (per) per.value = String(count);
+              updateAssignRemaining();
+            });
+            del.addEventListener('click', () => {
+              if (!confirm('حذف هذا التخصيص؟')) return;
+              const db2 = Store.getDB();
+              const map = db2.assignments?.[csKey]?.[subjIdx];
+              if (map && map[tIdx] != null) delete map[tIdx];
+              if (map && Object.keys(map).length === 0) delete db2.assignments[csKey][subjIdx];
+              if (db2.assignments[csKey] && Object.keys(db2.assignments[csKey]).length === 0) delete db2.assignments[csKey];
+              Store.setDB(db2); renderAssignList(); renderAssignStats(); updateAssignRemaining();
+            });
+            actions.append(edit, del); item.append(left, actions); list.appendChild(item);
+          });
+        });
+      });
+    });
+  }
+
+  function saveAssignment() {
+    const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect'); const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect'); const per = qs('#asPeriods');
+    if (!classSel || !sectSel || !subjSel || !teachSel || !per) return;
+    if (classSel.value === '' || sectSel.value === '' || subjSel.value === '' || teachSel.value === '') { showToast('أكمل الاختيارات: صف، شعبة، مادة، معلم'); return; }
+    const cIdx = parseInt(classSel.value, 10); const sIdx = parseInt(sectSel.value, 10);
+    const subjIdx = parseInt(subjSel.value, 10); const tIdx = parseInt(teachSel.value, 10);
+    const count = Math.max(0, parseInt(per.value, 10) || 0);
+    const db = Store.getDB();
+    const allocForSubject = (db.allocations?.[subjIdx]?.[cIdx]) || 0;
+    const already = calcAssignedFor(db, cIdx, sIdx, subjIdx);
+    const remaining = Math.max(0, allocForSubject - already);
+    if (count > remaining) { showToast('عدد الحصص يتجاوز المتبقي'); return; }
+    db.assignments = db.assignments || {}; const csKey = keyCS(cIdx, sIdx);
+    db.assignments[csKey] = db.assignments[csKey] || {};
+    db.assignments[csKey][subjIdx] = db.assignments[csKey][subjIdx] || {};
+    db.assignments[csKey][subjIdx][tIdx] = count;
+    Store.setDB(db);
+    renderAssignList(); renderAssignStats(); updateAssignRemaining();
+    showToast('تم حفظ التخصيص للمعلم');
+  }
+
+  const btnAsSave = qs('#btnAsSave'); if (btnAsSave) btnAsSave.addEventListener('click', saveAssignment);
+  const btnAsClear = qs('#btnAsClear'); if (btnAsClear) btnAsClear.addEventListener('click', () => {
+    const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect'); const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect'); const per = qs('#asPeriods');
+    if (classSel) classSel.value = '';
+    if (sectSel) sectSel.innerHTML = '<option value="">— اختر شعبة —</option>';
+    if (subjSel) subjSel.value = '';
+    if (teachSel) teachSel.value = '';
+    if (per) per.value = '0';
+    updateAssignRemaining();
   });
 
   // Classes CRUD
@@ -889,6 +1029,11 @@
     renderInvoices();
     populateAllocSubjectSelect();
     renderAllocations();
+  // Assignments (teachers per class/section/subject)
+  populateAssignSelectors();
+  renderAssignStats();
+  renderAssignList();
+  updateAssignRemaining();
     // populate class/section selectors
     const db = Store.getDB();
     const classSel = qs('#ttClassSelect');
