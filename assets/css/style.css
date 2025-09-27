@@ -149,3 +149,64 @@ body {
   .nav { gap: 4px; }
   .nav-btn span { display: none; }
 }
+
+/* Elegant horizontal cards for Assign Stats */
+#assignStatsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--gap);
+  padding: 8px;
+}
+#assignStatsList .list-item {
+  position: relative;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: radial-gradient(900px 300px at 110% -20%, #ffffff14 0%, transparent 50%), var(--surface);
+  box-shadow: -10px -10px 20px var(--shadow-light), 10px 10px 20px var(--shadow-dark);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  display: flex; flex-direction: column; gap: 6px;
+  min-height: 88px;
+}
+#assignStatsList .list-item:hover {
+  transform: translateY(-2px);
+  box-shadow: -12px -12px 24px var(--shadow-light), 12px 12px 24px var(--shadow-dark);
+}
+#assignStatsList .list-item::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(90deg, var(--c1, #60a5fa), var(--c2, #3b82f6));
+  opacity: 0.95;
+}
+#assignStatsList .list-item:nth-child(6n+1) { --c1:#60a5fa; --c2:#3b82f6; }
+#assignStatsList .list-item:nth-child(6n+2) { --c1:#a78bfa; --c2:#8b5cf6; }
+#assignStatsList .list-item:nth-child(6n+3) { --c1:#34d399; --c2:#10b981; }
+#assignStatsList .list-item:nth-child(6n+4) { --c1:#fbbf24; --c2:#f59e0b; }
+#assignStatsList .list-item:nth-child(6n+5) { --c1:#fb7185; --c2:#ef4444; }
+#assignStatsList .list-item:nth-child(6n+6) { --c1:#38bdf8; --c2:#06b6d4; }
+
+#assignStatsList .list-title { font-size: 16px; font-weight: 800; }
+#assignStatsList .list-sub { font-size: 13px; opacity: 0.9; }
+
+/* Accent stats (colorful elegant cards) */
+.stat-ac1 { background: linear-gradient(135deg, #60a5fa, #3b82f6); color: #fff; }
+.stat-ac2 { background: linear-gradient(135deg, #a78bfa, #8b5cf6); color: #fff; }
+.stat-ac3 { background: linear-gradient(135deg, #34d399, #10b981); color: #fff; }
+.stat-ac4 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #fff; }
+.stat-ac5 { background: linear-gradient(135deg, #fb7185, #ef4444); color: #fff; }
+.stat-ac1 .stat-label, .stat-ac2 .stat-label, .stat-ac3 .stat-label, .stat-ac4 .stat-label, .stat-ac5 .stat-label { color: #f1f5f9; opacity: 0.9; }
+.stat-ac1 .stat-icon, .stat-ac2 .stat-icon, .stat-ac3 .stat-icon, .stat-ac4 .stat-icon, .stat-ac5 .stat-icon { filter: drop-shadow(0 1px 0 rgba(0,0,0,0.15)); }
+
+/* Accent navigation cards */
+.card-ac1 { background: linear-gradient(135deg, #60a5fa, #3b82f6); color: #fff; }
+.card-ac2 { background: linear-gradient(135deg, #a78bfa, #8b5cf6); color: #fff; }
+.card-ac3 { background: linear-gradient(135deg, #34d399, #10b981); color: #fff; }
+.card-ac4 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #fff; }
+.card-ac5 { background: linear-gradient(135deg, #fb7185, #ef4444); color: #fff; }
+.card-ac6 { background: linear-gradient(135deg, #38bdf8, #06b6d4); color: #fff; }
+.card-ac7 { background: linear-gradient(135deg, #f472b6, #ec4899); color: #fff; }
+.card-ac8 { background: linear-gradient(135deg, #a3e635, #84cc16); color: #fff; }
+.card-ac1 .card-desc, .card-ac2 .card-desc, .card-ac3 .card-desc, .card-ac4 .card-desc,
+.card-ac5 .card-desc, .card-ac6 .card-desc, .card-ac7 .card-desc, .card-ac8 .card-desc { color: #f8fafc; opacity: 0.9; }

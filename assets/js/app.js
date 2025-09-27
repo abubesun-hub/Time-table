@@ -515,7 +515,16 @@
     const already = calcAssignedFor(db, cIdx, sIdx, subjIdx);
     const remaining = Math.max(0, allocForSubject - already);
     remainingEl.textContent = `المتبقي: ${remaining}`;
-    if (periodsInput && (parseInt(periodsInput.value, 10) || 0) > remaining) periodsInput.value = remaining;
+    if (periodsInput) {
+      const cur = parseInt(periodsInput.value, 10) || 0;
+      // عند تغيير الاختيارات، املأ تلقائيًا بالقيمة المتبقية إذا كان الحقل ما يزال صفرًا
+      if (cur === 0) {
+        periodsInput.value = remaining;
+      } else if (cur > remaining) {
+        // وإلا، قم بتقليمه إذا تجاوز المتبقي
+        periodsInput.value = remaining;
+      }
+    }
   }
 
   function renderAssignStats() {
@@ -550,12 +559,14 @@
         Object.entries(subjMaps).forEach(([subjIdxStr, teachMap]) => {
           const subjIdx = parseInt(subjIdxStr, 10);
           Object.entries(teachMap || {}).forEach(([tIdxStr, count]) => {
+            const cnt = parseInt(count, 10) || 0;
+            if (cnt <= 0) return; // لا تعرض تخصيصات بصفر حصص
             const tIdx = parseInt(tIdxStr, 10);
             const item = document.createElement('div'); item.className = 'list-item';
             const left = document.createElement('div');
             const subjName = db.subjectsCatalog?.[subjIdx]?.name || '—';
             const teachName = db.teachers?.[tIdx]?.name || '—';
-            left.innerHTML = `<div class="list-title">${c.name}${s._virtual ? '' : ' — ' + s.name}</div><div class="list-sub">${subjName} • ${teachName} • حصص: ${count}</div>`;
+            left.innerHTML = `<div class="list-title">${c.name}${s._virtual ? '' : ' — ' + s.name}</div><div class="list-sub">${subjName} • ${teachName} • حصص: ${cnt}</div>`;
             const actions = document.createElement('div'); actions.className = 'item-actions';
             const edit = document.createElement('button'); edit.className = 'btn'; edit.textContent = 'تعديل';
             const del = document.createElement('button'); del.className = 'btn danger'; del.textContent = 'حذف';
@@ -565,7 +576,7 @@
               if (sectSel) { const ev = new Event('change'); classSel.dispatchEvent(ev); sectSel.value = String(si); }
               if (subjSel) subjSel.value = String(subjIdx);
               if (teachSel) teachSel.value = String(tIdx);
-              if (per) per.value = String(count);
+              if (per) per.value = String(cnt);
               updateAssignRemaining();
             });
             del.addEventListener('click', () => {
@@ -584,6 +595,33 @@
     });
   }
 
+  // Ensure uniqueness: one teacher per (class, section, subject). Keep the highest-count assignment, drop others and zeros.
+  function normalizeAssignmentsUniquePerSubject() {
+    const db = Store.getDB();
+    const asg = db.assignments || {};
+    let changed = false;
+    Object.keys(asg).forEach(csKey => {
+      const subjMaps = asg[csKey] || {};
+      Object.keys(subjMaps).forEach(subjIdx => {
+        const teachMap = subjMaps[subjIdx] || {};
+        const entries = Object.entries(teachMap).map(([k, v]) => [parseInt(k, 10), parseInt(v, 10) || 0]);
+        const nonZero = entries.filter(([, c]) => c > 0);
+        if (nonZero.length === 0) {
+          delete asg[csKey][subjIdx]; changed = true; return;
+        }
+        if (nonZero.length > 1) {
+          nonZero.sort((a, b) => b[1] - a[1]);
+          const [keepT, keepC] = nonZero[0];
+          asg[csKey][subjIdx] = { [keepT]: keepC };
+          changed = true;
+        }
+      });
+      if (asg[csKey] && Object.keys(asg[csKey]).length === 0) { delete asg[csKey]; changed = true; }
+    });
+    if (changed) { db.assignments = asg; Store.setDB(db); }
+    return changed;
+  }
+
   function saveAssignment() {
     const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect'); const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect'); const per = qs('#asPeriods');
     if (!classSel || !sectSel || !subjSel || !teachSel || !per) return;
@@ -591,6 +629,7 @@
     const cIdx = parseInt(classSel.value, 10); const sIdx = parseInt(sectSel.value, 10);
     const subjIdx = parseInt(subjSel.value, 10); const tIdx = parseInt(teachSel.value, 10);
     const count = Math.max(0, parseInt(per.value, 10) || 0);
+    if (count <= 0) { showToast('أدخل عدد حصص أكبر من صفر'); return; }
     const db = Store.getDB();
     const allocForSubject = (db.allocations?.[subjIdx]?.[cIdx]) || 0;
     const already = calcAssignedFor(db, cIdx, sIdx, subjIdx);
@@ -598,7 +637,8 @@
     if (count > remaining) { showToast('عدد الحصص يتجاوز المتبقي'); return; }
     db.assignments = db.assignments || {}; const csKey = keyCS(cIdx, sIdx);
     db.assignments[csKey] = db.assignments[csKey] || {};
-    db.assignments[csKey][subjIdx] = db.assignments[csKey][subjIdx] || {};
+    // فرض معلم واحد فقط لكل مادة ضمن (صف/شعبة): إزالة أي مخصصات سابقة لنفس المادة ثم تعيين المعلم الحالي
+    db.assignments[csKey][subjIdx] = {};
     db.assignments[csKey][subjIdx][tIdx] = count;
     Store.setDB(db);
     renderAssignList(); renderAssignStats(); updateAssignRemaining();
@@ -1030,10 +1070,12 @@
     populateAllocSubjectSelect();
     renderAllocations();
   // Assignments (teachers per class/section/subject)
+  const normalized = normalizeAssignmentsUniquePerSubject();
   populateAssignSelectors();
   renderAssignStats();
   renderAssignList();
   updateAssignRemaining();
+  if (normalized) { showToast('تم توحيد التخصيص: معلم واحد لكل مادة في كل شعبة'); }
     // populate class/section selectors
     const db = Store.getDB();
     const classSel = qs('#ttClassSelect');
