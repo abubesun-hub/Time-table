@@ -152,11 +152,23 @@
       <div class="header-row">
         <h2 class="section-title">الجدول الأسبوعي</h2>
         <div class="row gap-8">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="ttClassSelect">اختر الصف</label>
+            <select id="ttClassSelect" class="input"></select>
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="ttSectionSelect">اختر الشعبة</label>
+            <select id="ttSectionSelect" class="input"></select>
+          </div>
           <button id="btnSaveTimetable" class="btn primary"><i class="bi bi-save2"></i> حفظ الجدول</button>
           <button id="btnResetTimetable" class="btn danger"><i class="bi bi-arrow-counterclockwise"></i> إعادة تعيين</button>
         </div>
       </div>
       <div class="neo-surface">
+        <div id="ttGuard" class="alert hidden" style="margin-bottom:10px">
+          <div class="alert-title">اختر صفًا وشعبة لتحرير الجدول</div>
+          <div class="alert-desc">إن لم تضف شعبًا بعد، انتقل إلى صفحة الصفوف لإضافة شُعب.</div>
+        </div>
         <div class="tt-grid" id="timetableGrid"></div>
         <small class="muted">انقر على أي خانة لإدخال اسم المادة/المعلم/القاعة.</small>
       </div>
@@ -204,6 +216,13 @@
       <div class="header-row">
         <h2 class="section-title">المواد الدراسية</h2>
         <button id="btnAddSubject" class="btn primary"><i class="bi bi-plus-circle"></i> إضافة مادة</button>
+      </div>
+      <div id="subjectsGuard" class="alert hidden">
+        <div class="alert-title">لا يمكن إدارة المواد الآن</div>
+        <div class="alert-desc">الرجاء إضافة صف دراسي واحد على الأقل أولًا.</div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" data-route-link="#/classes"><i class="bi bi-grid-3x3-gap"></i> إضافة صف الآن</button>
+        </div>
       </div>
       <div id="subjectsList" class="list neo-surface"></div>
     </section>
@@ -303,8 +322,8 @@
       <label class="label" for="subjectWeekly">عدد الحصص الأسبوعية</label>
       <input id="subjectWeekly" class="input" type="number" min="0" value="0" required />
       <menu class="row gap-8">
-        <button value="cancel" class="btn ghost">إلغاء</button>
-        <button value="default" class="btn primary">حفظ</button>
+        <button type="button" id="btnCancelSubject" class="btn ghost">إلغاء</button>
+        <button type="submit" value="default" class="btn primary">حفظ</button>
       </menu>
     </form>
   </dialog>
@@ -318,8 +337,8 @@
       <label class="label" for="classStudents">عدد الطلاب</label>
       <input id="classStudents" class="input" type="number" min="0" value="0" required />
       <menu class="row gap-8">
-        <button value="cancel" class="btn ghost">إلغاء</button>
-        <button value="default" class="btn primary">حفظ</button>
+        <button type="button" id="btnCancelClass" class="btn ghost">إلغاء</button>
+        <button type="submit" value="default" class="btn primary">حفظ</button>
       </menu>
     </form>
   </dialog>
@@ -335,8 +354,25 @@
       <label class="label" for="teacherEmail">البريد الإلكتروني</label>
       <input id="teacherEmail" class="input" type="email" />
       <menu class="row gap-8">
-        <button value="cancel" class="btn ghost">إلغاء</button>
-        <button value="default" class="btn primary">حفظ</button>
+        <button type="button" id="btnCancelTeacher" class="btn ghost">إلغاء</button>
+        <button type="submit" value="default" class="btn primary">حفظ</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Section Modal -->
+  <dialog id="modal-section" class="modal neo-surface">
+    <form method="dialog" id="form-section">
+      <h3>شعبة دراسية</h3>
+      <label class="label" for="sectionName">اسم الشعبة</label>
+      <input id="sectionName" class="input" required />
+      <label class="label" for="sectionStudents">عدد الطلاب</label>
+      <input id="sectionStudents" class="input" type="number" min="0" value="0" required />
+      <label class="label" for="sectionTeacher">المعلم المسؤول</label>
+      <select id="sectionTeacher" class="input"></select>
+      <menu class="row gap-8">
+        <button type="button" id="btnCancelSection" class="btn ghost">إلغاء</button>
+        <button type="submit" value="default" class="btn primary">حفظ</button>
       </menu>
     </form>
   </dialog>
@@ -368,8 +404,8 @@
         </div>
       </div>
       <menu class="row gap-8">
-        <button value="cancel" class="btn ghost">إلغاء</button>
-        <button value="default" class="btn primary">حفظ</button>
+        <button type="button" id="btnCancelInvoice" class="btn ghost">إلغاء</button>
+        <button type="submit" value="default" class="btn primary">حفظ</button>
       </menu>
     </form>
   </dialog>

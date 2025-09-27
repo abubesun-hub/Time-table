@@ -15,7 +15,7 @@
     auth: { users: [] /* [{user, passHash}] */, currentUser: null },
     school: { name: '', address: '', phone: '', email: '', logo: '' },
     subjects: [],
-    classes: [],
+  classes: [], // each class: { name, students, sections?: [{ name, students, teacherId }] }
     teachers: [],
     timetable: { days: ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'], slots: ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة'], grid: {} },
     invoices: [],

@@ -116,12 +116,9 @@
   async function ensureAdminSetup() {
     const db = Store.getDB();
     const overlay = UI.qs('#setup-overlay');
-    const login = UI.qs('#login-overlay');
     const hasUser = (db.auth.users || []).length > 0;
     overlay.classList.toggle('hidden', hasUser);
     overlay.setAttribute('aria-hidden', hasUser ? 'true' : 'false');
-    login.classList.toggle('hidden', !hasUser);
-    login.setAttribute('aria-hidden', !hasUser ? 'true' : 'false');
   }
 
   async function updateAccountUI() {
@@ -135,7 +132,9 @@
       const allowed = ['#/activation', '#/settings'];
       btn.disabled = !loggedIn && !allowed.includes(route);
     });
-    if (!loggedIn) UI.qs('#login-overlay').classList.remove('hidden');
+    const loginOverlay = UI.qs('#login-overlay');
+    if (loggedIn) loginOverlay.classList.add('hidden');
+    else loginOverlay.classList.remove('hidden');
   }
 
   async function login(user, pass) {
@@ -244,6 +243,12 @@
   function renderSubjects() {
     const list = qs('#subjectsList');
     const db = Store.getDB();
+    // Guard: require at least one class before managing subjects
+    const guard = qs('#subjectsGuard');
+    const hasClasses = (db.classes || []).length > 0;
+    if (guard) guard.classList.toggle('hidden', hasClasses);
+    const addBtn = qs('#btnAddSubject');
+    if (addBtn) addBtn.disabled = !hasClasses;
     renderList(list, db.subjects, (s, i) => {
       const item = document.createElement('div');
       item.className = 'list-item';
@@ -270,15 +275,18 @@
     qs('#subjectWeekly').value = s?.weekly ?? 0;
     dlg.returnValue = 'cancel';
     dlg.showModal();
-    dlg.onclose = () => {
-      if (dlg.returnValue !== 'default') return;
+    const cancelBtn = qs('#btnCancelSubject');
+    if (cancelBtn) cancelBtn.onclick = () => dlg.close('cancel');
+    const form = qs('#form-subject');
+    form.onsubmit = (e) => {
+      e.preventDefault(); dlg.returnValue = 'default';
       const name = qs('#subjectName').value.trim();
       const weekly = parseInt(qs('#subjectWeekly').value, 10) || 0;
-      if (!name) return;
+      if (!name) { showToast('أدخل اسم المادة'); return; }
       const db = Store.getDB();
       const item = { name, weekly };
       if (index >= 0) db.subjects[index] = item; else db.subjects.push(item);
-      Store.setDB(db); renderSubjects(); refreshStats();
+      Store.setDB(db); renderSubjects(); refreshStats(); dlg.close('default');
     };
   }
   qs('#btnAddSubject').addEventListener('click', () => openSubjectModal());
@@ -291,18 +299,42 @@
       const item = document.createElement('div');
       item.className = 'list-item';
       const left = document.createElement('div');
-      left.innerHTML = `<div class="list-title">${c.name}</div><div class="list-sub">عدد الطلاب: ${c.students}</div>`;
+      const sections = (c.sections || []).map((s, si) => {
+        const tName = (typeof s.teacherId === 'number' && db.teachers[s.teacherId]) ? db.teachers[s.teacherId].name : null;
+        const teacherLabel = tName ? ` — ${tName}` : '';
+        return `<span class="chip">${s.name}${teacherLabel} <span class="x" title="حذف" data-x="${s.name}">×</span> <span class="x" title="تعديل" data-edit="${si}">✎</span></span>`;
+      }).join(' ');
+      left.innerHTML = `<div class="list-title">${c.name}</div><div class="list-sub">عدد الطلاب: ${c.students}</div>${sections ? `<div class="chips">${sections}</div>` : ''}`;
       const actions = document.createElement('div');
       actions.className = 'item-actions';
       const edit = document.createElement('button'); edit.className = 'btn'; edit.textContent = 'تعديل';
       const del = document.createElement('button'); del.className = 'btn danger'; del.textContent = 'حذف';
+      const addSection = document.createElement('button'); addSection.className = 'btn'; addSection.textContent = 'إضافة شعبة';
       edit.addEventListener('click', () => openClassModal(c, i));
       del.addEventListener('click', () => {
         if (!confirm('حذف الصف؟')) return;
         db.classes.splice(i, 1); Store.setDB(db); renderClasses(); refreshStats();
       });
-      actions.append(edit, del);
+      addSection.addEventListener('click', () => openSectionModal(i));
+      actions.append(addSection, edit, del);
       item.append(left, actions);
+      // delete section click handlers
+      item.querySelectorAll('.chip .x').forEach(x => x.addEventListener('click', () => {
+        const name = x.getAttribute('data-x');
+        const editIndexStr = x.getAttribute('data-edit');
+        if (editIndexStr !== null) {
+          const si = parseInt(editIndexStr, 10);
+          const cls = Store.getDB().classes[i];
+          openSectionModal(i, cls.sections[si], si);
+          return;
+        }
+        if (!name) return;
+        if (!confirm(`حذف الشعبة ${name}؟`)) return;
+        const db2 = Store.getDB();
+        const cls = db2.classes[i];
+        cls.sections = (cls.sections || []).filter(s => s.name !== name);
+        Store.setDB(db2); renderClasses();
+      }));
       return item;
     });
   }
@@ -313,18 +345,60 @@
     qs('#classStudents').value = c?.students ?? 0;
     dlg.returnValue = 'cancel';
     dlg.showModal();
-    dlg.onclose = () => {
-      if (dlg.returnValue !== 'default') return;
+    const cancelBtn = qs('#btnCancelClass');
+    if (cancelBtn) cancelBtn.onclick = () => dlg.close('cancel');
+    const form = qs('#form-class');
+    form.onsubmit = (e) => {
+      e.preventDefault(); dlg.returnValue = 'default';
       const name = qs('#className').value.trim();
       const students = parseInt(qs('#classStudents').value, 10) || 0;
-      if (!name) return;
+      if (!name) { showToast('أدخل اسم الصف'); return; }
       const db = Store.getDB();
       const item = { name, students };
       if (index >= 0) db.classes[index] = item; else db.classes.push(item);
-      Store.setDB(db); renderClasses(); refreshStats();
+      Store.setDB(db); renderClasses(); refreshStats(); dlg.close('default');
     };
   }
   qs('#btnAddClass').addEventListener('click', () => openClassModal());
+
+  // Sections (per class)
+  function openSectionModal(classIndex, section = null, sectionIndex = -1) {
+    const dlg = qs('#modal-section');
+    qs('#sectionName').value = section?.name || '';
+    qs('#sectionStudents').value = section?.students ?? 0;
+    // Populate teachers select
+    const dbForSelect = Store.getDB();
+    const sel = qs('#sectionTeacher');
+    if (sel) {
+      sel.innerHTML = '<option value="">— اختر معلم —</option>' + (dbForSelect.teachers || []).map((t, idx) => `<option value="${idx}">${t.name}</option>`).join('');
+      if (typeof section?.teacherId === 'number') sel.value = String(section.teacherId);
+    }
+    dlg.returnValue = 'cancel';
+    dlg.showModal();
+    const cancelBtn = qs('#btnCancelSection');
+    if (cancelBtn) cancelBtn.onclick = () => dlg.close('cancel');
+    const form = qs('#form-section');
+    form.onsubmit = (e) => {
+      e.preventDefault(); dlg.returnValue = 'default';
+      const name = qs('#sectionName').value.trim();
+      const students = parseInt(qs('#sectionStudents').value, 10) || 0;
+      if (!name) { showToast('أدخل اسم الشعبة'); return; }
+      const db = Store.getDB();
+      const cls = db.classes[classIndex];
+      cls.sections = cls.sections || [];
+      // Prevent duplicate section names within the same class (case-insensitive)
+      const duplicate = cls.sections.some((s, si) => si !== sectionIndex && (s.name || '').trim().toLowerCase() === name.toLowerCase());
+      if (duplicate) { showToast('اسم الشعبة موجود مسبقًا لهذا الصف'); return; }
+      // Teacher selection
+      const selEl = qs('#sectionTeacher');
+      const selVal = selEl ? selEl.value : '';
+      const teacherId = selVal === '' ? undefined : parseInt(selVal, 10);
+      const item = { name, students };
+      if (!Number.isNaN(teacherId)) item.teacherId = teacherId;
+      if (sectionIndex >= 0) cls.sections[sectionIndex] = item; else cls.sections.push(item);
+      Store.setDB(db); renderClasses(); dlg.close('default');
+    };
+  }
 
   // Teachers CRUD
   function renderTeachers() {
@@ -357,14 +431,17 @@
     qs('#teacherEmail').value = t?.email || '';
     dlg.returnValue = 'cancel';
     dlg.showModal();
-    dlg.onclose = () => {
-      if (dlg.returnValue !== 'default') return;
+    const cancelBtn = qs('#btnCancelTeacher');
+    if (cancelBtn) cancelBtn.onclick = () => dlg.close('cancel');
+    const form = qs('#form-teacher');
+    form.onsubmit = (e) => {
+      e.preventDefault(); dlg.returnValue = 'default';
       const name = qs('#teacherName').value.trim();
-      if (!name) return;
+      if (!name) { showToast('أدخل اسم المعلم'); return; }
       const db = Store.getDB();
       const item = { name, phone: qs('#teacherPhone').value.trim(), email: qs('#teacherEmail').value.trim() };
       if (index >= 0) db.teachers[index] = item; else db.teachers.push(item);
-      Store.setDB(db); renderTeachers(); refreshStats();
+      Store.setDB(db); renderTeachers(); refreshStats(); dlg.close('default');
     };
   }
   qs('#btnAddTeacher').addEventListener('click', () => openTeacherModal());
@@ -448,8 +525,11 @@
     qs('#invoiceNotes').value = '';
     dlg.returnValue = 'cancel';
     dlg.showModal();
-    dlg.onclose = () => {
-      if (dlg.returnValue !== 'default') return;
+    const cancelBtn = qs('#btnCancelInvoice');
+    if (cancelBtn) cancelBtn.onclick = () => dlg.close('cancel');
+    const form = qs('#form-invoice');
+    form.onsubmit = (e) => {
+      e.preventDefault(); dlg.returnValue = 'default';
       const items = parseInvoiceItems(qs('#invoiceItems').value);
       const calc = calcInvoice(items, parseFloat(qs('#invoiceDiscount').value));
       const db = Store.getDB();
@@ -465,6 +545,7 @@
       Store.setDB(db);
       renderInvoices();
       refreshStats();
+      dlg.close('default');
     };
   }
   qs('#btnAddInvoice').addEventListener('click', openInvoiceModal);
@@ -472,14 +553,36 @@
   // Timetable
   function getTimetable() { return Store.getDB().timetable; }
 
+  function currentClassSectionKey() {
+    const cIdx = qs('#ttClassSelect').value;
+    const sIdx = qs('#ttSectionSelect').value;
+    if (cIdx === '' || sIdx === '') return null;
+    return `${cIdx}:${sIdx}`;
+  }
+
   function renderTimetable() {
     const host = qs('#timetableGrid');
     const db = Store.getDB();
     const tt = db.timetable;
     const days = tt.days;
     const slots = tt.slots;
-    const grid = tt.grid || {};
+    const key = currentClassSectionKey();
+    const grid = (tt.grid || {});
     host.innerHTML = '';
+    const guard = qs('#ttGuard');
+    const hasKey = !!key;
+    if (guard) guard.classList.toggle('hidden', hasKey);
+    if (!hasKey) return;
+    // Determine section's responsible teacher name for suggestion
+    let suggestTeacherName = '';
+    const cIdx = parseInt(qs('#ttClassSelect').value, 10);
+    const sIdx = parseInt(qs('#ttSectionSelect').value, 10);
+    if (!Number.isNaN(cIdx) && !Number.isNaN(sIdx)) {
+      const sect = (db.classes?.[cIdx]?.sections || [])[sIdx];
+      const tId = sect?.teacherId;
+      const tObj = (typeof tId === 'number') ? db.teachers?.[tId] : null;
+      suggestTeacherName = tObj?.name || '';
+    }
     // header row
     const headRow = document.createElement('div');
     headRow.className = 'tt-grid';
@@ -492,10 +595,18 @@
       const row = document.createElement('div'); row.className = 'tt-grid';
       const sHead = document.createElement('div'); sHead.className = 'tt-cell tt-head'; sHead.textContent = slot; row.appendChild(sHead);
       days.forEach((day) => {
-        const key = day + '|' + slot;
+        const ckey = key + '|' + day + '|' + slot;
         const cell = document.createElement('div'); cell.className = 'tt-cell'; cell.contentEditable = 'true';
-        cell.textContent = grid[key] || '';
-        cell.dataset.key = key;
+        cell.textContent = grid[ckey] || '';
+        cell.dataset.key = ckey;
+        if (suggestTeacherName) {
+          cell.title = `اقتراح: ${suggestTeacherName}`;
+          cell.addEventListener('focus', () => {
+            if ((cell.textContent || '').trim() === '' && suggestTeacherName) {
+              cell.textContent = suggestTeacherName;
+            }
+          });
+        }
         row.appendChild(cell);
       });
       host.appendChild(row);
@@ -513,7 +624,15 @@
   qs('#btnSaveTimetable').addEventListener('click', () => { saveTimetableFromUI(); showToast('تم حفظ الجدول'); });
   qs('#btnResetTimetable').addEventListener('click', () => {
     if (!confirm('إعادة تعيين الجدول؟')) return;
-    const db = Store.getDB(); db.timetable.grid = {}; Store.setDB(db); renderTimetable();
+    const db = Store.getDB();
+    const key = currentClassSectionKey();
+    if (key) {
+      // reset only for selected class-section
+      Object.keys(db.timetable.grid || {}).forEach(k => { if (k.startsWith(key + '|')) delete db.timetable.grid[k]; });
+    } else {
+      db.timetable.grid = {};
+    }
+    Store.setDB(db); renderTimetable();
   });
 
   // Backup & Import/Export
@@ -580,6 +699,22 @@
     renderClasses();
     renderTeachers();
     renderInvoices();
+    // populate class/section selectors
+    const db = Store.getDB();
+    const classSel = qs('#ttClassSelect');
+    const sectSel = qs('#ttSectionSelect');
+    if (classSel && sectSel) {
+      classSel.innerHTML = '<option value="">— اختر صف —</option>' + db.classes.map((c, i) => `<option value="${i}">${c.name}</option>`).join('');
+      const updateSections = () => {
+        const idx = classSel.value;
+        const sections = idx === '' ? [] : (db.classes[idx].sections || []);
+        sectSel.innerHTML = '<option value="">— اختر شعبة —</option>' + sections.map((s, si) => `<option value="${si}">${s.name}</option>`).join('');
+        renderTimetable();
+      };
+      classSel.onchange = updateSections;
+      sectSel.onchange = () => renderTimetable();
+      updateSections();
+    }
     renderTimetable();
     renderBackups();
     loadSettings();
