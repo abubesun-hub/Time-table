@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>الجدول المدرسي | لوحة التحكم</title>
+  <meta name="description" content="برنامج إدارة الجدول المدرسي يعمل دون اتصال مع واجهة عربية وتصميم نيومورفيك." />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="./assets/css/style.css" />
+</head>
+<body>
+  <noscript>
+    <div class="no-js">هذا التطبيق يحتاج لتفعيل JavaScript.</div>
+  </noscript>
+
+  <!-- Activation Overlay -->
+  <div id="activation-overlay" class="overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="activationTitle">
+    <div class="overlay-card neo-surface">
+      <div class="overlay-header">
+        <span class="bi bi-shield-lock"></span>
+        <h2 id="activationTitle">تفعيل البرنامج</h2>
+      </div>
+      <p class="muted">الرجاء إدخال السيريال نمبر (رخصة التفعيل) لتشغيل البرنامج. يمكن الحصول عليه من المسؤول.</p>
+      <div class="device-id-box">
+        <label class="label">معرّف الجهاز</label>
+        <div class="row gap-8">
+          <input id="deviceIdField" class="input mono" dir="ltr" readonly />
+          <button id="copyDeviceIdBtn" class="btn ghost" title="نسخ"><span class="bi bi-clipboard"></span></button>
+        </div>
+        <small class="muted">أرسل هذا المعرّف للمسؤول ليصدر لك رخصة مخصّصة لجهازك.</small>
+      </div>
+      <label for="licenseInput" class="label">نص الرخصة</label>
+      <textarea id="licenseInput" dir="ltr" placeholder="ألصق الرخصة هنا" class="input mono" rows="6"></textarea>
+      <div class="row gap-8">
+        <button id="activateBtn" class="btn primary">
+          <span class="bi bi-check2-circle"></span>
+          تفعيل
+        </button>
+        <button id="pasteLicenseBtn" class="btn ghost" title="لصق من الحافظة">
+          <span class="bi bi-clipboard2-check"></span>
+          لصق
+        </button>
+      </div>
+      <div class="overlay-footer">
+        <small class="muted">الخصوصية: يتم حفظ الرخصة محلياً على هذا الجهاز فقط.</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Bar -->
+  <header class="topbar neo-surface">
+    <div class="brand">
+      <span class="brand-icon" aria-hidden="true">📚</span>
+      <span class="brand-title">الجدول المدرسي</span>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn" data-route="#/dashboard"><i class="bi bi-house"></i><span>الرئيسية</span></button>
+      <button class="nav-btn" data-route="#/school"><i class="bi bi-building"></i><span>المدرسة</span></button>
+      <button class="nav-btn" data-route="#/subjects"><i class="bi bi-book"></i><span>المواد</span></button>
+      <button class="nav-btn" data-route="#/classes"><i class="bi bi-grid-3x3-gap"></i><span>الصفوف</span></button>
+      <button class="nav-btn" data-route="#/teachers"><i class="bi bi-people"></i><span>المعلمون</span></button>
+      <button class="nav-btn" data-route="#/timetable"><i class="bi bi-calendar-week"></i><span>الجدول الأسبوعي</span></button>
+      <button class="nav-btn" data-route="#/invoices"><i class="bi bi-receipt"></i><span>الفواتير</span></button>
+      <button class="nav-btn" data-route="#/backup"><i class="bi bi-cloud-arrow-up"></i><span>نسخ احتياطي</span></button>
+      <button class="nav-btn" data-route="#/activation"><i class="bi bi-key"></i><span>التفعيل</span></button>
+      <button class="nav-btn" data-route="#/settings"><i class="bi bi-gear"></i><span>الإعدادات</span></button>
+    </nav>
+    <div class="account">
+      <span class="bi bi-person-circle"></span>
+      <span id="currentUser">غير مسجل</span>
+      <button id="btnLogout" class="btn ghost" title="تسجيل الخروج"><i class="bi bi-box-arrow-right"></i></button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="app" class="container">
+    <!-- Dashboard -->
+    <section id="view-dashboard" class="view active">
+      <div class="stats-grid">
+        <div class="stat neo-surface" title="عدد المواد">
+          <div class="stat-icon"><i class="bi bi-book"></i></div>
+          <div class="stat-info">
+            <div class="stat-label">المواد</div>
+            <div id="stat-subjects" class="stat-value">0</div>
+          </div>
+        </div>
+        <div class="stat neo-surface" title="عدد الصفوف">
+          <div class="stat-icon"><i class="bi bi-grid-3x3-gap"></i></div>
+          <div class="stat-info">
+            <div class="stat-label">الصفوف</div>
+            <div id="stat-classes" class="stat-value">0</div>
+          </div>
+        </div>
+        <div class="stat neo-surface" title="عدد المعلمين">
+          <div class="stat-icon"><i class="bi bi-people"></i></div>
+          <div class="stat-info">
+            <div class="stat-label">المعلمون</div>
+            <div id="stat-teachers" class="stat-value">0</div>
+          </div>
+        </div>
+        <div class="stat neo-surface" title="الفواتير">
+          <div class="stat-icon"><i class="bi bi-receipt"></i></div>
+          <div class="stat-info">
+            <div class="stat-label">الفواتير</div>
+            <div id="stat-invoices" class="stat-value">0</div>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="section-title">الصفحات الرئيسية</h2>
+      <div class="cards-grid">
+        <a class="card neo-surface" data-route-link="#/school">
+          <div class="card-icon"><i class="bi bi-building"></i></div>
+          <div class="card-title">معلومات المدرسة</div>
+          <div class="card-desc">تحديث بيانات المدرسة والشعار والعنوان.</div>
+        </a>
+        <a class="card neo-surface" data-route-link="#/subjects">
+          <div class="card-icon"><i class="bi bi-book"></i></div>
+          <div class="card-title">المواد الدراسية</div>
+          <div class="card-desc">إدارة المواد وعدد الحصص الأسبوعية.</div>
+        </a>
+        <a class="card neo-surface" data-route-link="#/classes">
+          <div class="card-icon"><i class="bi bi-grid-3x3-gap"></i></div>
+          <div class="card-title">الصفوف</div>
+          <div class="card-desc">تعريف الصفوف والأقساط وعدد الطلاب.</div>
+        </a>
+        <a class="card neo-surface" data-route-link="#/teachers">
+          <div class="card-icon"><i class="bi bi-person-badge"></i></div>
+          <div class="card-title">المعلمون</div>
+          <div class="card-desc">إدارة المعلمين وتوزيع الحصص.</div>
+        </a>
+        <a class="card neo-surface" data-route-link="#/timetable">
+          <div class="card-icon"><i class="bi bi-calendar-week"></i></div>
+          <div class="card-title">الجدول الأسبوعي</div>
+          <div class="card-desc">تحرير الجدول الأسبوعي وحفظه.</div>
+        </a>
+        <a class="card neo-surface" data-route-link="#/invoices">
+          <div class="card-icon"><i class="bi bi-receipt"></i></div>
+          <div class="card-title">نظام الفواتير</div>
+          <div class="card-desc">إنشاء فواتير مع الخصومات والطباعة.</div>
+        </a>
+        <a class="card neo-surface" data-route-link="#/backup">
+          <div class="card-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+          <div class="card-title">النسخ الاحتياطي</div>
+          <div class="card-desc">نسخ تلقائي كل ساعة واستعادة البيانات.</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Timetable -->
+    <section id="view-timetable" class="view">
+      <div class="header-row">
+        <h2 class="section-title">الجدول الأسبوعي</h2>
+        <div class="row gap-8">
+          <button id="btnSaveTimetable" class="btn primary"><i class="bi bi-save2"></i> حفظ الجدول</button>
+          <button id="btnResetTimetable" class="btn danger"><i class="bi bi-arrow-counterclockwise"></i> إعادة تعيين</button>
+        </div>
+      </div>
+      <div class="neo-surface">
+        <div class="tt-grid" id="timetableGrid"></div>
+        <small class="muted">انقر على أي خانة لإدخال اسم المادة/المعلم/القاعة.</small>
+      </div>
+    </section>
+
+    <!-- School Info -->
+    <section id="view-school" class="view">
+      <h2 class="section-title">معلومات المدرسة</h2>
+      <form id="form-school" class="form neo-surface">
+        <div class="row">
+          <div class="col">
+            <label class="label" for="schoolName">اسم المدرسة</label>
+            <input id="schoolName" class="input" placeholder="اسم المدرسة" />
+          </div>
+          <div class="col">
+            <label class="label" for="schoolAddress">العنوان</label>
+            <input id="schoolAddress" class="input" placeholder="المدينة - الشارع - رقم المبنى" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label class="label" for="schoolPhone">الهاتف</label>
+            <input id="schoolPhone" class="input" placeholder="مثال: 0501234567" />
+          </div>
+          <div class="col">
+            <label class="label" for="schoolEmail">البريد الإلكتروني</label>
+            <input id="schoolEmail" class="input" type="email" placeholder="example@school.com" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label class="label" for="schoolLogo">شعار المدرسة (رابط صورة)</label>
+            <input id="schoolLogo" class="input" placeholder="https://..." />
+          </div>
+        </div>
+        <div class="row gap-8">
+          <button type="submit" class="btn primary"><i class="bi bi-save2"></i> حفظ</button>
+          <button type="button" id="btnSchoolClear" class="btn danger"><i class="bi bi-trash3"></i> مسح</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Subjects -->
+    <section id="view-subjects" class="view">
+      <div class="header-row">
+        <h2 class="section-title">المواد الدراسية</h2>
+        <button id="btnAddSubject" class="btn primary"><i class="bi bi-plus-circle"></i> إضافة مادة</button>
+      </div>
+      <div id="subjectsList" class="list neo-surface"></div>
+    </section>
+
+    <!-- Classes -->
+    <section id="view-classes" class="view">
+      <div class="header-row">
+        <h2 class="section-title">الصفوف</h2>
+        <button id="btnAddClass" class="btn primary"><i class="bi bi-plus-circle"></i> إضافة صف</button>
+      </div>
+      <div id="classesList" class="list neo-surface"></div>
+    </section>
+
+    <!-- Teachers -->
+    <section id="view-teachers" class="view">
+      <div class="header-row">
+        <h2 class="section-title">المعلمون</h2>
+        <button id="btnAddTeacher" class="btn primary"><i class="bi bi-plus-circle"></i> إضافة معلم</button>
+      </div>
+      <div id="teachersList" class="list neo-surface"></div>
+    </section>
+
+    <!-- Invoices -->
+    <section id="view-invoices" class="view">
+      <div class="header-row">
+        <h2 class="section-title">الفواتير</h2>
+        <button id="btnAddInvoice" class="btn primary"><i class="bi bi-plus-circle"></i> إنشاء فاتورة</button>
+      </div>
+      <div id="invoicesList" class="list neo-surface"></div>
+      <div id="invoicePrintArea" class="print-area"></div>
+    </section>
+
+    <!-- Backup & Import/Export -->
+    <section id="view-backup" class="view">
+      <h2 class="section-title">النسخ الاحتياطي والاستيراد/التصدير</h2>
+      <div class="neo-surface pad-16">
+        <div class="row gap-8 wrap">
+          <button id="btnCreateBackup" class="btn"><i class="bi bi-cloud-arrow-up"></i> إنشاء نسخة الآن</button>
+          <button id="btnExport" class="btn"><i class="bi bi-download"></i> تصدير البيانات</button>
+          <label class="btn file-btn"><i class="bi bi-upload"></i> استيراد البيانات
+            <input type="file" id="fileImport" accept="application/json" hidden />
+          </label>
+        </div>
+        <h3 class="sub-title">النسخ المتوفرة</h3>
+        <div id="backupsList" class="list"></div>
+      </div>
+    </section>
+
+    <!-- Activation management -->
+    <section id="view-activation" class="view">
+      <h2 class="section-title">إدارة التفعيل</h2>
+      <div class="neo-surface pad-16">
+        <p class="muted">الحالة: <span id="licenseStatus">غير مُفعّل</span></p>
+        <div class="row gap-8">
+          <button id="btnShowActivation" class="btn primary"><i class="bi bi-key"></i> إدخال رخصة جديدة</button>
+          <button id="btnRemoveActivation" class="btn danger"><i class="bi bi-x-circle"></i> إلغاء التفعيل</button>
+        </div>
+        <pre id="licenseInfo" class="mono small"></pre>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section id="view-settings" class="view">
+      <h2 class="section-title">الإعدادات</h2>
+      <div class="neo-surface pad-16">
+        <div class="row">
+          <div class="col">
+            <label class="label" for="themeSelect">المظهر</label>
+            <select id="themeSelect" class="input">
+              <option value="auto">تلقائي (حسب النظام)</option>
+              <option value="light">فاتح</option>
+              <option value="dark">داكن</option>
+            </select>
+          </div>
+          <div class="col">
+            <label class="label" for="densitySelect">الكثافة</label>
+            <select id="densitySelect" class="input">
+              <option value="comfortable">مريحة</option>
+              <option value="compact">مضغوطة</option>
+            </select>
+          </div>
+        </div>
+        <div class="row gap-8">
+          <button id="btnSaveSettings" class="btn primary"><i class="bi bi-save2"></i> حفظ</button>
+          <button id="btnResetApp" class="btn danger"><i class="bi bi-recycle"></i> إعادة ضبط التطبيق</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Subject Modal -->
+  <dialog id="modal-subject" class="modal neo-surface">
+    <form method="dialog" id="form-subject">
+      <h3>مادة دراسية</h3>
+      <label class="label" for="subjectName">اسم المادة</label>
+      <input id="subjectName" class="input" required />
+      <label class="label" for="subjectWeekly">عدد الحصص الأسبوعية</label>
+      <input id="subjectWeekly" class="input" type="number" min="0" value="0" required />
+      <menu class="row gap-8">
+        <button value="cancel" class="btn ghost">إلغاء</button>
+        <button value="default" class="btn primary">حفظ</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Class Modal -->
+  <dialog id="modal-class" class="modal neo-surface">
+    <form method="dialog" id="form-class">
+      <h3>صف دراسي</h3>
+      <label class="label" for="className">اسم الصف</label>
+      <input id="className" class="input" required />
+      <label class="label" for="classStudents">عدد الطلاب</label>
+      <input id="classStudents" class="input" type="number" min="0" value="0" required />
+      <menu class="row gap-8">
+        <button value="cancel" class="btn ghost">إلغاء</button>
+        <button value="default" class="btn primary">حفظ</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Teacher Modal -->
+  <dialog id="modal-teacher" class="modal neo-surface">
+    <form method="dialog" id="form-teacher">
+      <h3>معلومات معلم</h3>
+      <label class="label" for="teacherName">الاسم</label>
+      <input id="teacherName" class="input" required />
+      <label class="label" for="teacherPhone">الهاتف</label>
+      <input id="teacherPhone" class="input" />
+      <label class="label" for="teacherEmail">البريد الإلكتروني</label>
+      <input id="teacherEmail" class="input" type="email" />
+      <menu class="row gap-8">
+        <button value="cancel" class="btn ghost">إلغاء</button>
+        <button value="default" class="btn primary">حفظ</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Invoice Modal -->
+  <dialog id="modal-invoice" class="modal neo-surface">
+    <form method="dialog" id="form-invoice">
+      <h3>فاتورة</h3>
+      <div class="row">
+        <div class="col">
+          <label class="label" for="invoiceTo">اسم المستفيد</label>
+          <input id="invoiceTo" class="input" required />
+        </div>
+        <div class="col">
+          <label class="label" for="invoiceDate">التاريخ</label>
+          <input id="invoiceDate" class="input" type="date" required />
+        </div>
+      </div>
+      <label class="label" for="invoiceItems">البنود (اسم - كمية - سعر)</label>
+      <textarea id="invoiceItems" class="input mono" rows="4" placeholder="مثال:\nرسوم تسجيل,1,100\nزي مدرسي,2,50"></textarea>
+      <div class="row">
+        <div class="col">
+          <label class="label" for="invoiceDiscount">خصم (%)</label>
+          <input id="invoiceDiscount" type="number" class="input" min="0" max="100" value="0" />
+        </div>
+        <div class="col">
+          <label class="label" for="invoiceNotes">ملاحظات</label>
+          <input id="invoiceNotes" class="input" />
+        </div>
+      </div>
+      <menu class="row gap-8">
+        <button value="cancel" class="btn ghost">إلغاء</button>
+        <button value="default" class="btn primary">حفظ</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Toasts -->
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Login Overlay -->
+  <div id="login-overlay" class="overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="loginTitle">
+    <div class="overlay-card neo-surface">
+      <div class="overlay-header">
+        <span class="bi bi-box-arrow-in-right"></span>
+        <h2 id="loginTitle">تسجيل الدخول</h2>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label class="label" for="loginUser">اسم المستخدم</label>
+          <input id="loginUser" class="input" autocomplete="username" />
+        </div>
+        <div class="col">
+          <label class="label" for="loginPass">كلمة المرور</label>
+          <input id="loginPass" class="input" type="password" autocomplete="current-password" />
+        </div>
+      </div>
+      <div class="row gap-8">
+        <button id="btnLogin" class="btn primary"><i class="bi bi-box-arrow-in-right"></i> دخول</button>
+      </div>
+      <div class="overlay-footer">
+        <small class="muted">تلميح: استخدم الأرقام الإنجليزية 0-9 في كلمة المرور (وليس ٠-٩). إذا كانت هذه أول مرة، أنشئ حساب المسؤول أولاً.</small>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnResetUsers" class="btn ghost"><i class="bi bi-recycle"></i> تهيئة من جديد (مسح المستخدمين)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Setup Overlay -->
+  <div id="setup-overlay" class="overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="setupTitle">
+    <div class="overlay-card neo-surface">
+      <div class="overlay-header">
+        <span class="bi bi-person-gear"></span>
+        <h2 id="setupTitle">إنشاء حساب مسؤول</h2>
+      </div>
+      <p class="muted">الرجاء إعداد حساب المسؤول لبدء استخدام النظام.</p>
+      <div class="row">
+        <div class="col">
+          <label class="label" for="setupUser">اسم المستخدم</label>
+          <input id="setupUser" class="input" autocomplete="username" />
+        </div>
+        <div class="col">
+          <label class="label" for="setupPass">كلمة المرور</label>
+          <input id="setupPass" class="input" type="password" autocomplete="new-password" />
+        </div>
+      </div>
+      <div class="device-id-box" style="margin-top:8px">
+        <label class="label">معرّف الجهاز</label>
+        <div class="row gap-8">
+          <input id="setupDeviceIdField" class="input mono" dir="ltr" readonly />
+          <button id="copyDeviceIdBtnSetup" class="btn ghost" title="نسخ"><span class="bi bi-clipboard"></span></button>
+        </div>
+        <small class="muted">أرسل هذا المعرّف للمسؤول للحصول على رخصة التفعيل.</small>
+      </div>
+      <div class="row gap-8">
+        <button id="btnSetupAdmin" class="btn primary"><i class="bi bi-person-check"></i> إنشاء</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./assets/js/crypto.js"></script>
+  <script src="./assets/js/storage.js"></script>
+  <script src="./assets/js/ui.js"></script>
+  <script src="./assets/js/app.js"></script>
+</body>
+</html>
