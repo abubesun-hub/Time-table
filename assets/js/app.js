@@ -299,18 +299,51 @@
     });
   }
 
+  function renderBreaksEditor() {
+    const host = qs('#breaksEditor'); if (!host) return;
+    const db = Store.getDB(); const t = db.times || {}; const g = t.global || { defaultPeriods: 6 };
+    const arr = (t.breaks && Array.isArray(t.breaks)) ? t.breaks.slice() : [];
+    const count = Math.max(0, (g.defaultPeriods || 6) - 1);
+    while (arr.length < count) arr.push(t.global?.breakMinutes ?? 10);
+    if (arr.length > count) arr.length = count;
+    host.innerHTML = '';
+    for (let i = 0; i < count; i++) {
+      const item = document.createElement('div'); item.className = 'list-item';
+      const left = document.createElement('div'); left.innerHTML = `<div class="list-title">بعد الحصة ${i+1}</div>`;
+      const actions = document.createElement('div'); actions.className = 'item-actions';
+      const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.className = 'input'; input.style.minWidth = '100px';
+      input.value = arr[i] ?? 0; input.setAttribute('data-break-index', String(i));
+      actions.append(input); item.append(left, actions); host.appendChild(item);
+    }
+    // Save on change
+    qsa('#breaksEditor input[data-break-index]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const db2 = Store.getDB(); db2.times = db2.times || {}; const g2 = db2.times.global || { defaultPeriods: 6 };
+        const c = Math.max(0, (g2.defaultPeriods || 6) - 1);
+        const arr2 = [];
+        for (let j = 0; j < c; j++) {
+          const el = qs(`#breaksEditor input[data-break-index="${j}"]`);
+          arr2[j] = Math.max(0, parseInt(el.value, 10) || 0);
+        }
+        db2.times.breaks = arr2; Store.setDB(db2);
+      });
+    });
+  }
+
   const btnSaveTimes = qs('#btnSaveTimes'); if (btnSaveTimes) btnSaveTimes.addEventListener('click', () => {
     const db = Store.getDB(); db.times = db.times || {}; db.times.global = db.times.global || {};
     db.times.global.lessonMinutes = Math.max(10, parseInt(qs('#globalLessonDuration').value, 10) || 40);
     db.times.global.breakMinutes = Math.max(0, parseInt(qs('#globalBreakDuration').value, 10) || 10);
     db.times.global.defaultPeriods = Math.max(1, Math.min(12, parseInt(qs('#globalPeriods').value, 10) || 6));
-    Store.setDB(db); showToast('تم حفظ الأوقات');
+    Store.setDB(db);
+    renderBreaksEditor();
+    showToast('تم حفظ الأوقات');
   });
 
   const btnResetTimes = qs('#btnResetTimes'); if (btnResetTimes) btnResetTimes.addEventListener('click', () => {
     if (!confirm('إعادة ضبط إعدادات الأوقات إلى القيم الافتراضية؟')) return;
     const db = Store.getDB(); db.times = undefined; // سيُعاد إنشاؤها عند العرض حسب القيم الافتراضية
-    Store.setDB(db); renderDaysList(); renderTimesEditor(); showToast('تمت إعادة الضبط');
+    Store.setDB(db); renderDaysList(); renderTimesEditor(); renderBreaksEditor(); showToast('تمت إعادة الضبط');
   });
 
   // Catalog (subjects list used in allocations)
@@ -849,6 +882,7 @@
     loadSchoolForm();
     renderDaysList();
     renderTimesEditor();
+    renderBreaksEditor();
     renderCatalog();
     renderClasses();
     renderTeachers();

@@ -27,6 +27,8 @@
     times: {
       workingDays: { 'السبت': true, 'الأحد': true, 'الاثنين': true, 'الثلاثاء': true, 'الأربعاء': true, 'الخميس': false },
       global: { lessonMinutes: 40, breakMinutes: 10, defaultPeriods: 6 },
+      // breaks: array of minutes after each lesson index (1-based logical), e.g., [5,10,5,0,...]
+      breaks: [5, 10, 5, 10, 5],
       perDay: {
         'السبت':   { mode: 'صباحي', start: '08:00', periods: 6 },
         'الأحد':   { mode: 'صباحي', start: '08:00', periods: 6 },
