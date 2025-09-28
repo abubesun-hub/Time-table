@@ -490,10 +490,10 @@
     if (classSel) classSel.onchange = () => {
       const idx = classSel.value; const sections = idx === '' ? [] : (db.classes[idx].sections || []);
       if (sectSel) sectSel.innerHTML = '<option value="">— اختر شعبة —</option>' + sections.map((s, si) => `<option value="${si}">${s.name}</option>`).join('');
-      updateAssignRemaining();
+      updateAssignRemaining(true);
     };
-    if (subjSel) subjSel.onchange = updateAssignRemaining;
-    if (sectSel) sectSel.onchange = updateAssignRemaining;
+    if (subjSel) subjSel.onchange = () => updateAssignRemaining(true);
+    if (sectSel) sectSel.onchange = () => updateAssignRemaining(true);
   }
 
   function keyCS(cIdx, sIdx) { return `${cIdx}:${sIdx}`; }
@@ -503,7 +503,7 @@
     return Object.values(map).reduce((a, v) => a + (parseInt(v, 10) || 0), 0);
   }
 
-  function updateAssignRemaining() {
+  function updateAssignRemaining(force = false) {
     const db = Store.getDB();
     const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect'); const subjSel = qs('#asSubjectSelect');
     const remainingEl = qs('#asRemaining'); const periodsInput = qs('#asPeriods');
@@ -517,12 +517,13 @@
     remainingEl.textContent = `المتبقي: ${remaining}`;
     if (periodsInput) {
       const cur = parseInt(periodsInput.value, 10) || 0;
-      // عند تغيير الاختيارات، املأ تلقائيًا بالقيمة المتبقية إذا كان الحقل ما يزال صفرًا
-      if (cur === 0) {
+      // إذا كان التغيير ناتجًا عن تبديل الصف/الشعبة/المادة، حدّثه قسرًا
+      if (force) {
         periodsInput.value = remaining;
-      } else if (cur > remaining) {
-        // وإلا، قم بتقليمه إذا تجاوز المتبقي
-        periodsInput.value = remaining;
+      } else {
+        // وإلا املأ فقط إن كان صفرًا أو قلّم إذا تجاوز المتبقي
+        if (cur === 0) periodsInput.value = remaining;
+        else if (cur > remaining) periodsInput.value = remaining;
       }
     }
   }
