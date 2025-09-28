@@ -157,7 +157,21 @@
       const subjectsSet = [...new Set(st.items.map(it => it.subjectName))];
       const subjCount = document.createElement('div'); subjCount.className = 'tcell'; subjCount.textContent = subjectsSet.length ? subjectsSet.join('، ') : '—';
       const details = document.createElement('div'); details.className = 'tcell';
-      details.textContent = st.items.length ? st.items.map(it => `${it.className}${it.sectionName ? ' — ' + it.sectionName : ''}: ${it.subjectName} (${it.count})`).join(' • ') : '—';
+      if (st.items.length) {
+        const wrap = document.createElement('div'); wrap.className = 'tmini';
+        const headRow = document.createElement('div'); headRow.className = 'tmini-row head';
+        headRow.innerHTML = '<div>المادة</div><div>الصف</div><div class="cnt">الحصص</div>';
+        wrap.appendChild(headRow);
+        st.items.forEach(it => {
+          const r = document.createElement('div'); r.className = 'tmini-row';
+          const clsLabel = `${it.className}${it.sectionName ? ' — ' + it.sectionName : ''}`;
+          r.innerHTML = `<div>${it.subjectName}</div><div>${clsLabel}</div><div class="cnt">${it.count}</div>`;
+          wrap.appendChild(r);
+        });
+        details.appendChild(wrap);
+      } else {
+        details.textContent = '—';
+      }
       const actions = document.createElement('div'); actions.className = 'tact';
       const editBtn = document.createElement('button'); editBtn.className = 'btn'; editBtn.textContent = 'تعديل';
       editBtn.addEventListener('click', () => {

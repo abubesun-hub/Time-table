@@ -205,6 +205,12 @@ body {
 .trow .btn { padding: 8px 10px; }
 @media (max-width: 720px) { .trow { grid-template-columns: 1fr; } .tact { justify-content: flex-start; } }
 
+/* mini table inside details cell */
+.tmini { display: grid; gap: 6px; }
+.tmini-row { display: grid; grid-template-columns: 1fr 1fr 80px; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 10px; background: var(--bg); box-shadow: inset -4px -4px 8px var(--shadow-light), inset 4px 4px 8px var(--shadow-dark); }
+.tmini-row.head { font-weight: 700; background: linear-gradient(180deg, #ffffff11, #00000011); box-shadow: none; }
+.tmini-row .cnt { text-align: center; font-variant-numeric: tabular-nums; }
+
 /* Accent stats (colorful elegant cards) */
 .stat-ac1 { background: linear-gradient(135deg, #60a5fa, #3b82f6); color: #fff; }
 .stat-ac2 { background: linear-gradient(135deg, #a78bfa, #8b5cf6); color: #fff; }
