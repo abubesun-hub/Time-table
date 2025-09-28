@@ -158,6 +158,11 @@
           <div class="card-desc">نسخ تلقائي كل ساعة واستعادة البيانات.</div>
         </a>
       </div>
+
+      <h2 class="section-title">إحصاءات المعلمين</h2>
+      <div class="neo-surface pad-16">
+        <div id="teacherStatsTable" class="list"></div>
+      </div>
     </section>
 
     <!-- Timetable -->
@@ -325,6 +330,35 @@
         <div class="row gap-8" style="margin-top:8px">
           <button id="btnAsSave" class="btn primary"><i class="bi bi-check2-circle"></i> حفظ/إضافة</button>
           <button id="btnAsClear" class="btn"><i class="bi bi-x-circle"></i> إلغاء التحديد</button>
+        </div>
+        <!-- شريط التعديل للتخصيص -->
+        <div id="assignEditBar" class="neo-surface pad-12 hidden" style="margin-top:10px;border-radius:12px">
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+            <h4 class="sub-title" style="margin:0">تعديل التخصيص</h4>
+            <div>
+              <small class="muted">الحصص الحالية: <span id="ebCount">0</span></small>
+              <button id="btnEbClose" class="btn" style="margin-right:8px"><i class="bi bi-x-circle"></i> إغلاق</button>
+              <button id="btnEbSave" class="btn primary"><i class="bi bi-check2-circle"></i> حفظ التعديل</button>
+            </div>
+          </div>
+          <div class="row gap-8 wrap">
+            <div class="col" style="min-width:180px">
+              <label class="label" for="ebClassSelect">الصف</label>
+              <select id="ebClassSelect" class="input"></select>
+            </div>
+            <div class="col" style="min-width:180px">
+              <label class="label" for="ebSectionSelect">الشعبة</label>
+              <select id="ebSectionSelect" class="input"></select>
+            </div>
+            <div class="col" style="min-width:200px">
+              <label class="label" for="ebSubjectSelect">المادة</label>
+              <select id="ebSubjectSelect" class="input"></select>
+            </div>
+            <div class="col" style="min-width:200px">
+              <label class="label" for="ebTeacherSelect">المعلم</label>
+              <select id="ebTeacherSelect" class="input"></select>
+            </div>
+          </div>
         </div>
         <div id="assignList" class="list" style="margin-top:10px"></div>
         <!-- Side Panel for Class/Section Details -->

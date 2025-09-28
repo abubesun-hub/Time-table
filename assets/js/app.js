@@ -115,6 +115,72 @@
     qs('#stat-classes').textContent = db.classes.length;
     qs('#stat-teachers').textContent = db.teachers.length;
     qs('#stat-invoices').textContent = db.invoices.length;
+    renderTeacherStatsTable();
+  }
+
+  // Build teacher stats across assignments
+  function computeTeacherStats() {
+    const db = Store.getDB();
+    const teachers = db.teachers || [];
+    const stats = teachers.map((t, ti) => ({ teacherIndex: ti, name: t.name, total: 0, items: [] }));
+    const classes = db.classes || [];
+    const subjects = db.subjectsCatalog || [];
+    Object.entries(db.assignments || {}).forEach(([csKey, subjMap]) => {
+      const [cStr, sStr] = csKey.split(':'); const ci = parseInt(cStr, 10), si = parseInt(sStr, 10);
+      const className = classes[ci]?.name || '—';
+      const sectionName = (classes[ci]?.sections || [])[si]?.name || '—';
+      Object.entries(subjMap || {}).forEach(([subjIdxStr, teachMap]) => {
+        const subjIdx = parseInt(subjIdxStr, 10); const subjName = subjects[subjIdx]?.name || '—';
+        Object.entries(teachMap || {}).forEach(([tStr, cnt]) => {
+          const ti = parseInt(tStr, 10); const c = parseInt(cnt, 10) || 0; if (c <= 0) return;
+          if (!stats[ti]) return;
+          stats[ti].total += c;
+          stats[ti].items.push({ classIndex: ci, sectionIndex: si, subjectIndex: subjIdx, className, sectionName, subjectName: subjName, count: c });
+        });
+      });
+    });
+    return stats;
+  }
+
+  function renderTeacherStatsTable() {
+    const host = qs('#teacherStatsTable'); if (!host) return;
+    const stats = computeTeacherStats();
+    host.innerHTML = '';
+    // header
+    const head = document.createElement('div'); head.className = 'trow head';
+    head.innerHTML = '<div class="tcell">المعلم</div><div class="tcell">إجمالي الحصص</div><div class="tcell">مواد</div><div class="tcell">تفاصيل</div><div class="tcell"></div>';
+    host.appendChild(head);
+    stats.forEach(st => {
+      const row = document.createElement('div'); row.className = 'trow';
+      const name = document.createElement('div'); name.className = 'tcell'; name.textContent = st.name || '—';
+      const total = document.createElement('div'); total.className = 'tcell'; total.textContent = String(st.total);
+      const subjectsSet = [...new Set(st.items.map(it => it.subjectName))];
+      const subjCount = document.createElement('div'); subjCount.className = 'tcell'; subjCount.textContent = subjectsSet.length ? subjectsSet.join('، ') : '—';
+      const details = document.createElement('div'); details.className = 'tcell';
+      details.textContent = st.items.length ? st.items.map(it => `${it.className}${it.sectionName ? ' — ' + it.sectionName : ''}: ${it.subjectName} (${it.count})`).join(' • ') : '—';
+      const actions = document.createElement('div'); actions.className = 'tact';
+      const editBtn = document.createElement('button'); editBtn.className = 'btn'; editBtn.textContent = 'تعديل';
+      editBtn.addEventListener('click', () => {
+        if (!st.items.length) return;
+        // اختر أول بند لتعبئة نموذج التخصيص، ويمكن تعديل لاحقًا
+        const it = st.items[0];
+        routeTo('#/subjects');
+        setTimeout(() => {
+          populateAssignSelectors();
+          const cSel = qs('#asClassSelect'); const sSel = qs('#asSectionSelect');
+          const subSel = qs('#asSubjectSelect'); const tSel = qs('#asTeacherSelect'); const pInp = qs('#asPeriods');
+          if (cSel) cSel.value = String(it.classIndex);
+          if (sSel && cSel) { const ev = new Event('change'); cSel.dispatchEvent(ev); sSel.value = String(it.sectionIndex); }
+          if (subSel) subSel.value = String(it.subjectIndex);
+          if (tSel) tSel.value = String(st.teacherIndex);
+          if (pInp) pInp.value = String(it.count);
+          updateAssignRemaining(true);
+        }, 50);
+      });
+      actions.appendChild(editBtn);
+      row.append(name, total, subjCount, details, actions);
+      host.appendChild(row);
+    });
   }
 
   // Auth (local only)
@@ -503,7 +569,7 @@
     return Object.values(map).reduce((a, v) => a + (parseInt(v, 10) || 0), 0);
   }
 
-  function updateAssignRemaining(force = false) {
+  function updateAssignRemaining(force = false, preserveInput = false) {
     const db = Store.getDB();
     const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect'); const subjSel = qs('#asSubjectSelect');
     const remainingEl = qs('#asRemaining'); const periodsInput = qs('#asPeriods');
@@ -515,7 +581,7 @@
     const already = calcAssignedFor(db, cIdx, sIdx, subjIdx);
     const remaining = Math.max(0, allocForSubject - already);
     remainingEl.textContent = `المتبقي: ${remaining}`;
-    if (periodsInput) {
+    if (periodsInput && !preserveInput) {
       const cur = parseInt(periodsInput.value, 10) || 0;
       // إذا كان التغيير ناتجًا عن تبديل الصف/الشعبة/المادة، حدّثه قسرًا
       if (force) {
@@ -585,7 +651,28 @@
       } else {
         const item = document.createElement('div'); item.className = 'list-item';
         const left = document.createElement('div'); left.innerHTML = `<div class="list-title">${subj.name}</div><div class="list-sub">غير مخصصة بعد</div>`;
-        item.append(left, document.createElement('div'));
+        const actions = document.createElement('div'); actions.className = 'item-actions';
+        const btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = 'تعيين الآن';
+        btn.addEventListener('click', () => {
+          // الانتقال إلى بطاقة "تخصيص" مع ملء الحقول تلقائيًا
+          const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect');
+          const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect'); const per = qs('#asPeriods');
+          if (classSel) classSel.value = String(classIndex);
+          if (sectSel && classSel) { const ev = new Event('change'); classSel.dispatchEvent(ev); sectSel.value = String(sectionIndex); }
+          if (subjSel) subjSel.value = String(subjIdx);
+          // اضبط الحصص إلى المتبقي تلقائيًا
+          if (per) per.value = String(alloc);
+          // حدّث المتبقي (مع فرض التعيين من التخصيص الحالي)
+          if (typeof updateAssignRemaining === 'function') updateAssignRemaining(true);
+          // ركّز على اختيار المعلم لتسريع الإدخال
+          if (teachSel) teachSel.focus();
+          // أغلق اللوح الجانبي
+          const overlay2 = qs('#sidepanel-overlay'); if (overlay2) { overlay2.classList.add('hidden'); overlay2.setAttribute('aria-hidden','true'); }
+          // انتقل إلى تبويب التخصيص إن وُجدت آلية توجيه
+          if (window.location && window.location.hash !== '#assign') { window.location.hash = '#assign'; }
+        });
+        actions.appendChild(btn);
+        item.append(left, actions);
         unassignedList.appendChild(item);
       }
     });
@@ -619,15 +706,7 @@
             const actions = document.createElement('div'); actions.className = 'item-actions';
             const edit = document.createElement('button'); edit.className = 'btn'; edit.textContent = 'تعديل';
             const del = document.createElement('button'); del.className = 'btn danger'; del.textContent = 'حذف';
-            edit.addEventListener('click', () => {
-              const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect'); const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect'); const per = qs('#asPeriods');
-              if (classSel) classSel.value = String(ci);
-              if (sectSel) { const ev = new Event('change'); classSel.dispatchEvent(ev); sectSel.value = String(si); }
-              if (subjSel) subjSel.value = String(subjIdx);
-              if (teachSel) teachSel.value = String(tIdx);
-              if (per) per.value = String(cnt);
-              updateAssignRemaining();
-            });
+            edit.addEventListener('click', () => openAssignEditBar({ ci, si, subjIdx, tIdx, cnt }));
             del.addEventListener('click', () => {
               if (!confirm('حذف هذا التخصيص؟')) return;
               const db2 = Store.getDB();
@@ -679,11 +758,10 @@
     const subjIdx = parseInt(subjSel.value, 10); const tIdx = parseInt(teachSel.value, 10);
     const count = Math.max(0, parseInt(per.value, 10) || 0);
     if (count <= 0) { showToast('أدخل عدد حصص أكبر من صفر'); return; }
-    const db = Store.getDB();
-    const allocForSubject = (db.allocations?.[subjIdx]?.[cIdx]) || 0;
-    const already = calcAssignedFor(db, cIdx, sIdx, subjIdx);
-    const remaining = Math.max(0, allocForSubject - already);
-    if (count > remaining) { showToast('عدد الحصص يتجاوز المتبقي'); return; }
+  const db = Store.getDB();
+  const allocForSubject = (db.allocations?.[subjIdx]?.[cIdx]) || 0;
+  // عند الاستبدال بمعلم واحد لكل مادة، نقارن مباشرة بالحد الأقصى المخصص للصف
+  if (count > allocForSubject) { showToast('عدد الحصص يتجاوز التخصيص لهذا الصف'); return; }
     db.assignments = db.assignments || {}; const csKey = keyCS(cIdx, sIdx);
     db.assignments[csKey] = db.assignments[csKey] || {};
     // فرض معلم واحد فقط لكل مادة ضمن (صف/شعبة): إزالة أي مخصصات سابقة لنفس المادة ثم تعيين المعلم الحالي
@@ -704,6 +782,76 @@
     if (per) per.value = '0';
     updateAssignRemaining();
   });
+
+  // ===== شريط تعديل التخصيص =====
+  function populateEditBarSelectors() {
+    const db = Store.getDB();
+    const cSel = qs('#ebClassSelect'); const sSel = qs('#ebSectionSelect');
+    const subjSel = qs('#ebSubjectSelect'); const tSel = qs('#ebTeacherSelect');
+    if (!cSel || !sSel || !subjSel || !tSel) return;
+    cSel.innerHTML = '<option value="">— اختر صف —</option>' + (db.classes||[]).map((c, i) => `<option value="${i}">${c.name}</option>`).join('');
+    subjSel.innerHTML = '<option value="">— اختر مادة —</option>' + (db.subjectsCatalog||[]).map((s, i) => `<option value="${i}">${s.name}</option>`).join('');
+    tSel.innerHTML = '<option value="">— اختر معلم —</option>' + (db.teachers||[]).map((t, i) => `<option value="${i}">${t.name}</option>`).join('');
+    cSel.onchange = () => {
+      const ci = cSel.value === '' ? -1 : parseInt(cSel.value, 10);
+      const cls = (db.classes||[])[ci];
+      const secs = cls && cls.sections && cls.sections.length ? cls.sections : [{ name: '—', _virtual: true }];
+      sSel.innerHTML = '<option value="">— اختر شعبة —</option>' + secs.map((s, i) => `<option value="${i}">${s.name}</option>`).join('');
+    };
+  }
+
+  let editBarState = null; // {from:{ci,si,subjIdx,tIdx}, count}
+  function openAssignEditBar({ ci, si, subjIdx, tIdx, cnt }) {
+    populateEditBarSelectors();
+    editBarState = { from: { ci, si, subjIdx, tIdx }, count: cnt };
+    const bar = qs('#assignEditBar'); const ebCount = qs('#ebCount');
+    const cSel = qs('#ebClassSelect'); const sSel = qs('#ebSectionSelect'); const subjSel = qs('#ebSubjectSelect'); const tSel = qs('#ebTeacherSelect');
+    if (!bar || !cSel || !sSel || !subjSel || !tSel) return;
+    cSel.value = String(ci);
+    cSel.dispatchEvent(new Event('change'));
+    sSel.value = String(si);
+    subjSel.value = String(subjIdx);
+    tSel.value = String(tIdx);
+    if (ebCount) ebCount.textContent = String(cnt);
+    bar.classList.remove('hidden');
+  }
+
+  function closeAssignEditBar() {
+    const bar = qs('#assignEditBar'); if (bar) bar.classList.add('hidden');
+    editBarState = null;
+  }
+
+  function saveAssignEditBar() {
+    if (!editBarState) return;
+    const db = Store.getDB();
+    const from = editBarState.from; const oldKey = keyCS(from.ci, from.si);
+    const cSel = qs('#ebClassSelect'); const sSel = qs('#ebSectionSelect'); const subjSel = qs('#ebSubjectSelect'); const tSel = qs('#ebTeacherSelect');
+    if (!cSel || !sSel || !subjSel || !tSel) return;
+    if (cSel.value === '' || sSel.value === '' || subjSel.value === '' || tSel.value === '') { showToast('أكمل اختيارات التعديل: صف، شعبة، مادة، معلم'); return; }
+    const nci = parseInt(cSel.value, 10); const nsi = parseInt(sSel.value, 10);
+    const nSubj = parseInt(subjSel.value, 10); const nTeach = parseInt(tSel.value, 10);
+    const newKey = keyCS(nci, nsi);
+    const count = parseInt(editBarState.count, 10) || 0;
+    if (count <= 0) { showToast('لا يمكن حفظ تعديل بحصص صفرية'); return; }
+    const allocForSubject = (db.allocations?.[nSubj]?.[nci]) || 0;
+    if (count > allocForSubject) { showToast('عدد الحصص يتجاوز التخصيص لهذا الصف'); return; }
+    // أزل القديم
+    const oldMap = db.assignments?.[oldKey]?.[from.subjIdx];
+    if (oldMap && oldMap[from.tIdx] != null) delete oldMap[from.tIdx];
+    if (oldMap && Object.keys(oldMap).length === 0) delete db.assignments[oldKey][from.subjIdx];
+    if (db.assignments[oldKey] && Object.keys(db.assignments[oldKey]).length === 0) delete db.assignments[oldKey];
+    // أضف الجديد مع فرض معلم واحد لكل مادة
+    db.assignments = db.assignments || {}; db.assignments[newKey] = db.assignments[newKey] || {}; db.assignments[newKey][nSubj] = {};
+    db.assignments[newKey][nSubj][nTeach] = count;
+    Store.setDB(db);
+    normalizeAssignmentsUniquePerSubject();
+    renderAssignList(); renderAssignStats();
+    closeAssignEditBar();
+    showToast('تم حفظ التعديل');
+  }
+
+  const btnEbSave = qs('#btnEbSave'); if (btnEbSave) btnEbSave.addEventListener('click', saveAssignEditBar);
+  const btnEbClose = qs('#btnEbClose'); if (btnEbClose) btnEbClose.addEventListener('click', closeAssignEditBar);
 
   // Classes CRUD
   function renderClasses() {
@@ -727,7 +875,10 @@
       edit.addEventListener('click', () => openClassModal(c, i));
       del.addEventListener('click', () => {
         if (!confirm('حذف الصف؟')) return;
-        db.classes.splice(i, 1); Store.setDB(db); renderClasses(); refreshStats();
+        // قبل الحذف: نظّف/أعد ترقيم التخصيصات المرتبطة بالصفوف
+        dropClassAndRemapAssignments(i);
+        db.classes.splice(i, 1);
+        Store.setDB(db); renderClasses(); refreshStats();
       });
       addSection.addEventListener('click', () => openSectionModal(i));
       actions.append(addSection, edit, del);
@@ -746,6 +897,10 @@
         if (!confirm(`حذف الشعبة ${name}؟`)) return;
         const db2 = Store.getDB();
         const cls = db2.classes[i];
+        // احسب فهرس الشعبة المراد حذفها قبل التغيير
+        const secIndex = (cls.sections || []).findIndex(s => s.name === name);
+        // عالج التخصيصات: إسقاط الشعبة المعنية وإعادة ترقيم ما بعدها
+        if (secIndex >= 0) dropSectionAndRemapAssignments(i, secIndex);
         cls.sections = (cls.sections || []).filter(s => s.name !== name);
         Store.setDB(db2); renderClasses();
       }));
@@ -830,12 +985,86 @@
       edit.addEventListener('click', () => openTeacherModal(t, i));
       del.addEventListener('click', () => {
         if (!confirm('حذف المعلم؟')) return;
-        db.teachers.splice(i, 1); Store.setDB(db); renderTeachers(); refreshStats();
+        // إعادة ترقيم المعلمين في التخصيصات وإسقاط هذا المعلم
+        dropTeacherAndRemapAssignments(i);
+        db.teachers.splice(i, 1);
+        Store.setDB(db); renderTeachers(); refreshStats();
       });
       actions.append(edit, del);
       item.append(left, actions);
       return item;
     });
+  }
+
+  // ===== أدوات مساعدة لتنظيف/إعادة ترقيم التخصيصات عند الحذف =====
+  function parseCSKey(csKey) {
+    const parts = String(csKey).split(':');
+    const ci = parseInt(parts[0], 10); const si = parseInt(parts[1], 10);
+    return { ci, si };
+  }
+
+  function rekeyAssignments(mapper) {
+    const db = Store.getDB();
+    const asg = db.assignments || {};
+    const newAsg = {};
+    Object.entries(asg).forEach(([csKey, subjMaps]) => {
+      const { ci, si } = parseCSKey(csKey);
+      const mapped = mapper(ci, si);
+      if (!mapped) return; // drop
+      const { ci: nci, si: nsi } = mapped;
+      const newKey = `${nci}:${nsi}`;
+      newAsg[newKey] = newAsg[newKey] || {};
+      // دمج خرائط المواد (قد يحدث تضارب — سنطبع لاحقًا ونعيد التطبيع)
+      Object.entries(subjMaps || {}).forEach(([subjIdx, teachMap]) => {
+        newAsg[newKey][subjIdx] = Object.assign({}, newAsg[newKey][subjIdx] || {}, teachMap || {});
+      });
+    });
+    db.assignments = newAsg;
+    Store.setDB(db);
+    // إعادة فرض القيد: معلم واحد لكل مادة
+    normalizeAssignmentsUniquePerSubject();
+  }
+
+  function dropClassAndRemapAssignments(classIndex) {
+    rekeyAssignments((ci, si) => {
+      if (ci === classIndex) return null; // احذف كل الشعب التابعة لهذا الصف
+      if (ci > classIndex) return { ci: ci - 1, si };
+      return { ci, si };
+    });
+  }
+
+  function dropSectionAndRemapAssignments(classIndex, sectionIndex) {
+    rekeyAssignments((ci, si) => {
+      if (ci !== classIndex) return { ci, si };
+      if (si === sectionIndex) return null; // احذف الشعبة المعنية
+      if (si > sectionIndex) return { ci, si: si - 1 };
+      return { ci, si };
+    });
+  }
+
+  function dropTeacherAndRemapAssignments(teacherIndex) {
+    const db = Store.getDB();
+    const asg = db.assignments || {};
+    Object.keys(asg).forEach(csKey => {
+      const subjMaps = asg[csKey] || {};
+      Object.keys(subjMaps).forEach(subjIdx => {
+        const teachMap = subjMaps[subjIdx] || {};
+        const newTeachMap = {};
+        Object.entries(teachMap).forEach(([tStr, cnt]) => {
+          const t = parseInt(tStr, 10);
+          const c = parseInt(cnt, 10) || 0;
+          if (c <= 0) return;
+          if (t === teacherIndex) return; // drop
+          const nt = t > teacherIndex ? t - 1 : t;
+          // في حالة تضارب المفاتيح بعد إعادة الترقيم، اختر الأعلى
+          newTeachMap[nt] = Math.max(newTeachMap[nt] || 0, c);
+        });
+        subjMaps[subjIdx] = newTeachMap;
+      });
+    });
+    db.assignments = asg;
+    Store.setDB(db);
+    normalizeAssignmentsUniquePerSubject();
   }
 
   function openTeacherModal(t = null, index = -1) {
