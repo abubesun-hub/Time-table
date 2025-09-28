@@ -360,6 +360,18 @@
             </div>
           </div>
         </div>
+        <!-- شريط البحث في التخصيصات -->
+        <div id="assignSearchBar" class="row gap-8 wrap" style="margin-top:10px">
+          <div class="col" style="flex:1;min-width:260px">
+            <input id="assignSearchInput" class="input" type="text" placeholder="ابحث في التخصيصات (مادة، صف، شعبة، معلم)">
+          </div>
+          <div class="col" style="align-self:center">
+            <small id="assignSearchCount" class="muted">النتائج: —</small>
+          </div>
+          <div class="col">
+            <button id="assignSearchClear" class="btn"><i class="bi bi-x-circle"></i> مسح</button>
+          </div>
+        </div>
         <div id="assignList" class="list" style="margin-top:10px"></div>
         <!-- Side Panel for Class/Section Details -->
         <div id="sidepanel-overlay" class="side-overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="spTitle">

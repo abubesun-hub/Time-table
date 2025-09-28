@@ -692,6 +692,8 @@
   function renderAssignList() {
     const list = qs('#assignList'); if (!list) return;
     const db = Store.getDB(); list.innerHTML = '';
+    const q = (qs('#assignSearchInput')?.value || '').trim().toLowerCase();
+    let results = 0;
     (db.classes || []).forEach((c, ci) => {
       const sections = c.sections && c.sections.length ? c.sections : [{ name: '—', _virtual: true }];
       sections.forEach((s, si) => {
@@ -707,7 +709,11 @@
             const left = document.createElement('div');
             const subjName = db.subjectsCatalog?.[subjIdx]?.name || '—';
             const teachName = db.teachers?.[tIdx]?.name || '—';
-            left.innerHTML = `<div class="list-title">${c.name}${s._virtual ? '' : ' — ' + s.name}</div><div class="list-sub">${subjName} • ${teachName} • حصص: ${cnt}</div>`;
+            const titleText = `${c.name}${s._virtual ? '' : ' — ' + s.name}`;
+            left.innerHTML = `<div class="list-title">${titleText}</div><div class="list-sub">${subjName} • ${teachName} • حصص: ${cnt}</div>`;
+            const hay = `${subjName} ${teachName} ${c.name} ${s._virtual ? '' : s.name}`.toLowerCase();
+            if (q && !hay.includes(q)) return; // filter out
+            results++;
             const actions = document.createElement('div'); actions.className = 'item-actions';
             const edit = document.createElement('button'); edit.className = 'btn'; edit.textContent = 'تعديل';
             const del = document.createElement('button'); del.className = 'btn danger'; del.textContent = 'حذف';
@@ -726,6 +732,7 @@
         });
       });
     });
+    const countEl = qs('#assignSearchCount'); if (countEl) countEl.textContent = `النتائج: ${results}`;
   }
 
   // Ensure uniqueness: one teacher per (class, section, subject). Keep the highest-count assignment, drop others and zeros.
@@ -786,6 +793,21 @@
     if (teachSel) teachSel.value = '';
     if (per) per.value = '0';
     updateAssignRemaining();
+  });
+
+  // البحث في قائمة التخصيصات
+  const assignSearchInput = qs('#assignSearchInput');
+  const assignSearchClear = qs('#assignSearchClear');
+  if (assignSearchInput) {
+    let t = null;
+    assignSearchInput.addEventListener('input', () => {
+      clearTimeout(t);
+      t = setTimeout(() => renderAssignList(), 150);
+    });
+  }
+  if (assignSearchClear) assignSearchClear.addEventListener('click', () => {
+    const inp = qs('#assignSearchInput'); if (inp) inp.value = '';
+    renderAssignList();
   });
 
   // ===== شريط تعديل التخصيص =====
