@@ -190,6 +190,12 @@ body {
 #assignStatsList .list-title { font-size: 16px; font-weight: 800; }
 #assignStatsList .list-sub { font-size: 13px; opacity: 0.9; }
 
+/* Side Panel */
+.side-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: grid; place-items: stretch end; z-index: 30; }
+.sidepanel { width: min(420px, 92vw); height: 100%; border-radius: 16px 0 0 16px; display: flex; flex-direction: column; gap: 10px; padding: 16px; box-shadow: -10px -10px 20px var(--shadow-light), 0 0 0 1px #00000010; }
+.sidepanel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.side-overlay.hidden { display: none; }
+
 /* Accent stats (colorful elegant cards) */
 .stat-ac1 { background: linear-gradient(135deg, #60a5fa, #3b82f6); color: #fff; }
 .stat-ac2 { background: linear-gradient(135deg, #a78bfa, #8b5cf6); color: #fff; }

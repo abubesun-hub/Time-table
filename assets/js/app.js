@@ -544,9 +544,57 @@
         const vacant = Math.max(0, total - assigned);
         left.innerHTML = `<div class="list-title">${title}</div><div class="list-sub">الإجمالي: ${total} • المخصصة: ${assigned} • الشاغر: ${vacant}</div>`;
         list.appendChild(row); row.appendChild(left);
+        // اجعل البطاقة قابلة للنقر لفتح اللوحة الجانبية
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', () => openSidePanelFor(ci, si));
       });
     });
   }
+
+  // لوح جانبي: عرض المخصصة وغير المخصصة لصف/شعبة
+  function openSidePanelFor(classIndex, sectionIndex) {
+    const db = Store.getDB();
+    const c = db.classes?.[classIndex]; if (!c) return;
+    const s = (c.sections && c.sections.length) ? c.sections[sectionIndex] : { name: '—', _virtual: true };
+    const title = `${c.name}${s._virtual ? '' : ' — ' + s.name}`;
+    const overlay = qs('#sidepanel-overlay'); const spTitle = qs('#spTitle');
+    const assignedList = qs('#spAssignedList'); const unassignedList = qs('#spUnassignedList');
+    if (!overlay || !spTitle || !assignedList || !unassignedList) return;
+    spTitle.textContent = title;
+    assignedList.innerHTML = ''; unassignedList.innerHTML = '';
+
+    // بناء قوائم: المخصصة وغير المخصصة بناءً على allocations و assignments
+    const csKey = keyCS(classIndex, sectionIndex);
+    const asgForCS = db.assignments?.[csKey] || {};
+    const subjects = db.subjectsCatalog || [];
+    subjects.forEach((subj, subjIdx) => {
+      const alloc = parseInt(db.allocations?.[subjIdx]?.[classIndex], 10) || 0;
+      if (alloc <= 0) return; // هذه المادة غير مخصصة للصف
+      const teachMap = asgForCS?.[subjIdx] || {};
+      const entries = Object.entries(teachMap).map(([tIdx, cnt]) => [parseInt(tIdx,10), parseInt(cnt,10)||0]).filter(([,c])=>c>0);
+      if (entries.length > 0) {
+        // بحسب منطقنا: معلم واحد فقط لكل مادة، ولكن لو وجد أكثر من واحد قديمًا نعرضهم
+        entries.forEach(([tIdx, cnt]) => {
+          const tName = db.teachers?.[tIdx]?.name || '—';
+          const item = document.createElement('div'); item.className = 'list-item';
+          const left = document.createElement('div'); left.innerHTML = `<div class="list-title">${subj.name}</div><div class="list-sub">${tName} • حصص: ${cnt}</div>`;
+          item.append(left, document.createElement('div'));
+          assignedList.appendChild(item);
+        });
+      } else {
+        const item = document.createElement('div'); item.className = 'list-item';
+        const left = document.createElement('div'); left.innerHTML = `<div class="list-title">${subj.name}</div><div class="list-sub">غير مخصصة بعد</div>`;
+        item.append(left, document.createElement('div'));
+        unassignedList.appendChild(item);
+      }
+    });
+
+    overlay.classList.remove('hidden'); overlay.setAttribute('aria-hidden', 'false');
+  }
+
+  const spCloseBtn = qs('#spClose'); if (spCloseBtn) spCloseBtn.addEventListener('click', () => {
+    const overlay = qs('#sidepanel-overlay'); if (overlay) { overlay.classList.add('hidden'); overlay.setAttribute('aria-hidden','true'); }
+  });
 
   function renderAssignList() {
     const list = qs('#assignList'); if (!list) return;

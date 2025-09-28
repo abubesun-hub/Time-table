@@ -327,6 +327,19 @@
           <button id="btnAsClear" class="btn"><i class="bi bi-x-circle"></i> إلغاء التحديد</button>
         </div>
         <div id="assignList" class="list" style="margin-top:10px"></div>
+        <!-- Side Panel for Class/Section Details -->
+        <div id="sidepanel-overlay" class="side-overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="spTitle">
+          <div class="sidepanel neo-surface">
+            <div class="sidepanel-header">
+              <h3 id="spTitle" style="margin:0">—</h3>
+              <button id="spClose" class="btn ghost" aria-label="إغلاق"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <h4 class="sub-title">المخصصة للمعلمين</h4>
+            <div id="spAssignedList" class="list"></div>
+            <h4 class="sub-title">غير المخصصة</h4>
+            <div id="spUnassignedList" class="list"></div>
+          </div>
+        </div>
       </div>
     </section>
 
