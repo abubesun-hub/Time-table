@@ -162,19 +162,10 @@
       const editBtn = document.createElement('button'); editBtn.className = 'btn'; editBtn.textContent = 'تعديل';
       editBtn.addEventListener('click', () => {
         if (!st.items.length) return;
-        // اختر أول بند لتعبئة نموذج التخصيص، ويمكن تعديل لاحقًا
         const it = st.items[0];
         routeTo('#/subjects');
         setTimeout(() => {
-          populateAssignSelectors();
-          const cSel = qs('#asClassSelect'); const sSel = qs('#asSectionSelect');
-          const subSel = qs('#asSubjectSelect'); const tSel = qs('#asTeacherSelect'); const pInp = qs('#asPeriods');
-          if (cSel) cSel.value = String(it.classIndex);
-          if (sSel && cSel) { const ev = new Event('change'); cSel.dispatchEvent(ev); sSel.value = String(it.sectionIndex); }
-          if (subSel) subSel.value = String(it.subjectIndex);
-          if (tSel) tSel.value = String(st.teacherIndex);
-          if (pInp) pInp.value = String(it.count);
-          updateAssignRemaining(true);
+          openAssignEditBar({ ci: it.classIndex, si: it.sectionIndex, subjIdx: it.subjectIndex, tIdx: st.teacherIndex, cnt: it.count });
         }, 50);
       });
       actions.appendChild(editBtn);
@@ -714,7 +705,7 @@
               if (map && map[tIdx] != null) delete map[tIdx];
               if (map && Object.keys(map).length === 0) delete db2.assignments[csKey][subjIdx];
               if (db2.assignments[csKey] && Object.keys(db2.assignments[csKey]).length === 0) delete db2.assignments[csKey];
-              Store.setDB(db2); renderAssignList(); renderAssignStats(); updateAssignRemaining();
+              Store.setDB(db2); renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); updateAssignRemaining();
             });
             actions.append(edit, del); item.append(left, actions); list.appendChild(item);
           });
@@ -768,7 +759,7 @@
     db.assignments[csKey][subjIdx] = {};
     db.assignments[csKey][subjIdx][tIdx] = count;
     Store.setDB(db);
-    renderAssignList(); renderAssignStats(); updateAssignRemaining();
+  renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); updateAssignRemaining();
     showToast('تم حفظ التخصيص للمعلم');
   }
 
@@ -844,8 +835,8 @@
     db.assignments = db.assignments || {}; db.assignments[newKey] = db.assignments[newKey] || {}; db.assignments[newKey][nSubj] = {};
     db.assignments[newKey][nSubj][nTeach] = count;
     Store.setDB(db);
-    normalizeAssignmentsUniquePerSubject();
-    renderAssignList(); renderAssignStats();
+  normalizeAssignmentsUniquePerSubject();
+  renderAssignList(); renderAssignStats(); renderTeacherStatsTable();
     closeAssignEditBar();
     showToast('تم حفظ التعديل');
   }
