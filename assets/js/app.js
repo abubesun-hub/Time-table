@@ -805,6 +805,12 @@
     tSel.value = String(tIdx);
     if (ebCount) ebCount.textContent = String(cnt);
     bar.classList.remove('hidden');
+    // مرر تلقائيًا إلى شريط التعديل وضع التركيز لتجنّب حاجة المستخدم للتمرير يدويًا
+    setTimeout(() => {
+      try { bar.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' }); } catch (e) { /* متصفح لا يدعم */ }
+      const focusEl = tSel || cSel;
+      if (focusEl && typeof focusEl.focus === 'function') focusEl.focus();
+    }, 0);
   }
 
   function closeAssignEditBar() {
