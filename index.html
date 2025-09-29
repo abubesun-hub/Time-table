@@ -165,30 +165,25 @@
       </div>
     </section>
 
-    <!-- Timetable -->
+    <!-- Timetable (global view: classes x (days x 6 periods)) -->
     <section id="view-timetable" class="view">
       <div class="header-row">
-        <h2 class="section-title">الجدول الأسبوعي</h2>
-        <div class="row gap-8">
-          <div class="col" style="min-width:200px">
-            <label class="label" for="ttClassSelect">اختر الصف</label>
-            <select id="ttClassSelect" class="input"></select>
-          </div>
-          <div class="col" style="min-width:200px">
-            <label class="label" for="ttSectionSelect">اختر الشعبة</label>
-            <select id="ttSectionSelect" class="input"></select>
-          </div>
-          <button id="btnSaveTimetable" class="btn primary"><i class="bi bi-save2"></i> حفظ الجدول</button>
-          <button id="btnResetTimetable" class="btn danger"><i class="bi bi-arrow-counterclockwise"></i> إعادة تعيين</button>
-        </div>
+        <h2 class="section-title">الجدول الأسبوعي (عرض شامل)</h2>
       </div>
-      <div class="neo-surface">
-        <div id="ttGuard" class="alert hidden" style="margin-bottom:10px">
-          <div class="alert-title">اختر صفًا وشعبة لتحرير الجدول</div>
-          <div class="alert-desc">إن لم تضف شعبًا بعد، انتقل إلى صفحة الصفوف لإضافة شُعب.</div>
+      <div class="neo-surface pad-16">
+        <div class="tt-container">
+          <div id="ttGlobalContainer"></div>
         </div>
-        <div class="tt-grid" id="timetableGrid"></div>
-        <small class="muted">انقر على أي خانة لإدخال اسم المادة/المعلم/القاعة.</small>
+        <!-- عناصر مخفية قد تعتمد عليها شيفرات قديمة -->
+        <div style="display:none">
+          <input type="checkbox" id="ttGlobalToggle">
+          <select id="ttViewMode"></select>
+          <select id="ttClassSelect"></select>
+          <select id="ttSectionSelect"></select>
+          <button id="btnSaveTimetable"></button>
+          <button id="btnResetTimetable"></button>
+        </div>
+        <div id="ttGuard" class="hidden"></div>
       </div>
     </section>
 

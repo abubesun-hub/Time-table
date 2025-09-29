@@ -1229,6 +1229,156 @@
   // Timetable
   function getTimetable() { return Store.getDB().timetable; }
 
+  // ===== توليد جدول أسبوعي تلقائي وتبديل (Shuffle) =====
+  // Helpers: حساب وقت الحصص + محرر سريع للخلايا
+  function parseHm(str) {
+    const [h, m] = String(str || '08:00').split(':').map(x => parseInt(x, 10) || 0);
+    return h * 60 + m;
+  }
+  function fmtHm(totalMins) {
+    const h = Math.floor(totalMins / 60) % 24; const m = totalMins % 60;
+    const pad = (n) => (n < 10 ? '0' + n : '' + n);
+    return `${pad(h)}:${pad(m)}`;
+  }
+  function getBreakAfter(db, idx) {
+    const g = db.times?.global || { breakMinutes: 10 };
+    const arr = db.times?.breaks || [];
+    return Math.max(0, parseInt(arr[idx], 10) || g.breakMinutes || 0);
+  }
+  function getLessonMinutes(db) { return Math.max(10, parseInt(db.times?.global?.lessonMinutes, 10) || 40); }
+  function getPerDayStart(db, day) { return db.times?.perDay?.[day]?.start || '08:00'; }
+  function calcSlotTimeRange(db, day, slotIndex) {
+    // slotIndex: 0-based
+    const startM = parseHm(getPerDayStart(db, day));
+    const L = getLessonMinutes(db);
+    let cur = startM;
+    for (let i = 0; i < slotIndex; i++) cur += L + getBreakAfter(db, i);
+    const from = cur; const to = cur + L;
+    return `${fmtHm(from)} - ${fmtHm(to)}`;
+  }
+  function attachCellEditor(el, key, currentText) {
+    el.addEventListener('click', () => {
+      const val = prompt('اكتب النص (مثال: المادة • المعلم)', currentText || '');
+      if (val === null) return;
+      const db = Store.getDB();
+      db.timetable = db.timetable || {}; db.timetable.grid = db.timetable.grid || {};
+      db.timetable.grid[key] = String(val).trim();
+      Store.setDB(db);
+      renderTimetable();
+    });
+  }
+  function calcDailySlots(db) {
+    // احصل على أيام وأسماء الحصص من times
+    const days = db.timetable.days; // ['الأحد', ...]
+    const slots = db.timetable.slots; // ['1', '2', ...]
+    return { days, slots };
+  }
+
+  function buildAssignmentPool(db) {
+    // يبني قائمة من المهام: لكل (صف/شعبة، مادة، معلم) عدد من التكرارات (الحصص) المطلوب توزيعها
+    const pool = [];
+    const asg = db.assignments || {};
+    Object.entries(asg).forEach(([csKey, subjMap]) => {
+      Object.entries(subjMap || {}).forEach(([subjIdxStr, teachMap]) => {
+        const subjIdx = parseInt(subjIdxStr, 10);
+        Object.entries(teachMap || {}).forEach(([tStr, cnt]) => {
+          const teacherIdx = parseInt(tStr, 10); const count = parseInt(cnt, 10) || 0; if (count <= 0) return;
+          pool.push({ csKey, subjIdx, teacherIdx, remaining: count });
+        });
+      });
+    });
+    return pool;
+  }
+
+  function generateAutoTimetable() {
+    const db = Store.getDB();
+    const { days, slots } = calcDailySlots(db);
+    if (!days || !days.length || !slots || !slots.length) { showToast('الرجاء ضبط أيام الأسبوع وعدد الحصص أولًا'); return; }
+    const grid = {}; // جديد
+    const teacherBusy = {}; // teacherIdx -> Set of key 'day|slot'
+    const classBusy = {};   // csKey -> Set of key 'day|slot'
+    const pool = buildAssignmentPool(db);
+    if (!pool.length) { showToast('لا توجد تخصيصات حصص للمعلمين لإنشاء الجدول'); return; }
+    // رتب المهام بحيث تُوزع المهام الأكثر عددًا أولًا لتقليل التعارضات
+    pool.sort((a, b) => b.remaining - a.remaining);
+
+    // لتفادي التجمع في بداية الأسبوع، استخدم إزاحة بدء مختلفة لكل (csKey)
+    const csKeys = [...new Set(pool.map(p => p.csKey))];
+    const offsets = Object.fromEntries(csKeys.map((k, i) => [k, i % days.length]));
+
+    // هيكل تكراري: لكل مهمة، حاول وضع الحصص عبر الأسبوع مع تدوير الأيام والفترات
+    let safety = 0; // حارس لا نهائي
+    while (pool.some(p => p.remaining > 0) && safety < 100000) {
+      safety++;
+      for (const p of pool) {
+        if (p.remaining <= 0) continue;
+        const startDayIdx = offsets[p.csKey] || 0;
+        let placed = false;
+        for (let di = 0; di < days.length && !placed; di++) {
+          const day = days[(startDayIdx + di) % days.length];
+          for (let si = 0; si < slots.length && !placed; si++) {
+            const slot = slots[si];
+            const busyKey = day + '|' + slot;
+            const tBusy = teacherBusy[p.teacherIdx] || new Set();
+            const cBusy = classBusy[p.csKey] || new Set();
+            if (tBusy.has(busyKey) || cBusy.has(busyKey)) continue; // تعارض معلم أو صف/شعبة
+            // تحقق عدم تكرار نفس المادة لنفس الصف مرتين متتاليتين في نفس اليوم قدر الإمكان
+            let duplicateSameDay = false;
+            if (si > 0) {
+              const prevKey = p.csKey + '|' + day + '|' + slots[si-1];
+              const prevVal = grid[prevKey];
+              if (prevVal && prevVal.subjIdx === p.subjIdx) duplicateSameDay = true;
+            }
+            if (duplicateSameDay) continue;
+            const key = p.csKey + '|' + day + '|' + slot;
+            if (grid[key]) continue; // محجوزة بالفعل
+            grid[key] = { subjIdx: p.subjIdx, teacherIdx: p.teacherIdx };
+            // علّم الانشغال
+            (teacherBusy[p.teacherIdx] ||= new Set()).add(busyKey);
+            (classBusy[p.csKey] ||= new Set()).add(busyKey);
+            p.remaining--;
+            placed = true;
+          }
+        }
+        // إذا لم ننجح في وضع هذه الحصة ضمن الدورة الحالية، سنحاول في دورة لاحقة من خلال while
+      }
+    }
+
+    // حفظ الشبكة بصيغة العرض (اسم المادة • اسم المعلم)
+    const showName = (subjIdx, teacherIdx) => {
+      const subj = db.subjectsCatalog?.[subjIdx]?.name || '—';
+      const t = db.teachers?.[teacherIdx]?.name || '—';
+      return `${subj} • ${t}`;
+    };
+    db.timetable.grid = db.timetable.grid || {};
+    Object.keys(db.timetable.grid).forEach(k => delete db.timetable.grid[k]);
+    Object.entries(grid).forEach(([k, v]) => { db.timetable.grid[k] = showName(v.subjIdx, v.teacherIdx); });
+    Store.setDB(db);
+    // اختر أول صف وشعبة تلقائيًا لعرض النتيجة
+    const classSel = qs('#ttClassSelect'); const sectSel = qs('#ttSectionSelect');
+    if (classSel && sectSel) {
+      let chosen = null;
+      (db.classes || []).some((c, ci) => {
+        const secs = c.sections || [];
+        if (secs.length) { chosen = { ci, si: 0 }; return true; }
+        return false;
+      });
+      if (chosen) {
+        classSel.value = String(chosen.ci);
+        // trigger population of sections and then set section value
+        classSel.dispatchEvent(new Event('change'));
+        setTimeout(() => { sectSel.value = String(chosen.si); sectSel.dispatchEvent(new Event('change')); }, 0);
+      }
+    }
+    renderTimetable();
+    showToast('تم إنشاء الجدول الأسبوعي تلقائيًا');
+  }
+
+  function shuffleTimetable() {
+    // إعادة توزيع سريعة: نعيد التوليد بالكامل الآن، ويمكن لاحقًا إضافة تبديلات محلية
+    generateAutoTimetable();
+  }
+
   function currentClassSectionKey() {
     const cIdx = qs('#ttClassSelect').value;
     const sIdx = qs('#ttSectionSelect').value;
@@ -1237,56 +1387,59 @@
   }
 
   function renderTimetable() {
-    const host = qs('#timetableGrid');
+    // عرض شامل: جدول بكل الصفوف/الشعب مقابل الأيام (6 حصص تحت كل يوم)
+    const host = qs('#ttGlobalContainer');
+    if (!host) return;
     const db = Store.getDB();
-    const tt = db.timetable;
-    const days = tt.days;
-    const slots = tt.slots;
-    const key = currentClassSectionKey();
-    const grid = (tt.grid || {});
+    const classes = db.classes || [];
+    const days = db.timetable?.days || ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+    // نثبت 6 حصص حسب الطلب الآن
+    const slotCount = 6;
+
     host.innerHTML = '';
-    const guard = qs('#ttGuard');
-    const hasKey = !!key;
-    if (guard) guard.classList.toggle('hidden', hasKey);
-    if (!hasKey) return;
-    // Determine section's responsible teacher name for suggestion
-    let suggestTeacherName = '';
-    const cIdx = parseInt(qs('#ttClassSelect').value, 10);
-    const sIdx = parseInt(qs('#ttSectionSelect').value, 10);
-    if (!Number.isNaN(cIdx) && !Number.isNaN(sIdx)) {
-      const sect = (db.classes?.[cIdx]?.sections || [])[sIdx];
-      const tId = sect?.teacherId;
-      const tObj = (typeof tId === 'number') ? db.teachers?.[tId] : null;
-      suggestTeacherName = tObj?.name || '';
-    }
-    // header row
-    const headRow = document.createElement('div');
-    headRow.className = 'tt-grid';
-    const empty = document.createElement('div'); empty.className = 'tt-cell tt-head'; empty.textContent = 'الحصص/الأيام';
-    headRow.appendChild(empty);
-    days.forEach(d => { const c = document.createElement('div'); c.className = 'tt-cell tt-head'; c.textContent = d; headRow.appendChild(c); });
-    host.appendChild(headRow);
-    // rows
-    slots.forEach((slot) => {
-      const row = document.createElement('div'); row.className = 'tt-grid';
-      const sHead = document.createElement('div'); sHead.className = 'tt-cell tt-head'; sHead.textContent = slot; row.appendChild(sHead);
-      days.forEach((day) => {
-        const ckey = key + '|' + day + '|' + slot;
-        const cell = document.createElement('div'); cell.className = 'tt-cell'; cell.contentEditable = 'true';
-        cell.textContent = grid[ckey] || '';
-        cell.dataset.key = ckey;
-        if (suggestTeacherName) {
-          cell.title = `اقتراح: ${suggestTeacherName}`;
-          cell.addEventListener('focus', () => {
-            if ((cell.textContent || '').trim() === '' && suggestTeacherName) {
-              cell.textContent = suggestTeacherName;
-            }
-          });
-        }
-        row.appendChild(cell);
-      });
-      host.appendChild(row);
+    const table = document.createElement('table'); table.className = 'tt-table';
+
+    // thead: صف الأيام ثم صف الحصص
+    const thead = document.createElement('thead');
+    const daysRow = document.createElement('tr'); daysRow.className = 'days-row';
+    const thClasses = document.createElement('th'); thClasses.className = 'class-col'; thClasses.rowSpan = 2; thClasses.textContent = 'الصف / الشعبة';
+    daysRow.appendChild(thClasses);
+    days.forEach(day => {
+      const th = document.createElement('th'); th.colSpan = slotCount; th.textContent = day; daysRow.appendChild(th);
     });
+    thead.appendChild(daysRow);
+
+    const periodsRow = document.createElement('tr'); periodsRow.className = 'periods-row';
+    days.forEach(() => {
+      for (let i = 1; i <= slotCount; i++) {
+        const th = document.createElement('th'); th.textContent = String(i); periodsRow.appendChild(th);
+      }
+    });
+    thead.appendChild(periodsRow);
+
+    table.appendChild(thead);
+
+    // tbody: لكل صف وشعبة
+    const tbody = document.createElement('tbody');
+    classes.forEach((cls, ci) => {
+      const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
+      sections.forEach((sec, si) => {
+        const tr = document.createElement('tr');
+        const tdClass = document.createElement('td'); tdClass.className = 'class-col'; tdClass.textContent = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`; tr.appendChild(tdClass);
+        days.forEach(day => {
+          for (let i = 1; i <= slotCount; i++) {
+            const td = document.createElement('td'); td.className = 'slot';
+            const box = document.createElement('div'); box.className = 'tt-cell-box tt-empty'; box.textContent = '—';
+            td.appendChild(box); tr.appendChild(td);
+          }
+        });
+        tbody.appendChild(tr);
+      });
+    });
+    table.appendChild(tbody);
+
+    host.appendChild(table);
+    const guard = qs('#ttGuard'); if (guard) guard.classList.add('hidden');
   }
 
   function saveTimetableFromUI() {
@@ -1297,19 +1450,9 @@
     });
     Store.setDB(db);
   }
-  qs('#btnSaveTimetable').addEventListener('click', () => { saveTimetableFromUI(); showToast('تم حفظ الجدول'); });
-  qs('#btnResetTimetable').addEventListener('click', () => {
-    if (!confirm('إعادة تعيين الجدول؟')) return;
-    const db = Store.getDB();
-    const key = currentClassSectionKey();
-    if (key) {
-      // reset only for selected class-section
-      Object.keys(db.timetable.grid || {}).forEach(k => { if (k.startsWith(key + '|')) delete db.timetable.grid[k]; });
-    } else {
-      db.timetable.grid = {};
-    }
-    Store.setDB(db); renderTimetable();
-  });
+  // تعطيل روابط التحكم القديمة مؤقتًا
+  const btnSaveTimetable = qs('#btnSaveTimetable'); if (btnSaveTimetable) btnSaveTimetable.onclick = () => {};
+  const btnResetTimetable = qs('#btnResetTimetable'); if (btnResetTimetable) btnResetTimetable.onclick = () => {};
 
   // Backup & Import/Export
   function renderBackups() {
@@ -1403,6 +1546,39 @@
       sectSel.onchange = () => renderTimetable();
       updateSections();
     }
+    // ترحيل محتمل لمفاتيح الشبكة القديمة (أرقام الحصص -> أسماء الحصص)
+    try {
+      const db2 = Store.getDB();
+      const grid = db2.timetable?.grid || {};
+      const keys = Object.keys(grid);
+      if (keys.length) {
+        const sample = keys.slice(0, 20);
+        const numericLike = sample.filter(k => {
+          const parts = String(k).split('|');
+          const last = parts[2] || '';
+          return /^\d+$/.test(last);
+        }).length;
+        if (numericLike > sample.length / 2) {
+          const days = db2.timetable.days || [];
+          const slots = db2.timetable.slots || [];
+          const newGrid = {};
+          keys.forEach(k => {
+            const [cs, day, slotTok] = String(k).split('|');
+            if (/^\d+$/.test(slotTok)) {
+              const idx = Math.max(1, Math.min(slots.length, parseInt(slotTok, 10))) - 1;
+              const mapped = slots[idx] || slotTok;
+              const nk = `${cs}|${day}|${mapped}`;
+              // حافظ على أول قيمة، لا ضرر من الكتابة فوق نفس المفتاح بنفس القيمة
+              newGrid[nk] = grid[k];
+            } else {
+              newGrid[k] = grid[k];
+            }
+          });
+          db2.timetable.grid = newGrid;
+          Store.setDB(db2);
+        }
+      }
+    } catch {}
     renderTimetable();
     renderBackups();
     loadSettings();

@@ -108,10 +108,37 @@ body {
 .chip .x { cursor: pointer; opacity: 0.7; }
 
 /* Timetable */
+/* Note: grid-template-columns is often overridden inline to match dynamic counts */
 .tt-grid { display: grid; grid-template-columns: 120px repeat(6, 1fr); overflow-x: auto; }
 .tt-grid .tt-cell { border: 1px solid #00000010; padding: 8px; min-height: 54px; background: var(--bg); box-shadow: inset -4px -4px 8px var(--shadow-light), inset 4px 4px 8px var(--shadow-dark); }
 .tt-grid .tt-head { background: linear-gradient(180deg, #ffffff11, #00000011); font-weight: 700; }
+.tt-grid .tt-head.day { color: #ef4444; text-align: center; }
+.tt-grid .tt-subhead { background: transparent; box-shadow: none; }
 .tt-cell[contenteditable="true"]:focus { outline: 2px solid #60a5fa; background: #00000006; }
+
+/* New table-based global timetable */
+.tt-container { overflow: auto; max-width: 100%; }
+.tt-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.tt-table th, .tt-table td { border: 1px solid #00000012; padding: 6px 8px; vertical-align: top; }
+.tt-table thead th { position: sticky; top: 0; z-index: 1; background: linear-gradient(180deg, #ffffff11, #00000011); }
+.tt-table thead .days-row th { text-align: center; color: #ef4444; font-weight: 800; }
+.tt-table thead .periods-row th { text-align: center; font-weight: 700; }
+.tt-table .class-col { white-space: nowrap; font-weight: 700; color: #ef4444; background: var(--bg); position: sticky; right: 0; z-index: 2; }
+.tt-table .slot { min-width: 140px; }
+.tt-cell-box { min-height: 42px; border-radius: 10px; background: var(--bg); box-shadow: inset -4px -4px 8px var(--shadow-light), inset 4px 4px 8px var(--shadow-dark); padding: 6px 8px; }
+.tt-empty { color: var(--muted); opacity: 0.8; }
+
+/* خطوط حصص مصغرة داخل عرض كل الصفوف */
+.tt-mini-line { padding: 4px 6px; border-radius: 8px; background: var(--bg); box-shadow: inset -2px -2px 4px var(--shadow-light), inset 2px 2px 4px var(--shadow-dark); min-height: 22px; font-size: 13px; }
+.tt-slotnum-line { padding: 2px 6px; text-align: center; font-weight: 700; color: #ef4444; background: transparent; box-shadow: none; }
+.tt-rowhead { color: #ef4444; font-size: 16px; }
+
+/* Pill layout for timetable cells */
+.tt-pill { display: grid; grid-template-columns: auto auto auto 1fr; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: linear-gradient(180deg, #00000014, #00000022); box-shadow: inset -4px -4px 8px var(--shadow-light), inset 4px 4px 8px var(--shadow-dark); }
+.tt-edit { padding: 4px 8px; border-radius: 8px; }
+.tt-pill .time { font-size: 13px; opacity: 0.9; }
+.tt-pill .text { font-weight: 600; }
+.btn.sm { padding: 6px 8px; }
 
 /* Overlay */
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: grid; place-items: center; padding: 16px; }
