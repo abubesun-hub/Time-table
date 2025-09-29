@@ -1549,7 +1549,7 @@
     // 1) unplaced from auto-distribution (db.timetable.unplaced)
     // 2) assigned-but-not-yet-scheduled (computed from assignments vs current grid usage)
   const bar = qs('#ttUnplacedBar'); const list = qs('#ttUnplacedList'); const status = qs('#ttUnplacedStatus');
-    if (bar && list) {
+  if (bar && list) {
       const unp = db.timetable?.unplaced || [];
       // compute assigned-but-unscheduled
       const used = {}; // used[csKey][subjIdx][tIdx] = count in grid
@@ -1601,8 +1601,23 @@
           });
         });
       });
+      // Group items by class/section for clearer columns
       list.innerHTML = '';
+      const groups = new Map(); // key: ci:si -> { title, chips: [] }
+      const addToGroup = (ci, si, chip) => {
+        const key = `${ci}:${si}`;
+        if (!groups.has(key)) {
+          const clsName = db.classes?.[ci]?.name || '—';
+          const secName = (db.classes?.[ci]?.sections || [])[si]?.name || '—';
+          groups.set(key, { title: `${clsName}${secName ? ' — ' + secName : ''}`, chips: [] });
+        }
+        groups.get(key).chips.push(chip);
+      };
+      // from unplaced pool (note: we don't have ci/si in saved item; skip grouping, show in a generic group)
       if (unp.length) {
+        const box = document.createElement('div'); box.className = 'unplaced-group';
+        const h = document.createElement('div'); h.className = 'title'; h.textContent = 'من مولد التوزيع';
+        const chips = document.createElement('div'); chips.className = 'chips';
         unp.forEach((u, idx) => {
           const subj = db.subjectsCatalog?.[u.subjIdx]?.name || '—';
           const t = db.teachers?.[u.teacherIdx]?.name || '—';
@@ -1612,42 +1627,41 @@
           chip.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('text/plain', `UNPLACED:${idx}`);
           });
-          list.appendChild(chip);
+          chips.appendChild(chip);
         });
+        box.append(h, chips); list.appendChild(box);
       }
-      // render needs chips (assigned-but-not-scheduled)
-      if (needs.length) {
-        needs.forEach((n) => {
-          const subj = db.subjectsCatalog?.[n.subjIdx]?.name || '—';
-          const t = db.teachers?.[n.teacherIdx]?.name || '—';
-          const clsName = db.classes?.[n.ci]?.name || '—';
-          const secName = (db.classes?.[n.ci]?.sections || [])[n.si]?.name || '—';
-          const chip = document.createElement('span'); chip.className = 'chip'; chip.textContent = `${subj} • ${t} ×${n.remaining}`;
-          chip.title = `مطلوب إدراج (${n.remaining}) لهذا الصف: ${clsName}${secName ? ' — ' + secName : ''}`;
-          chip.setAttribute('draggable', 'true');
-          chip.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', `ASSIGNED:${n.ci}:${n.si}:${n.subjIdx}:${n.teacherIdx}`);
-          });
-          list.appendChild(chip);
+      // assigned-but-not-scheduled grouped per class/section
+      needs.forEach((n) => {
+        const subj = db.subjectsCatalog?.[n.subjIdx]?.name || '—';
+        const t = db.teachers?.[n.teacherIdx]?.name || '—';
+        const chip = document.createElement('span'); chip.className = 'chip'; chip.textContent = `${subj} • ${t} ×${n.remaining}`;
+        chip.title = `مطلوب إدراج (${n.remaining})`;
+        chip.setAttribute('draggable', 'true');
+        chip.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', `ASSIGNED:${n.ci}:${n.si}:${n.subjIdx}:${n.teacherIdx}`);
         });
-      }
-      // render allocNeeds chips (no teacher chosen yet)
-      if (allocNeeds.length) {
-        allocNeeds.forEach((n) => {
-          const subj = db.subjectsCatalog?.[n.subjIdx]?.name || '—';
-          const clsName = db.classes?.[n.ci]?.name || '—';
-          const secName = (db.classes?.[n.ci]?.sections || [])[n.si]?.name || '—';
-          const chip = document.createElement('span'); chip.className = 'chip'; chip.textContent = `${subj} ×${n.remaining}`;
-          chip.title = `مطلوب تعيين معلّم وإدراج (${n.remaining}) للصف: ${clsName}${secName ? ' — ' + secName : ''}`;
-          chip.setAttribute('draggable', 'true');
-          chip.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', `ALLOC:${n.ci}:${n.si}:${n.subjIdx}`);
-          });
-          list.appendChild(chip);
+        addToGroup(n.ci, n.si, chip);
+      });
+      // allocation-only deficits (no teacher) grouped per class/section
+      allocNeeds.forEach((n) => {
+        const subj = db.subjectsCatalog?.[n.subjIdx]?.name || '—';
+        const chip = document.createElement('span'); chip.className = 'chip'; chip.textContent = `${subj} ×${n.remaining}`;
+        chip.title = 'مطلوب تعيين معلّم ثم الإدراج';
+        chip.setAttribute('draggable', 'true');
+        chip.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', `ALLOC:${n.ci}:${n.si}:${n.subjIdx}`);
         });
-      }
+        addToGroup(n.ci, n.si, chip);
+      });
+      groups.forEach((g) => {
+        const box = document.createElement('div'); box.className = 'unplaced-group';
+        const h = document.createElement('div'); h.className = 'title'; h.textContent = g.title;
+        const chips = document.createElement('div'); chips.className = 'chips'; g.chips.forEach(ch => chips.appendChild(ch));
+        box.append(h, chips); list.appendChild(box);
+      });
       if (status) {
-        const total = (unp?.length || 0) + needs.reduce((s,n)=>s+n.remaining,0) + allocNeeds.reduce((s,n)=>s+n.remaining,0);
+  const total = (unp?.length || 0) + needs.reduce((s,n)=>s+n.remaining,0) + allocNeeds.reduce((s,n)=>s+n.remaining,0);
         status.textContent = total > 0 
           ? `مطلوب إدراج إجمالي: ${total} (التوزيع لم يضع: ${unp.length} • من المخصصة غير المدرجة: ${needs.reduce((s,n)=>s+n.remaining,0)} • من التخصيصات دون معلم: ${allocNeeds.reduce((s,n)=>s+n.remaining,0)})`
           : 'لا توجد عناصر غير مدرجة حالياً.';

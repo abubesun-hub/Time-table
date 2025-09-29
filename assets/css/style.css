@@ -146,6 +146,13 @@ body {
 .tt-fit .tt-table .slot { min-width: auto; }
 .tt-fit .tt-cell-box { min-height: 36px; padding: 4px 6px; font-size: 12.5px; }
 
+/* Unplaced grid (grouped by class/section) */
+.unplaced-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.unplaced-group { background: var(--bg); border-radius: 12px; padding: 10px; box-shadow: inset -6px -6px 12px var(--shadow-light), inset 6px 6px 12px var(--shadow-dark); }
+.unplaced-group .title { font-weight: 800; margin-bottom: 6px; color: #ef4444; }
+.unplaced-group .chips { gap: 8px; }
+.unplaced-group .chip { font-size: 13px; padding: 6px 10px; }
+
 /* خطوط حصص مصغرة داخل عرض كل الصفوف */
 .tt-mini-line { padding: 4px 6px; border-radius: 8px; background: var(--bg); box-shadow: inset -2px -2px 4px var(--shadow-light), inset 2px 2px 4px var(--shadow-dark); min-height: 22px; font-size: 13px; }
 .tt-slotnum-line { padding: 2px 6px; text-align: center; font-weight: 700; color: #ef4444; background: transparent; box-shadow: none; }
