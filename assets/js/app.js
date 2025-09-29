@@ -1342,14 +1342,7 @@
             const tBusy = teacherBusy[p.teacherIdx] || new Set();
             const cBusy = classBusy[p.csKey] || new Set();
             if (tBusy.has(busyKey) || cBusy.has(busyKey)) continue; // تعارض معلم أو صف/شعبة
-            // تحقق عدم تكرار نفس المادة لنفس الصف مرتين متتاليتين في نفس اليوم قدر الإمكان
-            let duplicateSameDay = false;
-            if (si > 0) {
-              const prevKey = p.csKey + '|' + day + '|' + slots[si-1];
-              const prevVal = grid[prevKey];
-              if (prevVal && prevVal.subjIdx === p.subjIdx) duplicateSameDay = true;
-            }
-            if (duplicateSameDay) continue;
+            // السماح بحصتين متتاليتين لنفس المادة/المعلم في نفس اليوم
             const key = p.csKey + '|' + day + '|' + slot;
             if (grid[key]) continue; // محجوزة بالفعل
             grid[key] = { subjIdx: p.subjIdx, teacherIdx: p.teacherIdx };
@@ -1722,15 +1715,7 @@
       return acc;
     }, 0);
     if (usedCount >= assignedCount) return 'تجاوزت عدد الحصص المخصصة لهذا المعلم لهذه المادة';
-    // تحقق بسيط: عدم تكرار نفس المادة مرتين متتاليتين لنفس الصف في نفس اليوم
-    const slots = db.timetable?.slots || [];
-    const idx = slots.indexOf(slot);
-    if (idx > 0) {
-      const prevKey = `${ci}:${si}|${day}|${slots[idx-1]}`;
-      const prevVal = grid[prevKey] || '';
-      const meta = getTeacherAndSubjectByCellValue(db, prevVal);
-      if (meta && meta.subjIdx === subjIdx) return 'نفس المادة متتالية في اليوم';
-    }
+    // يُسمح بتتابع نفس المادة في نفس اليوم لنفس الشعبة
     return null;
   }
 
