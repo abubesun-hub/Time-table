@@ -160,7 +160,7 @@
       </div>
 
       <h2 class="section-title">إحصاءات المعلمين</h2>
-      <div class="neo-surface pad-16">
+  <div class="neo-surface pad-16 full-bleed">
         <div id="teacherStatsTable" class="list"></div>
       </div>
     </section>
@@ -176,6 +176,17 @@
         </div>
       </div>
       <div class="neo-surface pad-16">
+        <div class="row wrap" style="gap:12px;margin-bottom:8px">
+          <label class="label" style="display:flex;align-items:center;gap:6px; margin:0">
+            <input type="checkbox" id="ttFitToggle" />
+            <span>ملاءمة العرض</span>
+          </label>
+          <div class="row" style="align-items:center;gap:6px">
+            <span class="muted small">التكبير</span>
+            <input id="ttZoomRange" type="range" min="50" max="120" value="100" />
+            <span id="ttZoomVal" class="muted small">100%</span>
+          </div>
+        </div>
         <div id="ttStatsBar" class="row wrap" style="gap:12px;margin-bottom:10px">
           <span class="muted">المجدول: <b id="ttStatScheduled">0</b></span>
           <span class="muted">المطلوب (التخصيص للمعلمين): <b id="ttStatAssigned">0</b></span>

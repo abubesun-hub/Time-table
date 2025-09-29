@@ -29,6 +29,7 @@ body {
 }
 
 .container { max-width: 1100px; margin: 88px auto 48px; padding: 0 16px; }
+.container.wide { max-width: 100vw; padding: 0; }
 
 /* Topbar */
 .topbar {
@@ -127,6 +128,23 @@ body {
 .tt-table .slot { min-width: 140px; }
 .tt-cell-box { min-height: 42px; border-radius: 10px; background: var(--bg); box-shadow: inset -4px -4px 8px var(--shadow-light), inset 4px 4px 8px var(--shadow-dark); padding: 6px 8px; }
 .tt-empty { color: var(--muted); opacity: 0.8; }
+
+/* Fit width + zoom */
+.tt-fit .tt-table { table-layout: fixed; }
+.tt-zoom { transform-origin: top right; }
+
+/* Full-bleed section to utilize browser width for timetable */
+.full-bleed {
+  width: 100vw;
+  max-width: 100vw;
+  margin-inline: calc(50% - 50vw);
+  border-radius: 0;
+}
+.full-bleed .tt-container { padding-inline: min(24px, 4vw); }
+
+/* denser cells when fit is enabled */
+.tt-fit .tt-table .slot { min-width: auto; }
+.tt-fit .tt-cell-box { min-height: 36px; padding: 4px 6px; font-size: 12.5px; }
 
 /* خطوط حصص مصغرة داخل عرض كل الصفوف */
 .tt-mini-line { padding: 4px 6px; border-radius: 8px; background: var(--bg); box-shadow: inset -2px -2px 4px var(--shadow-light), inset 2px 2px 4px var(--shadow-dark); min-height: 22px; font-size: 13px; }

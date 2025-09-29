@@ -1487,7 +1487,28 @@
     });
     table.appendChild(tbody);
 
-    host.appendChild(table);
+    // Fit/Zoom controls
+    const container = host.parentElement?.closest('.tt-container') || qs('.tt-container');
+    const fitToggle = qs('#ttFitToggle');
+    const zoomRange = qs('#ttZoomRange');
+    const zoomVal = qs('#ttZoomVal');
+    if (fitToggle && container) {
+      container.classList.toggle('tt-fit', !!fitToggle.checked);
+    }
+    if (zoomRange && zoomVal && container) {
+      const z = Math.max(50, Math.min(120, parseInt(zoomRange.value, 10) || 100));
+      zoomVal.textContent = z + '%';
+      const scale = z / 100;
+      // apply scale by wrapping table into a zoom div
+      const wrap = document.createElement('div');
+      wrap.className = 'tt-zoom';
+      wrap.style.transform = `scale(${scale})`;
+      wrap.style.width = `${100/scale}%`;
+      wrap.appendChild(table);
+      host.appendChild(wrap);
+    } else {
+      host.appendChild(table);
+    }
     const guard = qs('#ttGuard'); if (guard) guard.classList.add('hidden');
 
     // ===== إحصائيات أعلى الجدول =====
@@ -1959,4 +1980,8 @@
   await updateActivationUI();
   await ensureAdminSetup();
   await updateAccountUI();
+
+  // Hook fit/zoom controls if present
+  const fitToggle = qs('#ttFitToggle'); if (fitToggle) fitToggle.addEventListener('change', () => renderTimetable());
+  const zoomRange = qs('#ttZoomRange'); if (zoomRange) zoomRange.addEventListener('input', () => renderTimetable());
 })();

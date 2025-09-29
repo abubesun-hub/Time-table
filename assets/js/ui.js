@@ -13,6 +13,9 @@
     if (el) el.classList.add('active');
     // update nav state
     qsa('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.route === target));
+    // widen container for timetable view
+    const app = qs('#app');
+    if (app) app.classList.toggle('wide', target === '#/timetable');
   }
 
   function showToast(msg, type = 'info', timeout = 3000) {
