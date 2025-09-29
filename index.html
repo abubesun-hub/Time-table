@@ -167,8 +167,13 @@
 
     <!-- Timetable (global view: classes x (days x 6 periods)) -->
     <section id="view-timetable" class="view">
-      <div class="header-row">
-        <h2 class="section-title">الجدول الأسبوعي (عرض شامل)</h2>
+      <div class="header-row" style="align-items:center;justify-content:space-between;gap:12px">
+        <h2 class="section-title" style="margin:8px 0">الجدول الأسبوعي (عرض شامل)</h2>
+        <div class="row gap-8 wrap">
+          <button id="btnDistributeTT" class="btn primary"><i class="bi bi-magic"></i> توزيع الحصص</button>
+          <button id="btnShuffleTT" class="btn"><i class="bi bi-shuffle"></i> إعادة توزيع</button>
+          <button id="btnResetTT" class="btn danger"><i class="bi bi-trash3"></i> تفريغ الجدول</button>
+        </div>
       </div>
       <div class="neo-surface pad-16">
         <div class="tt-container">

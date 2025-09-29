@@ -1302,9 +1302,17 @@
     // رتب المهام بحيث تُوزع المهام الأكثر عددًا أولًا لتقليل التعارضات
     pool.sort((a, b) => b.remaining - a.remaining);
 
-    // لتفادي التجمع في بداية الأسبوع، استخدم إزاحة بدء مختلفة لكل (csKey)
+    // لتفادي التجمع وإضافة عشوائية، أعطِ كل (csKey) إزاحة يومية عشوائية
     const csKeys = [...new Set(pool.map(p => p.csKey))];
-    const offsets = Object.fromEntries(csKeys.map((k, i) => [k, i % days.length]));
+    const offsets = Object.fromEntries(csKeys.map((k) => [k, Math.floor(Math.random() * days.length)]));
+    // ترتيب حصص اليوم يمكن تدويره عشوائياً
+    const slotOrders = days.reduce((acc, d) => {
+      const order = [...slots.keys()]; // [0..n-1]
+      const pivot = Math.floor(Math.random() * slots.length);
+      const rotated = order.slice(pivot).concat(order.slice(0, pivot));
+      acc[d] = rotated;
+      return acc;
+    }, {});
 
     // هيكل تكراري: لكل مهمة، حاول وضع الحصص عبر الأسبوع مع تدوير الأيام والفترات
     let safety = 0; // حارس لا نهائي
@@ -1316,7 +1324,8 @@
         let placed = false;
         for (let di = 0; di < days.length && !placed; di++) {
           const day = days[(startDayIdx + di) % days.length];
-          for (let si = 0; si < slots.length && !placed; si++) {
+          for (const si of slotOrders[day]) {
+            if (placed) break;
             const slot = slots[si];
             const busyKey = day + '|' + slot;
             const tBusy = teacherBusy[p.teacherIdx] || new Set();
@@ -1375,7 +1384,7 @@
   }
 
   function shuffleTimetable() {
-    // إعادة توزيع سريعة: نعيد التوليد بالكامل الآن، ويمكن لاحقًا إضافة تبديلات محلية
+    // إعادة توزيع سريعة بإعادة التوليد مع عشوائية مختلفة
     generateAutoTimetable();
   }
 
@@ -1387,14 +1396,15 @@
   }
 
   function renderTimetable() {
-    // عرض شامل: جدول بكل الصفوف/الشعب مقابل الأيام (6 حصص تحت كل يوم)
+    // عرض شامل: جدول بكل الصفوف/الشعب مقابل الأيام وعدد الحصص حسب الإعدادات (افتراضياً 6)
     const host = qs('#ttGlobalContainer');
     if (!host) return;
     const db = Store.getDB();
     const classes = db.classes || [];
     const days = db.timetable?.days || ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
-    // نثبت 6 حصص حسب الطلب الآن
-    const slotCount = 6;
+    const slots = db.timetable?.slots || ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة'];
+    const slotCount = slots.length;
+    const grid = db.timetable?.grid || {};
 
     host.innerHTML = '';
     const table = document.createElement('table'); table.className = 'tt-table';
@@ -1427,9 +1437,14 @@
         const tr = document.createElement('tr');
         const tdClass = document.createElement('td'); tdClass.className = 'class-col'; tdClass.textContent = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`; tr.appendChild(tdClass);
         days.forEach(day => {
-          for (let i = 1; i <= slotCount; i++) {
+          for (let sIndex = 0; sIndex < slotCount; sIndex++) {
             const td = document.createElement('td'); td.className = 'slot';
-            const box = document.createElement('div'); box.className = 'tt-cell-box tt-empty'; box.textContent = '—';
+            const box = document.createElement('div'); box.className = 'tt-cell-box';
+            const nameKey = `${ci}:${si}|${day}|${slots[sIndex]}`;
+            const legacyKey = `${ci}:${si}|${day}|${sIndex + 1}`;
+            const val = grid[nameKey] ?? grid[legacyKey] ?? '';
+            if (val) { box.textContent = val; box.classList.add('filled'); }
+            else { box.textContent = '—'; box.classList.add('tt-empty'); }
             td.appendChild(box); tr.appendChild(td);
           }
         });
@@ -1450,9 +1465,14 @@
     });
     Store.setDB(db);
   }
-  // تعطيل روابط التحكم القديمة مؤقتًا
-  const btnSaveTimetable = qs('#btnSaveTimetable'); if (btnSaveTimetable) btnSaveTimetable.onclick = () => {};
-  const btnResetTimetable = qs('#btnResetTimetable'); if (btnResetTimetable) btnResetTimetable.onclick = () => {};
+  // أزرار توزيع/تدوير/تفريغ
+  const btnDistributeTT = qs('#btnDistributeTT'); if (btnDistributeTT) btnDistributeTT.addEventListener('click', generateAutoTimetable);
+  const btnShuffleTT = qs('#btnShuffleTT'); if (btnShuffleTT) btnShuffleTT.addEventListener('click', shuffleTimetable);
+  const btnResetTT = qs('#btnResetTT'); if (btnResetTT) btnResetTT.addEventListener('click', () => {
+    if (!confirm('تفريغ الجدول لجميع الصفوف والشعب؟')) return;
+    const db = Store.getDB(); db.timetable = db.timetable || {}; db.timetable.grid = {};
+    Store.setDB(db); renderTimetable(); showToast('تم تفريغ الجدول');
+  });
 
   // Backup & Import/Export
   function renderBackups() {
