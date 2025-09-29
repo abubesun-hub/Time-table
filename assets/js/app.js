@@ -107,9 +107,16 @@
   function refreshStats() {
     const db = Store.getDB();
     qs('#stat-subjects').textContent = (db.subjectsCatalog || []).length;
-    // total periods = sum of all allocations (all subjects across all classes)
+    // total periods (school-wide) = sum of allocations per class multiplied by number of sections in that class
+    const classes = db.classes || [];
     const totalPeriods = Object.values(db.allocations || {}).reduce((sum, map) => {
-      return sum + Object.values(map || {}).reduce((s, v) => s + (parseInt(v, 10) || 0), 0);
+      // map: { [classIndex]: weeklyCountPerSection }
+      return sum + Object.entries(map || {}).reduce((s, [ciStr, v]) => {
+        const ci = parseInt(ciStr, 10);
+        const perSection = parseInt(v, 10) || 0;
+        const sectionsCount = Math.max(1, (classes[ci]?.sections || []).length || 0);
+        return s + perSection * sectionsCount;
+      }, 0);
     }, 0);
     const sp = qs('#stat-periods'); if (sp) sp.textContent = totalPeriods;
     qs('#stat-classes').textContent = db.classes.length;
@@ -330,6 +337,8 @@
       toggle.addEventListener('change', () => {
         const db2 = Store.getDB(); db2.times = db2.times || {}; db2.times.workingDays = db2.times.workingDays || {};
         db2.times.workingDays[d] = toggle.checked; Store.setDB(db2);
+        // إعادة عرض الجدول والإحصاءات مباشرةً
+        renderTimetable();
       });
     });
   }
@@ -1269,9 +1278,10 @@
   }
   function calcDailySlots(db) {
     // احصل على أيام وأسماء الحصص من times
-    const days = db.timetable.days; // ['الأحد', ...]
+    const allDays = db.timetable.days; // ['الأحد', ...]
+    const activeDays = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
     const slots = db.timetable.slots; // ['1', '2', ...]
-    return { days, slots };
+    return { days: activeDays, slots };
   }
 
   function buildAssignmentPool(db) {
@@ -1295,6 +1305,7 @@
     const { days, slots } = calcDailySlots(db);
     if (!days || !days.length || !slots || !slots.length) { showToast('الرجاء ضبط أيام الأسبوع وعدد الحصص أولًا'); return; }
     const grid = {}; // جديد
+    const unplaced = []; // عناصر لم نتمكن من وضعها
     const teacherBusy = {}; // teacherIdx -> Set of key 'day|slot'
     const classBusy = {};   // csKey -> Set of key 'day|slot'
     const pool = buildAssignmentPool(db);
@@ -1350,8 +1361,14 @@
           }
         }
         // إذا لم ننجح في وضع هذه الحصة ضمن الدورة الحالية، سنحاول في دورة لاحقة من خلال while
+        // عند نهاية الحلقة الخارجية، سنسجل ما لم يوضع.
       }
     }
+
+    // بعد المحاولة المكثفة، أي عناصر لا تزال متبقية تعتبر غير موضوعة
+    pool.forEach(p => {
+      for (let i = 0; i < p.remaining; i++) unplaced.push({ csKey: p.csKey, subjIdx: p.subjIdx, teacherIdx: p.teacherIdx });
+    });
 
     // حفظ الشبكة بصيغة العرض (اسم المادة • اسم المعلم)
     const showName = (subjIdx, teacherIdx) => {
@@ -1362,6 +1379,7 @@
     db.timetable.grid = db.timetable.grid || {};
     Object.keys(db.timetable.grid).forEach(k => delete db.timetable.grid[k]);
     Object.entries(grid).forEach(([k, v]) => { db.timetable.grid[k] = showName(v.subjIdx, v.teacherIdx); });
+    db.timetable.unplaced = unplaced; // لخانة العرض أسفل الجدول
     Store.setDB(db);
     // اختر أول صف وشعبة تلقائيًا لعرض النتيجة
     const classSel = qs('#ttClassSelect'); const sectSel = qs('#ttSectionSelect');
@@ -1401,12 +1419,13 @@
     if (!host) return;
     const db = Store.getDB();
     const classes = db.classes || [];
-    const days = db.timetable?.days || ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+    const allDays = db.timetable?.days || ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+    const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
     const slots = db.timetable?.slots || ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة'];
     const slotCount = slots.length;
-    const grid = db.timetable?.grid || {};
+  const grid = db.timetable?.grid || {};
 
-    host.innerHTML = '';
+  host.innerHTML = '';
     const table = document.createElement('table'); table.className = 'tt-table';
 
     // thead: صف الأيام ثم صف الحصص
@@ -1445,6 +1464,21 @@
             const val = grid[nameKey] ?? grid[legacyKey] ?? '';
             if (val) { box.textContent = val; box.classList.add('filled'); }
             else { box.textContent = '—'; box.classList.add('tt-empty'); }
+            // اجعل الخلية قابلة للنقر والـ DnD
+            box.dataset.key = nameKey;
+            box.setAttribute('draggable', 'true');
+            box.addEventListener('dragstart', (e) => {
+              e.dataTransfer.setData('text/plain', nameKey);
+            });
+            box.addEventListener('dragover', (e) => { e.preventDefault(); });
+            box.addEventListener('drop', (e) => {
+              e.preventDefault();
+              const fromKey = e.dataTransfer.getData('text/plain');
+              const toKey = nameKey;
+              if (!fromKey || fromKey === toKey) return;
+              moveOrSwapCells(fromKey, toKey);
+            });
+            box.addEventListener('click', () => openTtPickFor(nameKey));
             td.appendChild(box); tr.appendChild(td);
           }
         });
@@ -1455,6 +1489,320 @@
 
     host.appendChild(table);
     const guard = qs('#ttGuard'); if (guard) guard.classList.add('hidden');
+
+    // ===== إحصائيات أعلى الجدول =====
+    try {
+      const statScheduled = Object.values(grid).filter(v => v && String(v).trim()).length;
+      // المطلوب من التخصيص للمعلمين (Assignments)
+      const assignedTarget = Object.values(Store.getDB().assignments || {}).reduce((acc, subjMap) => {
+        return acc + Object.values(subjMap || {}).reduce((s, teachMap) => s + Object.values(teachMap || {}).reduce((a, c) => a + (parseInt(c, 10) || 0), 0), 0);
+      }, 0);
+      // المطلوب من التخصيص العام (Allocations) مضروباً بعدد الشعب
+      const classes = Store.getDB().classes || [];
+      const allocTarget = Object.values(Store.getDB().allocations || {}).reduce((sum, map) => {
+        return sum + Object.entries(map || {}).reduce((s, [ciStr, v]) => {
+          const ci = parseInt(ciStr, 10);
+          const perSection = parseInt(v, 10) || 0;
+          const sectionsCount = Math.max(1, (classes[ci]?.sections || []).length || 0);
+          return s + perSection * sectionsCount;
+        }, 0);
+      }, 0);
+      // سعة الخلايا = عدد الأيام × عدد الحصص × عدد الشعب الكلي
+  const allDays2 = Store.getDB().timetable?.days || [];
+  const days2 = allDays2.filter(d => (Store.getDB().times?.workingDays?.[d]) !== false);
+      const slots = Store.getDB().timetable?.slots || [];
+      const sectionsTotal = classes.reduce((s, c) => s + Math.max(1, (c.sections || []).length || 0), 0);
+  const capacity = days2.length * slots.length * sectionsTotal;
+      const emptyCells = capacity - statScheduled;
+      const gap = Math.max(0, assignedTarget - statScheduled);
+      const set = (id, val) => { const el = qs('#' + id); if (el) el.textContent = String(val); };
+      set('ttStatScheduled', statScheduled);
+      set('ttStatAssigned', assignedTarget);
+      set('ttStatGap', gap);
+      set('ttStatAlloc', allocTarget);
+      set('ttStatCapacity', capacity);
+      set('ttStatEmptyCells', emptyCells);
+    } catch {}
+
+    // Render unplaced bar (two kinds):
+    // 1) unplaced from auto-distribution (db.timetable.unplaced)
+    // 2) assigned-but-not-yet-scheduled (computed from assignments vs current grid usage)
+  const bar = qs('#ttUnplacedBar'); const list = qs('#ttUnplacedList'); const status = qs('#ttUnplacedStatus');
+    if (bar && list) {
+      const unp = db.timetable?.unplaced || [];
+      // compute assigned-but-unscheduled
+      const used = {}; // used[csKey][subjIdx][tIdx] = count in grid
+      Object.entries(grid).forEach(([k, v]) => {
+        if (!v) return;
+        const meta = getTeacherAndSubjectByCellValue(db, v);
+        if (!meta) return;
+        const cs = k.split('|')[0];
+        used[cs] = used[cs] || {}; used[cs][meta.subjIdx] = used[cs][meta.subjIdx] || {}; used[cs][meta.subjIdx][meta.teacherIdx] = (used[cs][meta.subjIdx][meta.teacherIdx] || 0) + 1;
+      });
+      const needs = [];
+      Object.entries(db.assignments || {}).forEach(([csKey, subjMap]) => {
+        Object.entries(subjMap || {}).forEach(([subjIdxStr, teachMap]) => {
+          const subjIdx = parseInt(subjIdxStr, 10);
+          Object.entries(teachMap || {}).forEach(([tStr, cnt]) => {
+            const tIdx = parseInt(tStr, 10);
+            const target = parseInt(cnt, 10) || 0;
+            if (target <= 0) return;
+            const usedCnt = used[csKey]?.[subjIdx]?.[tIdx] || 0;
+            if (target > usedCnt) {
+              // parse cs
+              const [ciStr, siStr] = csKey.split(':');
+              const ci = parseInt(ciStr, 10), si = parseInt(siStr, 10);
+              needs.push({ csKey, ci, si, subjIdx, teacherIdx: tIdx, remaining: target - usedCnt });
+            }
+          });
+        });
+      });
+      // allocation-based deficits per section (ignoring teacher):
+      const allocNeeds = [];
+      const classes = db.classes || [];
+      classes.forEach((cls, ci) => {
+        const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ _virtual: true }];
+        sections.forEach((_, si) => {
+          const csKey = `${ci}:${si}`;
+          (db.subjectsCatalog || []).forEach((_, subjIdx) => {
+            const alloc = parseInt(db.allocations?.[subjIdx]?.[ci], 10) || 0;
+            if (alloc <= 0) return;
+            // count placed cells for this (csKey, subject)
+            let placed = 0;
+            Object.entries(grid).forEach(([k, v]) => {
+              if (!v) return;
+              const [cs, , ] = k.split('|');
+              if (cs !== csKey) return;
+              const meta = getTeacherAndSubjectByCellValue(db, v);
+              if (meta && meta.subjIdx === subjIdx) placed++;
+            });
+            if (alloc > placed) allocNeeds.push({ csKey, ci, si, subjIdx, remaining: alloc - placed });
+          });
+        });
+      });
+      list.innerHTML = '';
+      if (unp.length) {
+        unp.forEach((u, idx) => {
+          const subj = db.subjectsCatalog?.[u.subjIdx]?.name || '—';
+          const t = db.teachers?.[u.teacherIdx]?.name || '—';
+          const chip = document.createElement('span'); chip.className = 'chip'; chip.textContent = `${subj} • ${t}`;
+          chip.title = 'اسحب هذه الحصة إلى خانة مناسبة في الجدول';
+          chip.setAttribute('draggable', 'true');
+          chip.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', `UNPLACED:${idx}`);
+          });
+          list.appendChild(chip);
+        });
+      }
+      // render needs chips (assigned-but-not-scheduled)
+      if (needs.length) {
+        needs.forEach((n) => {
+          const subj = db.subjectsCatalog?.[n.subjIdx]?.name || '—';
+          const t = db.teachers?.[n.teacherIdx]?.name || '—';
+          const clsName = db.classes?.[n.ci]?.name || '—';
+          const secName = (db.classes?.[n.ci]?.sections || [])[n.si]?.name || '—';
+          const chip = document.createElement('span'); chip.className = 'chip'; chip.textContent = `${subj} • ${t} ×${n.remaining}`;
+          chip.title = `مطلوب إدراج (${n.remaining}) لهذا الصف: ${clsName}${secName ? ' — ' + secName : ''}`;
+          chip.setAttribute('draggable', 'true');
+          chip.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', `ASSIGNED:${n.ci}:${n.si}:${n.subjIdx}:${n.teacherIdx}`);
+          });
+          list.appendChild(chip);
+        });
+      }
+      // render allocNeeds chips (no teacher chosen yet)
+      if (allocNeeds.length) {
+        allocNeeds.forEach((n) => {
+          const subj = db.subjectsCatalog?.[n.subjIdx]?.name || '—';
+          const clsName = db.classes?.[n.ci]?.name || '—';
+          const secName = (db.classes?.[n.ci]?.sections || [])[n.si]?.name || '—';
+          const chip = document.createElement('span'); chip.className = 'chip'; chip.textContent = `${subj} ×${n.remaining}`;
+          chip.title = `مطلوب تعيين معلّم وإدراج (${n.remaining}) للصف: ${clsName}${secName ? ' — ' + secName : ''}`;
+          chip.setAttribute('draggable', 'true');
+          chip.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', `ALLOC:${n.ci}:${n.si}:${n.subjIdx}`);
+          });
+          list.appendChild(chip);
+        });
+      }
+      if (status) {
+        const total = (unp?.length || 0) + needs.reduce((s,n)=>s+n.remaining,0) + allocNeeds.reduce((s,n)=>s+n.remaining,0);
+        status.textContent = total > 0 
+          ? `مطلوب إدراج إجمالي: ${total} (التوزيع لم يضع: ${unp.length} • من المخصصة غير المدرجة: ${needs.reduce((s,n)=>s+n.remaining,0)} • من التخصيصات دون معلم: ${allocNeeds.reduce((s,n)=>s+n.remaining,0)})`
+          : 'لا توجد عناصر غير مدرجة حالياً.';
+      }
+    }
+  }
+
+  // تحريك/مبادلة الخلايا مع التحقق من التعارض
+  function parseGridKey(key) {
+    const [cs, day, slot] = String(key).split('|');
+    const [ci, si] = cs.split(':').map(x => parseInt(x, 10));
+    return { ci, si, day, slot };
+  }
+
+  function getTeacherAndSubjectByCellValue(db, val) {
+    // صيغة العرض: "المادة • المعلم"
+    if (!val) return null;
+    const parts = String(val).split('•').map(s => s.trim());
+    const subjName = parts[0] || '';
+    const teacherName = parts[1] || '';
+    const subjIdx = (db.subjectsCatalog || []).findIndex(s => (s.name || '').trim() === subjName);
+    const teacherIdx = (db.teachers || []).findIndex(t => (t.name || '').trim() === teacherName);
+    if (subjIdx < 0 || teacherIdx < 0) return null;
+    return { subjIdx, teacherIdx };
+  }
+
+  function isConflict(db, key, subjIdx, teacherIdx, opts = {}) {
+    const { ignoreOccupied = false, excludeKey = null } = opts;
+    const { day, slot, ci, si } = parseGridKey(key);
+    const grid = db.timetable?.grid || {};
+    // تعارض معلم: لا يمكن أن يكون المعلم في أكثر من خانة بنفس اليوم والوقت
+    const teacherBusy = Object.entries(grid).some(([k, v]) => {
+      if (!v) return false;
+      const meta = getTeacherAndSubjectByCellValue(db, v);
+      if (!meta) return false;
+      const { day: d2, slot: s2 } = parseGridKey(k);
+      return meta.teacherIdx === teacherIdx && d2 === day && s2 === slot && k !== key && k !== excludeKey;
+    });
+    if (teacherBusy) return 'تعارض معلم في نفس الوقت';
+    // تعارض صف/شعبة: لا يمكن لخانة الصف أن تحتوي حصتين
+    const existing = grid[key];
+    if (!ignoreOccupied && existing && existing.trim()) return 'الخانة مشغولة';
+    // تحقق أن هذه المادة مخصصة لهذا الصف أصلاً
+    const alloc = parseInt(db.allocations?.[subjIdx]?.[ci], 10) || 0;
+    if (alloc <= 0) return 'هذه المادة غير مخصصة لهذا الصف';
+    // تحقق أن المعلم مخصص لهذه المادة لهذه الشعبة
+    const csKey = `${ci}:${si}`;
+    const teachMap = db.assignments?.[csKey]?.[subjIdx] || {};
+    if (!(teacherIdx in teachMap)) return 'هذا المعلم غير مخصص لهذه المادة في هذه الشعبة';
+    // عدم تجاوز العدد المخصص لهذا المعلم
+    const assignedCount = parseInt(teachMap[teacherIdx], 10) || 0;
+    const usedCount = Object.entries(grid).reduce((acc, [k, v]) => {
+      if (!v || k === excludeKey) return acc;
+      const meta = getTeacherAndSubjectByCellValue(db, v);
+      if (!meta) return acc;
+      const { ci: ci2, si: si2 } = parseGridKey(k);
+      if (ci2 === ci && si2 === si && meta.subjIdx === subjIdx && meta.teacherIdx === teacherIdx) return acc + 1;
+      return acc;
+    }, 0);
+    if (usedCount >= assignedCount) return 'تجاوزت عدد الحصص المخصصة لهذا المعلم لهذه المادة';
+    // تحقق بسيط: عدم تكرار نفس المادة مرتين متتاليتين لنفس الصف في نفس اليوم
+    const slots = db.timetable?.slots || [];
+    const idx = slots.indexOf(slot);
+    if (idx > 0) {
+      const prevKey = `${ci}:${si}|${day}|${slots[idx-1]}`;
+      const prevVal = grid[prevKey] || '';
+      const meta = getTeacherAndSubjectByCellValue(db, prevVal);
+      if (meta && meta.subjIdx === subjIdx) return 'نفس المادة متتالية في اليوم';
+    }
+    return null;
+  }
+
+  function moveOrSwapCells(fromKey, toKey) {
+    const db = Store.getDB();
+    const grid = db.timetable?.grid || {};
+    const fromVal = grid[fromKey] || '';
+    if (fromKey.startsWith('UNPLACED:')) {
+      // السحب من شريط غير المُدرجة
+      const idx = parseInt(fromKey.split(':')[1], 10);
+      const item = (db.timetable?.unplaced || [])[idx];
+      if (!item) return;
+      const conflict = isConflict(db, toKey, item.subjIdx, item.teacherIdx);
+      if (conflict) { showToast(conflict); return; }
+      const subj = db.subjectsCatalog?.[item.subjIdx]?.name || '—';
+      const t = db.teachers?.[item.teacherIdx]?.name || '—';
+      grid[toKey] = `${subj} • ${t}`;
+      // احذف من غير المُدرجة
+      const up = db.timetable.unplaced || [];
+      up.splice(idx, 1);
+      Store.setDB(db);
+      renderTimetable();
+      return;
+    }
+    if (fromKey.startsWith('ASSIGNED:')) {
+      // السحب من شريط "المخصصة غير المدرجة" (إضافة حصة واحدة)
+      const parts = fromKey.split(':');
+      const ci = parseInt(parts[1], 10), si = parseInt(parts[2], 10), subjIdx = parseInt(parts[3], 10), teacherIdx = parseInt(parts[4], 10);
+      const conflict = isConflict(db, toKey, subjIdx, teacherIdx);
+      if (conflict) { showToast(conflict); return; }
+      const subj = db.subjectsCatalog?.[subjIdx]?.name || '—';
+      const t = db.teachers?.[teacherIdx]?.name || '—';
+      grid[toKey] = `${subj} • ${t}`;
+      Store.setDB(db);
+      renderTimetable();
+      return;
+    }
+    if (fromKey.startsWith('ALLOC:')) {
+      // السحب من شريط التخصيص (بدون اختيار معلم بعد): افتح نافذة الاختيار مهيأة بالمادة
+      const parts = fromKey.split(':');
+      const subjIdx = parseInt(parts[3], 10);
+      openTtPickFor(toKey, subjIdx);
+      return;
+    }
+    const toVal = grid[toKey] || '';
+    // إذا كانت الوجهة مشغولة، جرب المقايضة إن لم تخلق تعارضًا جديدًا
+    if (toVal) {
+      // تحليل المصدر والوجهة
+      const metaFrom = getTeacherAndSubjectByCellValue(db, fromVal);
+      const metaTo = getTeacherAndSubjectByCellValue(db, toVal);
+      if (!metaFrom || !metaTo) return;
+  const c1 = isConflict(db, toKey, metaFrom.subjIdx, metaFrom.teacherIdx, { ignoreOccupied: true, excludeKey: fromKey });
+      // تفريغ منKey مؤقتًا قبل اختبار c2 حتى لا يحسب تعارضًا مع نفسه
+      const tmp = grid[fromKey]; grid[fromKey] = '';
+  const c2 = isConflict(db, fromKey, metaTo.subjIdx, metaTo.teacherIdx, { ignoreOccupied: true, excludeKey: toKey });
+      grid[fromKey] = tmp;
+      if (c1 || c2) { showToast('لا يمكن المقايضة بسبب التعارض'); return; }
+      grid[toKey] = fromVal; grid[fromKey] = toVal;
+      Store.setDB(db); renderTimetable(); return;
+    }
+    // وجهة فارغة: انقل إن لم يوجد تعارض
+    const meta = getTeacherAndSubjectByCellValue(db, fromVal);
+    if (!meta) return;
+  const conflict = isConflict(db, toKey, meta.subjIdx, meta.teacherIdx, { excludeKey: fromKey });
+    if (conflict) { showToast(conflict); return; }
+    grid[toKey] = fromVal; grid[fromKey] = '';
+    Store.setDB(db); renderTimetable();
+  }
+
+  // فتح نافذة اختيار مادة مباشرة للنقرة على الخلية
+  function openTtPickFor(key, preselectSubjIdx = null) {
+    const db = Store.getDB();
+    const dlg = qs('#modal-tt-pick'); if (!dlg) return;
+    const label = qs('#ttPickCellLabel'); if (label) label.textContent = `الخانة: ${key}`;
+    const subjSel = qs('#ttPickSubject'); if (!subjSel) return;
+    subjSel.innerHTML = '<option value="">— اختر مادة —</option>' + (db.subjectsCatalog||[]).map((s,i)=>`<option value="${i}">${s.name}</option>`).join('');
+    // عند اختيار المادة، نحاول تحديد المعلم المخصص لهذه المادة لنفس الصف/الشعبة
+    subjSel.onchange = () => {
+      const v = subjSel.value; const row = qs('#ttPickTeacherRow'); if (!row) return;
+      if (v === '') { row.textContent = '—'; return; }
+      const subjIdx = parseInt(v, 10);
+      const { ci, si } = parseGridKey(key);
+      const csKey = `${ci}:${si}`; const teachMap = Store.getDB().assignments?.[csKey]?.[subjIdx] || {};
+      const pair = Object.entries(teachMap).map(([t,c])=>[parseInt(t,10), parseInt(c,10)||0]).sort((a,b)=>b[1]-a[1])[0];
+      if (pair) { const tName = Store.getDB().teachers?.[pair[0]]?.name || '—'; row.textContent = `المعلم: ${tName} • حصص: ${pair[1]}`; row.dataset.tidx = String(pair[0]); }
+      else { row.textContent = 'لا يوجد معلم مخصص لهذه المادة لهذا الصف/الشعبة'; row.dataset.tidx = ''; }
+    };
+    if (preselectSubjIdx != null) {
+      subjSel.value = String(preselectSubjIdx);
+      subjSel.dispatchEvent(new Event('change'));
+    }
+    const btnCancel = qs('#btnTtPickCancel'); if (btnCancel) btnCancel.onclick = () => dlg.close('cancel');
+    const btnClear = qs('#btnTtPickClear'); if (btnClear) btnClear.onclick = () => { const db2=Store.getDB(); db2.timetable.grid[key] = ''; Store.setDB(db2); renderTimetable(); dlg.close('default'); };
+    const form = qs('#form-tt-pick'); if (form) form.onsubmit = (e) => {
+      e.preventDefault();
+      const v = subjSel.value; if (v === '') { showToast('اختر مادة'); return; }
+      const subjIdx = parseInt(v, 10);
+      const tRow = qs('#ttPickTeacherRow'); const tIdxStr = tRow?.dataset.tidx || '';
+      if (tIdxStr === '') { showToast('لا يوجد معلم لهذه المادة في هذا الصف. عيّن معلمًا من صفحة التخصيص أولًا.'); return; }
+      const tIdx = parseInt(tIdxStr, 10);
+      const conflict = isConflict(Store.getDB(), key, subjIdx, tIdx);
+      if (conflict) { showToast(conflict); return; }
+      const subj = Store.getDB().subjectsCatalog?.[subjIdx]?.name || '—';
+      const t = Store.getDB().teachers?.[tIdx]?.name || '—';
+      const db3 = Store.getDB(); db3.timetable.grid = db3.timetable.grid || {}; db3.timetable.grid[key] = `${subj} • ${t}`; Store.setDB(db3); renderTimetable(); dlg.close('default');
+    };
+    dlg.returnValue = 'cancel'; dlg.showModal();
   }
 
   function saveTimetableFromUI() {

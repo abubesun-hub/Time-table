@@ -176,8 +176,23 @@
         </div>
       </div>
       <div class="neo-surface pad-16">
+        <div id="ttStatsBar" class="row wrap" style="gap:12px;margin-bottom:10px">
+          <span class="muted">المجدول: <b id="ttStatScheduled">0</b></span>
+          <span class="muted">المطلوب (التخصيص للمعلمين): <b id="ttStatAssigned">0</b></span>
+          <span class="muted">المتبقي للجدولة: <b id="ttStatGap">0</b></span>
+          <span class="muted">المطلوب (التخصيص العام): <b id="ttStatAlloc">0</b></span>
+          <span class="muted">سعة الخلايا: <b id="ttStatCapacity">0</b></span>
+          <span class="muted">الخلايا الفارغة: <b id="ttStatEmptyCells">0</b></span>
+        </div>
         <div class="tt-container">
           <div id="ttGlobalContainer"></div>
+        </div>
+        <!-- Unplaced (leftover) lessons bar -->
+        <div id="ttUnplacedBar" class="neo-surface pad-12" style="margin-top:10px;">
+          <h3 class="sub-title" style="margin-top:0">مواد لم تُدرج بعد</h3>
+          <div class="muted" id="ttUnplacedHelp" style="margin-bottom:6px">هذه الحصص لم تجد خانة مناسبة أثناء التوزيع بسبب تضارب المعلم/الصف أو امتلاء اليوم. يمكنك إدراجها يدويًا من الجدول.</div>
+          <div class="muted small" id="ttUnplacedStatus" style="margin-bottom:6px"></div>
+          <div id="ttUnplacedList" class="chips"></div>
         </div>
         <!-- عناصر مخفية قد تعتمد عليها شيفرات قديمة -->
         <div style="display:none">
@@ -575,6 +590,22 @@
       <menu class="row gap-8">
         <button type="button" id="btnCancelInvoice" class="btn ghost">إلغاء</button>
         <button type="submit" value="default" class="btn primary">حفظ</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Pick lesson for a timetable cell -->
+  <dialog id="modal-tt-pick" class="modal neo-surface">
+    <form method="dialog" id="form-tt-pick">
+      <h3>تعيين مادة للخانة</h3>
+      <div id="ttPickCellLabel" class="muted" style="margin-bottom:8px">—</div>
+      <label class="label" for="ttPickSubject">المادة</label>
+      <select id="ttPickSubject" class="input"></select>
+      <div class="muted small" id="ttPickTeacherRow" style="margin-top:6px">—</div>
+      <menu class="row gap-8" style="margin-top:12px">
+        <button type="button" id="btnTtPickClear" class="btn"><i class="bi bi-eraser"></i> تفريغ الخانة</button>
+        <button type="button" id="btnTtPickCancel" class="btn ghost">إلغاء</button>
+        <button type="submit" value="default" class="btn primary"><i class="bi bi-check2-circle"></i> تعيين</button>
       </menu>
     </form>
   </dialog>
