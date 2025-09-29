@@ -1806,14 +1806,34 @@
     const dlg = qs('#modal-tt-pick'); if (!dlg) return;
     const label = qs('#ttPickCellLabel'); if (label) label.textContent = `الخانة: ${key}`;
     const subjSel = qs('#ttPickSubject'); if (!subjSel) return;
-    subjSel.innerHTML = '<option value="">— اختر مادة —</option>' + (db.subjectsCatalog||[]).map((s,i)=>`<option value="${i}">${s.name}</option>`).join('');
+    // ابنِ قائمة المواد: فقط المواد المخصصة لهذا الصف والتي لا تزال لها متبقي غير مُجدول
+    const { ci, si } = parseGridKey(key); const csKey = `${ci}:${si}`;
+    const grid = db.timetable?.grid || {};
+    const options = [];
+    (db.subjectsCatalog || []).forEach((s, i) => {
+      const alloc = parseInt(db.allocations?.[i]?.[ci], 10) || 0; if (alloc <= 0) return;
+      // العدّ المُجدول فعليًا لهذا الموضوع في هذه الشعبة
+      let placed = 0;
+      Object.entries(grid).forEach(([k, v]) => {
+        if (!v) return; if (!k.startsWith(csKey + '|')) return;
+        const meta = getTeacherAndSubjectByCellValue(db, v); if (meta && meta.subjIdx === i) placed++;
+      });
+      const remaining = alloc - placed;
+      if (remaining > 0 || i === preselectSubjIdx) {
+        options.push({ i, label: `${s.name} ×${Math.max(remaining,0)}` });
+      }
+    });
+    if (!options.length) {
+      subjSel.innerHTML = '<option value="" disabled>لا توجد مواد متبقية لهذه الشعبة</option>';
+    } else {
+      subjSel.innerHTML = '<option value="">— اختر مادة —</option>' + options.map(o=>`<option value="${o.i}">${o.label}</option>`).join('');
+    }
     // عند اختيار المادة، نحاول تحديد المعلم المخصص لهذه المادة لنفس الصف/الشعبة
     subjSel.onchange = () => {
       const v = subjSel.value; const row = qs('#ttPickTeacherRow'); if (!row) return;
       if (v === '') { row.textContent = '—'; return; }
       const subjIdx = parseInt(v, 10);
-      const { ci, si } = parseGridKey(key);
-      const csKey = `${ci}:${si}`; const teachMap = Store.getDB().assignments?.[csKey]?.[subjIdx] || {};
+      const teachMap = Store.getDB().assignments?.[csKey]?.[subjIdx] || {};
       const pair = Object.entries(teachMap).map(([t,c])=>[parseInt(t,10), parseInt(c,10)||0]).sort((a,b)=>b[1]-a[1])[0];
       if (pair) { const tName = Store.getDB().teachers?.[pair[0]]?.name || '—'; row.textContent = `المعلم: ${tName} • حصص: ${pair[1]}`; row.dataset.tidx = String(pair[0]); }
       else { row.textContent = 'لا يوجد معلم مخصص لهذه المادة لهذا الصف/الشعبة'; row.dataset.tidx = ''; }
@@ -1831,7 +1851,14 @@
       const tRow = qs('#ttPickTeacherRow'); const tIdxStr = tRow?.dataset.tidx || '';
       if (tIdxStr === '') { showToast('لا يوجد معلم لهذه المادة في هذا الصف. عيّن معلمًا من صفحة التخصيص أولًا.'); return; }
       const tIdx = parseInt(tIdxStr, 10);
-      const conflict = isConflict(Store.getDB(), key, subjIdx, tIdx);
+      // تحقق عدم تجاوز التخصيص العام لهذه الشعبة
+      const dbx = Store.getDB(); const { ci, si } = parseGridKey(key);
+      const alloc = parseInt(dbx.allocations?.[subjIdx]?.[ci], 10) || 0;
+      let placed = 0; Object.entries(dbx.timetable?.grid || {}).forEach(([k, v]) => {
+        if (!v) return; if (!k.startsWith(`${ci}:${si}|`)) return; const meta = getTeacherAndSubjectByCellValue(dbx, v); if (meta && meta.subjIdx === subjIdx) placed++;
+      });
+      if (placed >= alloc) { showToast('لا يوجد متبقي لهذه المادة في هذه الشعبة وفق التخصيص العام'); return; }
+      const conflict = isConflict(dbx, key, subjIdx, tIdx);
       if (conflict) { showToast(conflict); return; }
       const subj = Store.getDB().subjectsCatalog?.[subjIdx]?.name || '—';
       const t = Store.getDB().teachers?.[tIdx]?.name || '—';
