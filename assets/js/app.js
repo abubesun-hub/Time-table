@@ -1449,22 +1449,25 @@
   const grid = db.timetable?.grid || {};
 
   host.innerHTML = '';
-    const table = document.createElement('table'); table.className = 'tt-table';
+  const table = document.createElement('table'); table.className = 'tt-table';
+  table.classList.add('slots-' + slotCount);
 
     // thead: صف الأيام ثم صف الحصص
     const thead = document.createElement('thead');
     const daysRow = document.createElement('tr'); daysRow.className = 'days-row';
     const thClasses = document.createElement('th'); thClasses.className = 'class-col'; thClasses.rowSpan = 2; thClasses.textContent = 'الصف / الشعبة';
     daysRow.appendChild(thClasses);
-    days.forEach(day => {
-      const th = document.createElement('th'); th.colSpan = slotCount; th.textContent = day; daysRow.appendChild(th);
+    days.forEach((day, di) => {
+      const th = document.createElement('th'); th.colSpan = slotCount; th.textContent = day; if (slotCount > 0) th.classList.add('tt-daysep-start'); daysRow.appendChild(th);
     });
     thead.appendChild(daysRow);
 
     const periodsRow = document.createElement('tr'); periodsRow.className = 'periods-row';
-    days.forEach(() => {
+    days.forEach((_, di) => {
       for (let i = 1; i <= slotCount; i++) {
-        const th = document.createElement('th'); th.textContent = String(i); periodsRow.appendChild(th);
+        const th = document.createElement('th'); th.textContent = String(i);
+        if (i === 1) th.classList.add('tt-sep');
+        periodsRow.appendChild(th);
       }
     });
     thead.appendChild(periodsRow);
@@ -1478,9 +1481,10 @@
       sections.forEach((sec, si) => {
         const tr = document.createElement('tr');
         const tdClass = document.createElement('td'); tdClass.className = 'class-col'; tdClass.textContent = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`; tr.appendChild(tdClass);
-        days.forEach(day => {
+        days.forEach((day, di) => {
           for (let sIndex = 0; sIndex < slotCount; sIndex++) {
             const td = document.createElement('td'); td.className = 'slot';
+            if (sIndex === 0) td.classList.add('tt-sep');
             const box = document.createElement('div'); box.className = 'tt-cell-box';
             const nameKey = `${ci}:${si}|${day}|${slots[sIndex]}`;
             const legacyKey = `${ci}:${si}|${day}|${sIndex + 1}`;
@@ -2065,9 +2069,22 @@
     const db = Store.getDB();
     qs('#themeSelect').value = db.settings.theme || 'auto';
     qs('#densitySelect').value = db.settings.density || 'comfortable';
-    document.documentElement.dataset.theme = db.settings.theme;
+    // Apply theme: if auto, remove attribute to let prefers-color-scheme win
+    const t = db.settings.theme || 'auto';
+    if (t === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', t);
     document.documentElement.dataset.density = db.settings.density;
   }
+  // Live preview on change (without saving)
+  const themeSel = qs('#themeSelect'); if (themeSel) themeSel.addEventListener('change', () => {
+    const v = themeSel.value;
+    if (v === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', v);
+  });
+  const densitySel = qs('#densitySelect'); if (densitySel) densitySel.addEventListener('change', () => {
+    document.documentElement.dataset.density = densitySel.value;
+  });
+
   qs('#btnSaveSettings').addEventListener('click', () => {
     const db = Store.getDB();
     db.settings.theme = qs('#themeSelect').value;

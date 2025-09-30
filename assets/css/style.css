@@ -12,11 +12,34 @@
   --gap: 12px;
   --pad: 16px;
   --font: "Tajawal", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Kufi Arabic", "Noto Sans Arabic", sans-serif;
+  /* Day separator (light theme default) */
+  --day-sep-color: rgba(15, 23, 42, 0.35); /* slate-900 @35% */
+  --day-sep-width: 6px;
 }
 
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #0f172a; --fg: #e5e7eb; --muted: #9ca3af; --surface: #0b1223; --shadow-light: rgba(255,255,255,0.06); --shadow-dark: rgba(0,0,0,0.9); }
+  :root { --bg: #0f172a; --fg: #e5e7eb; --muted: #9ca3af; --surface: #0b1223; --shadow-light: rgba(255,255,255,0.06); --shadow-dark: rgba(0,0,0,0.9); --day-sep-color: rgba(248, 250, 252, 0.55); /* slate-50 @55% */ }
+}
+
+/* Explicit theme overrides via data-theme attribute (overrides media query) */
+[data-theme="light"] {
+  --bg: #e9eef5;
+  --fg: #111827;
+  --muted: #6b7280;
+  --surface: #eef3fb;
+  --shadow-light: rgba(255, 255, 255, 0.7);
+  --shadow-dark: rgba(163, 177, 198, 0.6);
+  --day-sep-color: rgba(15, 23, 42, 0.35);
+}
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --fg: #e5e7eb;
+  --muted: #9ca3af;
+  --surface: #0b1223;
+  --shadow-light: rgba(255,255,255,0.06);
+  --shadow-dark: rgba(0,0,0,0.9);
+  --day-sep-color: rgba(248, 250, 252, 0.55);
 }
 
 html, body { height: 100%; }
@@ -124,10 +147,15 @@ body {
 .tt-table thead th { position: sticky; top: 0; z-index: 1; background: linear-gradient(180deg, #ffffff11, #00000011); }
 .tt-table thead .days-row th { text-align: center; color: #ef4444; font-weight: 800; }
 .tt-table thead .periods-row th { text-align: center; font-weight: 700; }
+.tt-table thead .days-row th:not(:first-child) { border-inline-start: var(--day-sep-width) solid var(--day-sep-color); }
 .tt-table .class-col { white-space: nowrap; font-weight: 700; color: #ef4444; background: var(--bg); position: sticky; right: 0; z-index: 2; }
 .tt-table .slot { min-width: 140px; }
 .tt-cell-box { min-height: 42px; border-radius: 10px; background: var(--bg); box-shadow: inset -4px -4px 8px var(--shadow-light), inset 4px 4px 8px var(--shadow-dark); padding: 6px 8px; }
 .tt-empty { color: var(--muted); opacity: 0.8; }
+
+/* Visual day separators (class-based for full-height consistency in RTL/LTR) */
+.tt-sep { border-inline-start: var(--day-sep-width) solid var(--day-sep-color) !important; }
+.tt-daysep-start { border-inline-start: var(--day-sep-width) solid var(--day-sep-color) !important; }
 
 /* Fit width + zoom */
 .tt-fit .tt-table { table-layout: fixed; }
