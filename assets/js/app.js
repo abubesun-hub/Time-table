@@ -1869,6 +1869,134 @@
     Store.setDB(db); renderTimetable(); showToast('تم تفريغ الجدول');
   });
 
+  // Preview navigation
+  const btnPreviewTT = qs('#btnPreviewTT'); if (btnPreviewTT) btnPreviewTT.addEventListener('click', () => UI.routeTo('#/preview'));
+  const btnPreviewBack = qs('#btnPreviewBack'); if (btnPreviewBack) btnPreviewBack.addEventListener('click', () => UI.routeTo('#/timetable'));
+
+  // Simple placeholder preview generators (to be improved step-by-step)
+  function buildPreviewHeader() {
+    const db = Store.getDB();
+    const logo = db.school.logo ? `<img src="${db.school.logo}" alt="logo" style="height:48px">` : '';
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div style="font-weight:800;font-size:20px">${db.school.name || 'المدرسة'}</div>
+          <div style="color:#555">${db.school.address || ''}</div>
+          <div style="color:#555">${db.school.phone || ''} ${db.school.email ? ' • ' + db.school.email : ''}</div>
+        </div>
+        ${logo}
+      </div>`;
+  }
+
+  function previewGlobalTable() {
+    const db = Store.getDB();
+    const grid = db.timetable?.grid || {};
+    const classes = db.classes || [];
+    const allDays = db.timetable?.days || [];
+    const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
+    const slots = db.timetable?.slots || [];
+    // Simple table
+    let html = buildPreviewHeader();
+    html += `<h2 style="margin:8px 0">الجدول العام (عرض شامل)</h2>`;
+    html += `<table><thead><tr><th>الصف/الشعبة</th>`;
+    days.forEach(day => { for (let i=0;i<slots.length;i++) html += `<th>${day} ${i+1}</th>`; });
+    html += `</tr></thead><tbody>`;
+    classes.forEach((cls, ci) => {
+      const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
+      sections.forEach((sec, si) => {
+        html += `<tr><td>${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}</td>`;
+        days.forEach(day => {
+          for (let s=0;s<slots.length;s++) {
+            const key = `${ci}:${si}|${day}|${slots[s]}`;
+            const legacy = `${ci}:${si}|${day}|${s+1}`;
+            const val = grid[key] ?? grid[legacy] ?? '';
+            html += `<td>${val || '—'}</td>`;
+          }
+        });
+        html += `</tr>`;
+      });
+    });
+    html += `</tbody></table>`;
+    UI.printHtml(html);
+  }
+
+  function previewBySections() {
+    const db = Store.getDB();
+    const grid = db.timetable?.grid || {};
+    const allDays = db.timetable?.days || [];
+    const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
+    const slots = db.timetable?.slots || [];
+    let html = buildPreviewHeader();
+    html += `<h2 style="margin:8px 0">الجدول حسب الشعب</h2>`;
+    (db.classes || []).forEach((cls, ci) => {
+      const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
+      sections.forEach((sec, si) => {
+        html += `<h3 style="margin-top:16px">${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}</h3>`;
+        html += `<table><thead><tr><th>اليوم/الحصة</th>${slots.map((_,i)=>`<th>${i+1}</th>`).join('')}</tr></thead><tbody>`;
+        days.forEach(day => {
+          html += `<tr><td>${day}</td>`;
+          slots.forEach((slotName, s) => {
+            const key = `${ci}:${si}|${day}|${slotName}`;
+            const legacy = `${ci}:${si}|${day}|${s+1}`;
+            const val = grid[key] ?? grid[legacy] ?? '';
+            html += `<td>${val || '—'}</td>`;
+          });
+          html += `</tr>`;
+        });
+        html += `</tbody></table>`;
+      });
+    });
+    UI.printHtml(html);
+  }
+
+  function previewTeachers() {
+    const db = Store.getDB();
+    const grid = db.timetable?.grid || {};
+    const allDays = db.timetable?.days || [];
+    const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
+    const slots = db.timetable?.slots || [];
+    const teachers = db.teachers || [];
+    // Build reverse index: for each teacher, list per day/slot the class-section + subject
+    let html = buildPreviewHeader();
+    html += `<h2 style="margin:8px 0">جدول حصص المعلمين</h2>`;
+    teachers.forEach((t, ti) => {
+      html += `<h3 style="margin-top:16px">${t.name}</h3>`;
+      html += `<table><thead><tr><th>اليوم/الحصة</th>${slots.map((_,i)=>`<th>${i+1}</th>`).join('')}</tr></thead><tbody>`;
+      days.forEach(day => {
+        html += `<tr><td>${day}</td>`;
+        slots.forEach((slotName, s) => {
+          // scan grid to find a cell with this teacher at day/slot
+          let cell = '—';
+          Object.entries(grid).some(([k, v]) => {
+            if (!v) return false;
+            const [cs, d, sl] = k.split('|');
+            if (d !== day) return false;
+            if (!(sl === slotName || sl === String(s+1))) return false;
+            const meta = getTeacherAndSubjectByCellValue(db, v);
+            if (meta && meta.teacherIdx === ti) {
+              const [ci, si] = cs.split(':').map(n=>parseInt(n,10));
+              const clsName = db.classes?.[ci]?.name || '—';
+              const secName = (db.classes?.[ci]?.sections || [])[si]?.name || '';
+              const subjName = db.subjectsCatalog?.[meta.subjIdx]?.name || '';
+              cell = `${clsName}${secName ? ' — ' + secName : ''} • ${subjName}`;
+              return true;
+            }
+            return false;
+          });
+          html += `<td>${cell}</td>`;
+        });
+        html += `</tr>`;
+      });
+      html += `</tbody></table>`;
+      if (ti < teachers.length - 1) html += `<div style=\"page-break-after:always;height:1px\"></div>`;
+    });
+    UI.printHtml(html);
+  }
+
+  const btnPreviewGlobal = qs('#btnPreviewGlobal'); if (btnPreviewGlobal) btnPreviewGlobal.addEventListener('click', previewGlobalTable);
+  const btnPreviewBySections = qs('#btnPreviewBySections'); if (btnPreviewBySections) btnPreviewBySections.addEventListener('click', previewBySections);
+  const btnPreviewTeachers = qs('#btnPreviewTeachers'); if (btnPreviewTeachers) btnPreviewTeachers.addEventListener('click', previewTeachers);
+
   // Backup & Import/Export
   function renderBackups() {
     const list = qs('#backupsList');

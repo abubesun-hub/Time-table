@@ -173,6 +173,7 @@
           <button id="btnDistributeTT" class="btn primary"><i class="bi bi-magic"></i> توزيع الحصص</button>
           <button id="btnShuffleTT" class="btn"><i class="bi bi-shuffle"></i> إعادة توزيع</button>
           <button id="btnResetTT" class="btn danger"><i class="bi bi-trash3"></i> تفريغ الجدول</button>
+          <button id="btnPreviewTT" class="btn"><i class="bi bi-eye"></i> معاينة قبل الطباعة</button>
         </div>
       </div>
       <div class="neo-surface pad-16">
@@ -215,6 +216,28 @@
           <button id="btnResetTimetable"></button>
         </div>
         <div id="ttGuard" class="hidden"></div>
+      </div>
+    </section>
+
+    <!-- Preview (معاينة قبل الطباعة) -->
+    <section id="view-preview" class="view">
+      <div class="header-row" style="align-items:center;justify-content:space-between;gap:12px">
+        <h2 class="section-title" style="margin:8px 0">معاينة قبل الطباعة</h2>
+        <div class="row gap-8 wrap">
+          <button id="btnPreviewBack" class="btn"><i class="bi bi-arrow-right"></i> رجوع إلى الجدول</button>
+        </div>
+      </div>
+      <div class="neo-surface pad-16">
+        <p class="muted" style="margin-top:0">اختر نوع المعاينة لفتح صفحة جديدة للطباعة. الميّزات قيد التطوير وسيتم تحسين التنسيقات تدريجيًا.</p>
+        <div class="row gap-8 wrap">
+          <button id="btnPreviewBySections" class="btn"><i class="bi bi-grid-3x3-gap"></i> الجدول حسب الشعب</button>
+          <button id="btnPreviewTeachers" class="btn"><i class="bi bi-people"></i> جدول حصص المعلمين</button>
+          <button id="btnPreviewGlobal" class="btn"><i class="bi bi-calendar-week"></i> الجدول العام</button>
+        </div>
+        <div class="alert" style="margin-top:12px">
+          <div class="alert-title">تنبيه</div>
+          <div class="alert-desc">هذه الصفحة قيد التطوير خطوة بخطوة. سنضيف خيارات تنسيق وعناصر رأس/تذييل وشعار المدرسة لاحقًا.</div>
+        </div>
       </div>
     </section>
 
