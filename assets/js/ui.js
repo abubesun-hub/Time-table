@@ -39,13 +39,56 @@
     items.forEach((item, idx) => container.appendChild(renderItem(item, idx)));
   }
 
-  function printHtml(html) {
+  function printHtml(html, opts = {}) {
+    const { title = 'طباعة', css = '', afterWrite } = opts;
     const w = window.open('', '_blank');
-    w.document.write('<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>طباعة</title><style>body{font-family:Tajawal,Segoe UI,Arial;direction:rtl;padding:24px} table{width:100%;border-collapse:collapse} td,th{border:1px solid #ccc;padding:6px}</style></head><body>' + html + '</body></html>');
+    const baseCss = `
+      @page { size: auto; margin: 12mm; }
+      *{ box-sizing: border-box }
+      body{ font-family: Tajawal, Segoe UI, Arial; direction: rtl; padding: 0; margin: 0; color: #111827 }
+      header.print-header, footer.print-footer{ position: fixed; inset-inline: 0; }
+      header.print-header{ top: 0; padding: 10mm 12mm 4mm; border-bottom: 1px solid #ddd; }
+      footer.print-footer{ bottom: 0; padding: 6mm 12mm 8mm; border-top: 1px solid #ddd; display:flex; align-items:center; justify-content:space-between; gap:12px }
+      main.print-body{ padding: 32mm 12mm 24mm; }
+      table{ width:100%; border-collapse:collapse }
+      td,th{ border:1px solid #ccc; padding:6px }
+      .muted{ color:#6b7280 }
+      .left{ text-align:left }
+      .right{ text-align:right }
+      img.logo{ height: 52px }
+    `;
+    w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>${title}</title><style>${baseCss}${css}</style></head><body>${html}</body></html>`);
     w.document.close();
+    if (typeof afterWrite === 'function') try { afterWrite(w); } catch {}
     w.focus();
-    setTimeout(() => w.print(), 300);
+    setTimeout(() => w.print(), 350);
   }
 
-  global.UI = { qs, qsa, routeTo, showToast, renderList, printHtml };
+  function printDocument({ contentHtml, docTitle, school, orientation = 'portrait', margin = '12mm', fontScale = 1, footerLeftImageUrl = '', footerRightHtml = '' }) {
+    const dateStr = new Date().toLocaleString('ar-EG');
+    const logoHtml = school?.logo ? `<img class="logo" src="${school.logo}" alt="logo">` : '';
+    const headerHtml = `
+      <header class="print-header">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <div style="font-weight:800;font-size:${18*fontScale}px">${school?.name || 'المدرسة'}</div>
+            <div class="muted" style="font-size:${12*fontScale}px">${school?.address || ''}</div>
+            <div class="muted" style="font-size:${12*fontScale}px">${school?.phone || ''} ${school?.email ? ' • ' + school.email : ''}</div>
+          </div>
+          <div>${logoHtml}</div>
+        </div>
+        <div style="margin-top:6px;font-weight:700;font-size:${16*fontScale}px">${docTitle || ''}</div>
+        <div class="muted" style="font-size:${12*fontScale}px">التاريخ: ${dateStr}</div>
+      </header>`;
+    const footerHtml = `
+      <footer class="print-footer">
+        <div>${footerLeftImageUrl ? `<img src="${footerLeftImageUrl}" alt="footer" style="height:${28*fontScale}px">` : ''}</div>
+        <div style="margin-inline-start:auto;text-align:right; font-size:${12*fontScale}px">${footerRightHtml || ''}</div>
+      </footer>`;
+    const html = `${headerHtml}<main class="print-body">${contentHtml}</main>${footerHtml}`;
+    const css = `@page{ size: ${orientation}; margin: ${margin}; } body{ font-size:${14*fontScale}px } th{ font-weight:700 }`;
+    printHtml(html, { title: docTitle || 'طباعة', css });
+  }
+
+  global.UI = { qs, qsa, routeTo, showToast, renderList, printHtml, printDocument };
 })(window);

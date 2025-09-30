@@ -533,6 +533,49 @@
             </select>
           </div>
         </div>
+        <h3 class="sub-title">إعدادات الطباعة</h3>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnOrientationGlobal">اتجاه طباعة: الجدول العام</label>
+            <select id="prnOrientationGlobal" class="input">
+              <option value="portrait">عمودي</option>
+              <option value="landscape">أفقي</option>
+            </select>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnOrientationSections">اتجاه طباعة: حسب الشعب</label>
+            <select id="prnOrientationSections" class="input">
+              <option value="portrait">عمودي</option>
+              <option value="landscape">أفقي</option>
+            </select>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnOrientationTeachers">اتجاه طباعة: حصص المعلمين</label>
+            <select id="prnOrientationTeachers" class="input">
+              <option value="portrait">عمودي</option>
+              <option value="landscape">أفقي</option>
+            </select>
+          </div>
+          <div class="col" style="min-width:180px">
+            <label class="label" for="prnMargin">الهوامش (mm)</label>
+            <input id="prnMargin" class="input" type="text" placeholder="12mm" />
+          </div>
+          <div class="col" style="min-width:180px">
+            <label class="label" for="prnFontScale">حجم الخط (x)</label>
+            <input id="prnFontScale" class="input" type="number" step="0.1" min="0.8" max="1.6" />
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px;margin-top:8px">
+          <div class="col">
+            <label class="label" for="prnFooterImage">صورة التذييل (يسار) - رابط</label>
+            <input id="prnFooterImage" class="input" type="url" placeholder="https://..." />
+            <small class="muted">يمكنك رفع الصورة الشفافة واستعمال رابطها. سيتم عرضها يسار التذييل.</small>
+          </div>
+          <div class="col">
+            <label class="label" for="prnFooterRight">محتوى التذييل (يمين)</label>
+            <textarea id="prnFooterRight" class="input" rows="3" placeholder="نص/HTML قصير لمعلومات التواصل..."></textarea>
+          </div>
+        </div>
         <div class="row gap-8">
           <button id="btnSaveSettings" class="btn primary"><i class="bi bi-save2"></i> حفظ</button>
           <button id="btnResetApp" class="btn danger"><i class="bi bi-recycle"></i> إعادة ضبط التطبيق</button>

@@ -1951,7 +1951,17 @@
       });
     });
     html += `</tbody></table>`;
-    UI.printHtml(html);
+    const prn = db.settings?.printing || {};
+    UI.printDocument({
+      contentHtml: html,
+      docTitle: 'الجدول العام (عرض شامل)',
+      school: db.school,
+      orientation: prn.orientations?.global || 'landscape',
+      margin: prn.margin || '12mm',
+      fontScale: prn.fontScale || 1,
+      footerLeftImageUrl: prn.footer?.leftImageUrl || '',
+      footerRightHtml: prn.footer?.rightHtml || ''
+    });
   }
 
   function previewBySections() {
@@ -1980,7 +1990,17 @@
         html += `</tbody></table>`;
       });
     });
-    UI.printHtml(html);
+    const prn = Store.getDB().settings?.printing || {};
+    UI.printDocument({
+      contentHtml: html,
+      docTitle: 'الجدول حسب الشعب',
+      school: Store.getDB().school,
+      orientation: prn.orientations?.sections || 'portrait',
+      margin: prn.margin || '12mm',
+      fontScale: prn.fontScale || 1,
+      footerLeftImageUrl: prn.footer?.leftImageUrl || '',
+      footerRightHtml: prn.footer?.rightHtml || ''
+    });
   }
 
   function previewTeachers() {
@@ -2024,7 +2044,17 @@
       html += `</tbody></table>`;
       if (ti < teachers.length - 1) html += `<div style=\"page-break-after:always;height:1px\"></div>`;
     });
-    UI.printHtml(html);
+    const prn = Store.getDB().settings?.printing || {};
+    UI.printDocument({
+      contentHtml: html,
+      docTitle: 'جدول حصص المعلمين',
+      school: Store.getDB().school,
+      orientation: prn.orientations?.teachers || 'portrait',
+      margin: prn.margin || '12mm',
+      fontScale: prn.fontScale || 1,
+      footerLeftImageUrl: prn.footer?.leftImageUrl || '',
+      footerRightHtml: prn.footer?.rightHtml || ''
+    });
   }
 
   const btnPreviewGlobal = qs('#btnPreviewGlobal'); if (btnPreviewGlobal) btnPreviewGlobal.addEventListener('click', previewGlobalTable);
@@ -2074,6 +2104,17 @@
     if (t === 'auto') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', t);
     document.documentElement.dataset.density = db.settings.density;
+    // printing
+    const prn = db.settings.printing || {};
+    const or = prn.orientations || {};
+    const setVal = (id, v, d='') => { const el = qs(id); if (el) el.value = v ?? d; };
+    setVal('#prnOrientationGlobal', or.global, 'landscape');
+    setVal('#prnOrientationSections', or.sections, 'portrait');
+    setVal('#prnOrientationTeachers', or.teachers, 'portrait');
+    setVal('#prnMargin', prn.margin, '12mm');
+    setVal('#prnFontScale', prn.fontScale, 1);
+    setVal('#prnFooterImage', prn.footer?.leftImageUrl || '', '');
+    setVal('#prnFooterRight', prn.footer?.rightHtml || '', '');
   }
   // Live preview on change (without saving)
   const themeSel = qs('#themeSelect'); if (themeSel) themeSel.addEventListener('change', () => {
@@ -2089,6 +2130,18 @@
     const db = Store.getDB();
     db.settings.theme = qs('#themeSelect').value;
     db.settings.density = qs('#densitySelect').value;
+    db.settings.printing = db.settings.printing || {};
+    const prn = db.settings.printing;
+    prn.orientations = {
+      global: qs('#prnOrientationGlobal')?.value || 'landscape',
+      sections: qs('#prnOrientationSections')?.value || 'portrait',
+      teachers: qs('#prnOrientationTeachers')?.value || 'portrait'
+    };
+    prn.margin = qs('#prnMargin')?.value || '12mm';
+    const fs = parseFloat(qs('#prnFontScale')?.value); prn.fontScale = isNaN(fs) ? 1 : Math.max(0.8, Math.min(1.6, fs));
+    prn.footer = prn.footer || {};
+    prn.footer.leftImageUrl = qs('#prnFooterImage')?.value || '';
+    prn.footer.rightHtml = qs('#prnFooterRight')?.value || '';
     Store.setDB(db);
     loadSettings();
     showToast('تم حفظ الإعدادات');

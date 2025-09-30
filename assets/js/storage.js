@@ -41,7 +41,19 @@
       }
     },
     invoices: [],
-    settings: { theme: 'auto', density: 'comfortable' },
+    settings: {
+      theme: 'auto',
+      density: 'comfortable',
+      printing: {
+        orientations: { global: 'landscape', sections: 'portrait', teachers: 'portrait' },
+        margin: '12mm',
+        fontScale: 1,
+        footer: {
+          leftImageUrl: '',
+          rightHtml: '<div style="text-align:left">Ahmed Hussein Ali<br>📞 790-588-0479<br>✉️ ltechanbar@gmail.com<br>🌐 www.facebook.com/lthtec</div>'
+        }
+      }
+    },
   });
 
   function getDB() {
