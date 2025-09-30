@@ -95,7 +95,7 @@
   });
 
   // Router
-  window.addEventListener('hashchange', () => routeTo(location.hash));
+  window.addEventListener('hashchange', () => { routeTo(location.hash); renderTeacherSidebar(); });
   qsa('[data-route-link]').forEach(a => a.addEventListener('click', (e) => {
     e.preventDefault();
     const r = a.getAttribute('data-route-link');
@@ -193,6 +193,35 @@
       row.append(name, total, subjCount, details, actions);
       host.appendChild(row);
     });
+  }
+
+  // ===== Teacher Sidebar (live summary in تخصيص view) =====
+  function renderTeacherSidebar() {
+    const side = qs('#teacherSidebar');
+    if (!side) return;
+    const list = qs('#teacherSidebarList');
+    const totalEl = qs('#teacherSidebarTotal');
+    const stats = computeTeacherStats();
+    // Show only in تخصيص view
+    const isAllocViewActive = !!UI.qs('#view-subjects')?.classList.contains('active');
+    side.classList.toggle('hidden', !isAllocViewActive || stats.length === 0);
+    if (!isAllocViewActive) return;
+    // Build
+    list.innerHTML = '';
+    let total = 0;
+    // Sort by total desc then name
+    stats.sort((a,b) => (b.total - a.total) || (String(a.name).localeCompare(String(b.name))));
+    stats.forEach(st => {
+      total += (parseInt(st.total, 10) || 0);
+      const item = document.createElement('div'); item.className = 'list-item';
+      const left = document.createElement('div'); left.innerHTML = `<div class="list-title">${st.name || '—'}</div><div class="list-sub">مواد: ${new Set(st.items.map(i=>i.subjectName)).size}</div>`;
+      const actions = document.createElement('div'); actions.className = 'item-actions';
+      const cnt = document.createElement('div'); cnt.className = 'count'; cnt.textContent = String(st.total);
+      actions.appendChild(cnt);
+      item.append(left, actions);
+      list.appendChild(item);
+    });
+    if (totalEl) totalEl.textContent = String(total);
   }
 
   // Auth (local only)
@@ -556,6 +585,7 @@
     });
     if (Object.keys(map).length > 0) db.allocations[subjIdx] = map; else delete db.allocations[subjIdx];
     Store.setDB(db); showToast('تم حفظ التخصيص');
+    renderTeacherSidebar();
   });
 
   // Assign lessons to teachers per class/section/subject
@@ -734,7 +764,7 @@
               if (map && map[tIdx] != null) delete map[tIdx];
               if (map && Object.keys(map).length === 0) delete db2.assignments[csKey][subjIdx];
               if (db2.assignments[csKey] && Object.keys(db2.assignments[csKey]).length === 0) delete db2.assignments[csKey];
-              Store.setDB(db2); renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); updateAssignRemaining();
+              Store.setDB(db2); renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); updateAssignRemaining(); renderTeacherSidebar();
             });
             actions.append(edit, del); item.append(left, actions); list.appendChild(item);
           });
@@ -789,7 +819,7 @@
     db.assignments[csKey][subjIdx] = {};
     db.assignments[csKey][subjIdx][tIdx] = count;
     Store.setDB(db);
-  renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); updateAssignRemaining();
+  renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); updateAssignRemaining(); renderTeacherSidebar();
     showToast('تم حفظ التخصيص للمعلم');
   }
 
@@ -887,7 +917,7 @@
     db.assignments[newKey][nSubj][nTeach] = count;
     Store.setDB(db);
   normalizeAssignmentsUniquePerSubject();
-  renderAssignList(); renderAssignStats(); renderTeacherStatsTable();
+  renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); renderTeacherSidebar();
     closeAssignEditBar();
     showToast('تم حفظ التعديل');
   }
@@ -2073,6 +2103,8 @@
   renderAssignList();
   updateAssignRemaining();
   if (normalized) { showToast('تم توحيد التخصيص: معلم واحد لكل مادة في كل شعبة'); }
+  // تحديث الشريط الجانبي للمعلمين في هذا الوقت أيضًا
+  renderTeacherSidebar();
     // populate class/section selectors
     const db = Store.getDB();
     const classSel = qs('#ttClassSelect');

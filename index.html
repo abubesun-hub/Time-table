@@ -318,6 +318,14 @@
       <div class="header-row">
         <h2 class="section-title">تخصيص الحصص حسب الصف</h2>
       </div>
+      <!-- Teacher Sidebar (floating in this view) -->
+      <aside id="teacherSidebar" class="teacher-sidebar neo-surface hidden" aria-live="polite">
+        <div class="row" style="align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="sub-title" style="margin:0">ملخص المعلمين</div>
+          <small class="muted">الإجمالي: <b id="teacherSidebarTotal">0</b></small>
+        </div>
+        <div id="teacherSidebarList" class="list" style="padding:8px"></div>
+      </aside>
       <div class="neo-surface pad-16">
         <div id="allocGuardNoTeachers" class="alert hidden">
           <div class="alert-title">لا توجد معلمون بعد</div>
