@@ -13,7 +13,7 @@
   const defaultDB = () => ({
     meta: { createdAt: nowIso(), updatedAt: nowIso(), version: 1 },
     auth: { users: [] /* [{user, passHash}] */, currentUser: null },
-    school: { name: '', address: '', phone: '', email: '', logo: '' },
+  school: { name: '', address: '', phone: '', email: '', logo: '', year: '', shiftType: 'صباحي', gender: 'مختلط', principalId: undefined },
   // subjectsCatalog: list of available subjects to use in allocations
   subjectsCatalog: [],
   // allocations: { [subjectId]: { [classIndex]: weeklyCount } }

@@ -329,6 +329,17 @@
     qs('#schoolPhone').value = db.school.phone || '';
     qs('#schoolEmail').value = db.school.email || '';
     qs('#schoolLogo').value = db.school.logo || '';
+    // new fields
+    const yearEl = qs('#schoolYear'); if (yearEl) yearEl.value = db.school.year || '';
+    const shiftEl = qs('#schoolShiftType'); if (shiftEl) shiftEl.value = db.school.shiftType || 'صباحي';
+    const genderEl = qs('#schoolGender'); if (genderEl) genderEl.value = db.school.gender || 'مختلط';
+    const prinSel = qs('#schoolPrincipal');
+    if (prinSel) {
+      const teachers = db.teachers || [];
+      prinSel.innerHTML = '<option value="">— اختر مدير —</option>' + teachers.map((t, i) => `<option value="${i}">${t.name}</option>`).join('');
+      if (typeof db.school.principalId === 'number' && teachers[db.school.principalId]) prinSel.value = String(db.school.principalId);
+      else prinSel.value = '';
+    }
   }
   qs('#form-school').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -339,6 +350,10 @@
       phone: qs('#schoolPhone').value.trim(),
       email: qs('#schoolEmail').value.trim(),
       logo: qs('#schoolLogo').value.trim(),
+      year: (qs('#schoolYear')?.value || '').trim(),
+      shiftType: qs('#schoolShiftType')?.value || 'صباحي',
+      gender: qs('#schoolGender')?.value || 'مختلط',
+      principalId: (() => { const v = qs('#schoolPrincipal')?.value || ''; return v === '' ? undefined : parseInt(v, 10); })(),
     };
     Store.setDB(db);
     showToast('تم حفظ بيانات المدرسة');
@@ -1060,7 +1075,14 @@
         // إعادة ترقيم المعلمين في التخصيصات وإسقاط هذا المعلم
         dropTeacherAndRemapAssignments(i);
         db.teachers.splice(i, 1);
+        // تحديث مدير المدرسة إذا تأثر
+        if (typeof db.school?.principalId === 'number') {
+          if (db.school.principalId === i) db.school.principalId = undefined;
+          else if (db.school.principalId > i) db.school.principalId = db.school.principalId - 1;
+        }
         Store.setDB(db); renderTeachers(); refreshStats();
+        // إعادة تحميل نموذج المدرسة لضمان تزامن قائمة المدير
+        loadSchoolForm();
       });
       actions.append(edit, del);
       item.append(left, actions);
