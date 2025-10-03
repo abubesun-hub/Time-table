@@ -1970,6 +1970,7 @@
       margin: prn.margin || '12mm',
       fontScale: prn.fontScale || 1,
       fontFamily: prn.fontFamily || '',
+      headerTypography: prn.headerTypography || {},
       footerLeftImageUrl: prn.footer?.leftImageUrl || '',
       footerRightHtml: prn.footer?.rightHtml || ''
     });
@@ -2009,6 +2010,7 @@
           margin: prn.margin || '12mm',
           fontScale: prn.fontScale || 1,
           fontFamily: prn.fontFamily || '',
+          headerTypography: prn.headerTypography || {},
           footerLeftImageUrl: prn.footer?.leftImageUrl || '',
           footerRightHtml: prn.footer?.rightHtml || '',
           leftHeaderHtml: `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}`
@@ -2066,6 +2068,7 @@
       margin: prn.margin || '12mm',
       fontScale: prn.fontScale || 1,
       fontFamily: prn.fontFamily || '',
+      headerTypography: prn.headerTypography || {},
       footerLeftImageUrl: prn.footer?.leftImageUrl || '',
       footerRightHtml: prn.footer?.rightHtml || ''
     });
@@ -2130,6 +2133,20 @@
   setVal('#prnFontFamily', prn.fontFamily || '', '');
     setVal('#prnFooterImage', prn.footer?.leftImageUrl || '', '');
     setVal('#prnFooterRight', prn.footer?.rightHtml || '', '');
+  // header typography
+  const ht = prn.headerTypography || {};
+  setVal('#htSchoolNameFamily', ht.schoolName?.family || '', '');
+  setVal('#htSchoolNameSize', ht.schoolName?.size || 18, 18);
+  setVal('#htGenderFamily', ht.gender?.family || '', '');
+  setVal('#htGenderSize', ht.gender?.size || 12, 12);
+  setVal('#htDocTitleFamily', ht.docTitle?.family || '', '');
+  setVal('#htDocTitleSize', ht.docTitle?.size || 16, 16);
+  setVal('#htYearFamily', ht.year?.family || '', '');
+  setVal('#htYearSize', ht.year?.size || 12, 12);
+  setVal('#htDateFamily', ht.date?.family || '', '');
+  setVal('#htDateSize', ht.date?.size || 11, 11);
+  setVal('#htLeftFamily', ht.left?.family || '', '');
+  setVal('#htLeftSize', ht.left?.size || 16, 16);
   }
   // Live preview on change (without saving)
   const themeSel = qs('#themeSelect'); if (themeSel) themeSel.addEventListener('change', () => {
@@ -2158,6 +2175,33 @@
     prn.footer = prn.footer || {};
     prn.footer.leftImageUrl = qs('#prnFooterImage')?.value || '';
     prn.footer.rightHtml = qs('#prnFooterRight')?.value || '';
+    // header typography save
+    prn.headerTypography = prn.headerTypography || {};
+    const num = (id, d) => { const v = parseInt(qs(id)?.value, 10); return isNaN(v) ? d : v; };
+    prn.headerTypography.schoolName = {
+      family: (qs('#htSchoolNameFamily')?.value || '').trim(),
+      size: num('#htSchoolNameSize', 18)
+    };
+    prn.headerTypography.gender = {
+      family: (qs('#htGenderFamily')?.value || '').trim(),
+      size: num('#htGenderSize', 12)
+    };
+    prn.headerTypography.docTitle = {
+      family: (qs('#htDocTitleFamily')?.value || '').trim(),
+      size: num('#htDocTitleSize', 16)
+    };
+    prn.headerTypography.year = {
+      family: (qs('#htYearFamily')?.value || '').trim(),
+      size: num('#htYearSize', 12)
+    };
+    prn.headerTypography.date = {
+      family: (qs('#htDateFamily')?.value || '').trim(),
+      size: num('#htDateSize', 11)
+    };
+    prn.headerTypography.left = {
+      family: (qs('#htLeftFamily')?.value || '').trim(),
+      size: num('#htLeftSize', 16)
+    };
     Store.setDB(db);
     loadSettings();
     showToast('تم حفظ الإعدادات');

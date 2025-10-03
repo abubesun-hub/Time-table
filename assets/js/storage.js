@@ -49,6 +49,14 @@
         margin: '12mm',
   fontScale: 1,
   fontFamily: '',
+        headerTypography: {
+          schoolName: { size: 18, family: '' },
+          gender: { size: 12, family: '' },
+          docTitle: { size: 16, family: '' },
+          year: { size: 12, family: '' },
+          date: { size: 11, family: '' },
+          left: { size: 16, family: '' }
+        },
         footer: {
           leftImageUrl: '',
           rightHtml: '<div style="text-align:left">Ahmed Hussein Ali<br>📞 790-588-0479<br>✉️ ltechanbar@gmail.com<br>🌐 www.facebook.com/lthtec</div>'

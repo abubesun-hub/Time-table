@@ -65,7 +65,7 @@
     setTimeout(() => w.print(), 350);
   }
 
-  function printDocument({ contentHtml, docTitle, school, orientation = 'portrait', margin = '12mm', fontScale = 1, footerLeftImageUrl = '', footerRightHtml = '', fontFamily = '' , leftHeaderHtml = ''}) {
+  function printDocument({ contentHtml, docTitle, school, orientation = 'portrait', margin = '12mm', fontScale = 1, footerLeftImageUrl = '', footerRightHtml = '', fontFamily = '' , leftHeaderHtml = '', headerTypography = {} }) {
     const dateStr = new Date().toLocaleString('ar-EG');
     const logoHtml = school?.logo ? `<img class="logo" src="${school.logo}" alt="logo">` : '';
     // حقل الجنس يُعرَض بصيغ: ذكور→ للبنين، إناث→ للبنات، مختلط→ المختلطة
@@ -82,18 +82,18 @@
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
           <!-- Right: school info -->
           <div style="text-align:center">
-            <div style="font-weight:800;font-size:${18*fontScale}px">${school?.name || 'المدرسة'}</div>
-            <div class="muted" style="font-size:${12*fontScale}px">${genderDisplay || ''}</div>
+            <div style="font-weight:800;${headerTypography?.schoolName?.family ? `font-family:${headerTypography.schoolName.family};` : ''}font-size:${(headerTypography?.schoolName?.size ?? 18)*fontScale}px">${school?.name || 'المدرسة'}</div>
+            <div class="muted" style="${headerTypography?.gender?.family ? `font-family:${headerTypography.gender.family};` : ''}font-size:${(headerTypography?.gender?.size ?? 12)*fontScale}px">${genderDisplay || ''}</div>
           </div>
           <!-- Center: document title + academic year -->
           <div style="text-align:center; flex:1">
-            <div style="font-weight:800; letter-spacing:0.25px; font-size:${16*fontScale}px">${docTitle || ''}</div>
-            ${school?.year ? `<div class="muted" style="margin-top:2px;font-size:${12*fontScale}px">للعام الدراسي ${school.year}</div>` : ''}
-            <div class="muted" style="margin-top:2px;font-size:${11*fontScale}px">التاريخ: ${dateStr}</div>
+            <div style="font-weight:800; letter-spacing:0.25px; ${headerTypography?.docTitle?.family ? `font-family:${headerTypography.docTitle.family};` : ''} font-size:${(headerTypography?.docTitle?.size ?? 16)*fontScale}px">${docTitle || ''}</div>
+            ${school?.year ? `<div class="muted" style="margin-top:2px; ${headerTypography?.year?.family ? `font-family:${headerTypography.year.family};` : ''} font-size:${(headerTypography?.year?.size ?? 12)*fontScale}px">للعام الدراسي ${school.year}</div>` : ''}
+            <div class="muted" style="margin-top:2px; ${headerTypography?.date?.family ? `font-family:${headerTypography.date.family};` : ''} font-size:${(headerTypography?.date?.size ?? 11)*fontScale}px">التاريخ: ${dateStr}</div>
           </div>
           <!-- Left: optional slot (e.g. class/section) + logo below -->
           <div style="text-align:left; display:flex; align-items:center; gap:8px">
-            <div style="font-weight:800;font-size:${16*fontScale}px">${leftHeaderHtml || ''}</div>
+            <div style="font-weight:800; ${headerTypography?.left?.family ? `font-family:${headerTypography.left.family};` : ''} font-size:${(headerTypography?.left?.size ?? 16)*fontScale}px">${leftHeaderHtml || ''}</div>
             <div>${logoHtml}</div>
           </div>
         </div>
