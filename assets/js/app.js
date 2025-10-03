@@ -2158,6 +2158,51 @@
     document.documentElement.dataset.density = densitySel.value;
   });
 
+  // Live header preview for print settings
+  function renderHeaderPreview() {
+    const host = qs('#printHeaderPreviewHost'); if (!host) return;
+    const db = Store.getDB();
+    const getVal = (sel) => (qs(sel)?.value || '').trim();
+    const num = (sel, d) => { const v = parseInt(qs(sel)?.value, 10); return isNaN(v) ? d : v; };
+    const ht = {
+      schoolName: { family: getVal('#htSchoolNameFamily'), size: num('#htSchoolNameSize', 18) },
+      gender: { family: getVal('#htGenderFamily'), size: num('#htGenderSize', 12) },
+      docTitle: { family: getVal('#htDocTitleFamily'), size: num('#htDocTitleSize', 16) },
+      year: { family: getVal('#htYearFamily'), size: num('#htYearSize', 12) },
+      date: { family: getVal('#htDateFamily'), size: num('#htDateSize', 11) },
+      left: { family: getVal('#htLeftFamily'), size: num('#htLeftSize', 16) }
+    };
+    const genderRaw = (db.school?.gender || '').toString();
+    const norm = genderRaw.replace(/[\sـ]/g, '');
+    let genderDisplay = '';
+    if (/(ذكور|للذكور|بنين)/.test(norm)) genderDisplay = 'للبنين';
+    else if (/(اناث|إناث|للاناث|للإناث|بنات)/.test(norm)) genderDisplay = 'للبنات';
+    else if (/(مختلط|مشترك)/.test(norm)) genderDisplay = 'المختلطة';
+    else genderDisplay = genderRaw;
+    const scale = parseFloat(qs('#prnFontScale')?.value) || 1;
+    const logoHtml = db.school?.logo ? `<img style="height:${52*scale}px" src="${db.school.logo}">` : '';
+    const dateStr = new Date().toLocaleString('ar-EG');
+    host.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px; border-bottom:1px solid #ddd; padding:10px 0">
+        <div style="text-align:center">
+          <div style="font-weight:800; ${ht.schoolName.family ? `font-family:${ht.schoolName.family};` : ''} font-size:${ht.schoolName.size*scale}px">${db.school?.name || 'المدرسة'}</div>
+          <div class="muted" style="${ht.gender.family ? `font-family:${ht.gender.family};` : ''} font-size:${ht.gender.size*scale}px">${genderDisplay || ''}</div>
+        </div>
+        <div style="text-align:center;flex:1">
+          <div style="font-weight:800; ${ht.docTitle.family ? `font-family:${ht.docTitle.family};` : ''} font-size:${ht.docTitle.size*scale}px">الجدول الأسبوعي للصفوف</div>
+          ${db.school?.year ? `<div class="muted" style="${ht.year.family ? `font-family:${ht.year.family};` : ''} font-size:${ht.year.size*scale}px">للعام الدراسي ${db.school.year}</div>` : ''}
+          <div class="muted" style="${ht.date.family ? `font-family:${ht.date.family};` : ''} font-size:${ht.date.size*scale}px">التاريخ: ${dateStr}</div>
+        </div>
+        <div style="text-align:left;display:flex;align-items:center;gap:8px">
+          <div style="font-weight:800; ${ht.left.family ? `font-family:${ht.left.family};` : ''} font-size:${ht.left.size*scale}px">الأول — أ</div>
+          <div>${logoHtml}</div>
+        </div>
+      </div>`;
+  }
+  // Attach input listeners
+  ['#htSchoolNameFamily','#htSchoolNameSize','#htGenderFamily','#htGenderSize','#htDocTitleFamily','#htDocTitleSize','#htYearFamily','#htYearSize','#htDateFamily','#htDateSize','#htLeftFamily','#htLeftSize','#prnFontScale']
+    .forEach(sel => { const el = qs(sel); if (el) el.addEventListener('input', renderHeaderPreview); });
+
   qs('#btnSaveSettings').addEventListener('click', () => {
     const db = Store.getDB();
     db.settings.theme = qs('#themeSelect').value;
@@ -2256,6 +2301,8 @@
       const db2 = Store.getDB();
       const grid = db2.timetable?.grid || {};
       const keys = Object.keys(grid);
+      // update preview after populating values
+      setTimeout(renderHeaderPreview, 0);
       if (keys.length) {
         const sample = keys.slice(0, 20);
         const numericLike = sample.filter(k => {
