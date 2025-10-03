@@ -1929,20 +1929,9 @@
   const btnPreviewTT = qs('#btnPreviewTT'); if (btnPreviewTT) btnPreviewTT.addEventListener('click', () => UI.routeTo('#/preview'));
   const btnPreviewBack = qs('#btnPreviewBack'); if (btnPreviewBack) btnPreviewBack.addEventListener('click', () => UI.routeTo('#/timetable'));
 
-  // Simple placeholder preview generators (to be improved step-by-step)
-  function buildPreviewHeader() {
-    const db = Store.getDB();
-    const logo = db.school.logo ? `<img src="${db.school.logo}" alt="logo" style="height:48px">` : '';
-    return `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div>
-          <div style="font-weight:800;font-size:20px">${db.school.name || 'المدرسة'}</div>
-          <div style="color:#555">${db.school.address || ''}</div>
-          <div style="color:#555">${db.school.phone || ''} ${db.school.email ? ' • ' + db.school.email : ''}</div>
-        </div>
-        ${logo}
-      </div>`;
-  }
+  // Preview helpers
+  // Note: Header will be rendered by UI.printDocument; keep contentHtml minimal
+  function buildPreviewHeader() { return ''; }
 
   function previewGlobalTable() {
     const db = Store.getDB();
@@ -1952,8 +1941,7 @@
     const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
     const slots = db.timetable?.slots || [];
     // Simple table
-    let html = buildPreviewHeader();
-    html += `<h2 style="margin:8px 0">الجدول العام (عرض شامل)</h2>`;
+  let html = '';
     html += `<table><thead><tr><th>الصف/الشعبة</th>`;
     days.forEach(day => { for (let i=0;i<slots.length;i++) html += `<th>${day} ${i+1}</th>`; });
     html += `</tr></thead><tbody>`;
@@ -1976,11 +1964,12 @@
     const prn = db.settings?.printing || {};
     UI.printDocument({
       contentHtml: html,
-      docTitle: 'الجدول العام (عرض شامل)',
+      docTitle: 'الجدول الأسبوعي للصفوف',
       school: db.school,
       orientation: prn.orientations?.global || 'landscape',
       margin: prn.margin || '12mm',
       fontScale: prn.fontScale || 1,
+      fontFamily: prn.fontFamily || '',
       footerLeftImageUrl: prn.footer?.leftImageUrl || '',
       footerRightHtml: prn.footer?.rightHtml || ''
     });
@@ -1992,12 +1981,12 @@
     const allDays = db.timetable?.days || [];
     const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
     const slots = db.timetable?.slots || [];
-    let html = buildPreviewHeader();
-    html += `<h2 style="margin:8px 0">الجدول حسب الشعب</h2>`;
     (db.classes || []).forEach((cls, ci) => {
       const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
       sections.forEach((sec, si) => {
-        html += `<h3 style="margin-top:16px">${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}</h3>`;
+        // نبني جدول هذه الشعبة فقط ونفتح نافذة طباعة مستقلة لها
+        let html = '';
+        // عنوان الصف/الشعبة داخل المحتوى (الاسم سيظهر في هيدر النافذة يسار أيضًا)
         html += `<table><thead><tr><th>اليوم/الحصة</th>${slots.map((_,i)=>`<th>${i+1}</th>`).join('')}</tr></thead><tbody>`;
         days.forEach(day => {
           html += `<tr><td>${day}</td>`;
@@ -2010,18 +1999,21 @@
           html += `</tr>`;
         });
         html += `</tbody></table>`;
+
+        const prn = Store.getDB().settings?.printing || {};
+        UI.printDocument({
+          contentHtml: html,
+          docTitle: 'الجدول الأسبوعي للصفوف',
+          school: Store.getDB().school,
+          orientation: prn.orientations?.sections || 'portrait',
+          margin: prn.margin || '12mm',
+          fontScale: prn.fontScale || 1,
+          fontFamily: prn.fontFamily || '',
+          footerLeftImageUrl: prn.footer?.leftImageUrl || '',
+          footerRightHtml: prn.footer?.rightHtml || '',
+          leftHeaderHtml: `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}`
+        });
       });
-    });
-    const prn = Store.getDB().settings?.printing || {};
-    UI.printDocument({
-      contentHtml: html,
-      docTitle: 'الجدول حسب الشعب',
-      school: Store.getDB().school,
-      orientation: prn.orientations?.sections || 'portrait',
-      margin: prn.margin || '12mm',
-      fontScale: prn.fontScale || 1,
-      footerLeftImageUrl: prn.footer?.leftImageUrl || '',
-      footerRightHtml: prn.footer?.rightHtml || ''
     });
   }
 
@@ -2033,8 +2025,7 @@
     const slots = db.timetable?.slots || [];
     const teachers = db.teachers || [];
     // Build reverse index: for each teacher, list per day/slot the class-section + subject
-    let html = buildPreviewHeader();
-    html += `<h2 style="margin:8px 0">جدول حصص المعلمين</h2>`;
+    let html = '';
     teachers.forEach((t, ti) => {
       html += `<h3 style="margin-top:16px">${t.name}</h3>`;
       html += `<table><thead><tr><th>اليوم/الحصة</th>${slots.map((_,i)=>`<th>${i+1}</th>`).join('')}</tr></thead><tbody>`;
@@ -2074,6 +2065,7 @@
       orientation: prn.orientations?.teachers || 'portrait',
       margin: prn.margin || '12mm',
       fontScale: prn.fontScale || 1,
+      fontFamily: prn.fontFamily || '',
       footerLeftImageUrl: prn.footer?.leftImageUrl || '',
       footerRightHtml: prn.footer?.rightHtml || ''
     });
@@ -2135,6 +2127,7 @@
     setVal('#prnOrientationTeachers', or.teachers, 'portrait');
     setVal('#prnMargin', prn.margin, '12mm');
     setVal('#prnFontScale', prn.fontScale, 1);
+  setVal('#prnFontFamily', prn.fontFamily || '', '');
     setVal('#prnFooterImage', prn.footer?.leftImageUrl || '', '');
     setVal('#prnFooterRight', prn.footer?.rightHtml || '', '');
   }
@@ -2161,6 +2154,7 @@
     };
     prn.margin = qs('#prnMargin')?.value || '12mm';
     const fs = parseFloat(qs('#prnFontScale')?.value); prn.fontScale = isNaN(fs) ? 1 : Math.max(0.8, Math.min(1.6, fs));
+  prn.fontFamily = (qs('#prnFontFamily')?.value || '').trim();
     prn.footer = prn.footer || {};
     prn.footer.leftImageUrl = qs('#prnFooterImage')?.value || '';
     prn.footer.rightHtml = qs('#prnFooterRight')?.value || '';
