@@ -68,14 +68,22 @@
   function printDocument({ contentHtml, docTitle, school, orientation = 'portrait', margin = '12mm', fontScale = 1, footerLeftImageUrl = '', footerRightHtml = '', fontFamily = '' , leftHeaderHtml = ''}) {
     const dateStr = new Date().toLocaleString('ar-EG');
     const logoHtml = school?.logo ? `<img class="logo" src="${school.logo}" alt="logo">` : '';
+    // حقل الجنس يُعرَض بصيغ: ذكور→ للبنين، إناث→ للبنات، مختلط→ المختلطة
+    const _rawGender = (school?.gender || '').toString();
+    const _normGender = _rawGender.replace(/[\sـ]/g, '');
+    let genderDisplay = '';
+    if (/(ذكور|للذكور|بنين)/.test(_normGender)) genderDisplay = 'للبنين';
+    else if (/(اناث|إناث|للاناث|للإناث|بنات)/.test(_normGender)) genderDisplay = 'للبنات';
+    else if (/(مختلط|مشترك)/.test(_normGender)) genderDisplay = 'المختلطة';
+    else genderDisplay = _rawGender;
+
     const headerHtml = `
       <header class="print-header">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
           <!-- Right: school info -->
-          <div style="text-align:right">
+          <div style="text-align:center">
             <div style="font-weight:800;font-size:${18*fontScale}px">${school?.name || 'المدرسة'}</div>
-            <div class="muted" style="font-size:${12*fontScale}px">${school?.address || ''}</div>
-            <div class="muted" style="font-size:${12*fontScale}px">${school?.phone || ''} ${school?.email ? ' • ' + school.email : ''}</div>
+            <div class="muted" style="font-size:${12*fontScale}px">${genderDisplay || ''}</div>
           </div>
           <!-- Center: document title + academic year -->
           <div style="text-align:center; flex:1">
