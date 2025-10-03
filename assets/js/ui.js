@@ -65,7 +65,7 @@
     setTimeout(() => w.print(), 350);
   }
 
-  function printDocument({ contentHtml, docTitle, school, orientation = 'portrait', margin = '12mm', fontScale = 1, footerLeftImageUrl = '', footerRightHtml = '', fontFamily = '' , leftHeaderHtml = '', headerTypography = {} }) {
+  function printDocument({ contentHtml, docTitle, school, orientation = 'portrait', margin = '12mm', fontScale = 1, footerLeftImageUrl = '', footerRightHtml = '', fontFamily = '' , leftHeaderHtml = '', headerTypography = {}, noFixedHeader = false }) {
     const dateStr = new Date().toLocaleString('ar-EG');
     const logoHtml = school?.logo ? `<img class="logo" src="${school.logo}" alt="logo">` : '';
     // حقل الجنس يُعرَض بصيغ: ذكور→ للبنين، إناث→ للبنات، مختلط→ المختلطة
@@ -89,7 +89,6 @@
           <div style="text-align:center; flex:1">
             <div style="font-weight:800; letter-spacing:0.25px; ${headerTypography?.docTitle?.family ? `font-family:${headerTypography.docTitle.family};` : ''} font-size:${(headerTypography?.docTitle?.size ?? 16)*fontScale}px">${docTitle || ''}</div>
             ${school?.year ? `<div class="muted" style="margin-top:2px; ${headerTypography?.year?.family ? `font-family:${headerTypography.year.family};` : ''} font-size:${(headerTypography?.year?.size ?? 12)*fontScale}px">للعام الدراسي ${school.year}</div>` : ''}
-            <div class="muted" style="margin-top:2px; ${headerTypography?.date?.family ? `font-family:${headerTypography.date.family};` : ''} font-size:${(headerTypography?.date?.size ?? 11)*fontScale}px">التاريخ: ${dateStr}</div>
           </div>
           <!-- Left: optional slot (e.g. class/section) + logo below -->
           <div style="text-align:left; display:flex; align-items:center; gap:8px">
@@ -103,8 +102,10 @@
         <div>${footerLeftImageUrl ? `<img src="${footerLeftImageUrl}" alt="footer" style="height:${28*fontScale}px">` : ''}</div>
         <div style="margin-inline-start:auto;text-align:right; font-size:${12*fontScale}px">${footerRightHtml || ''}</div>
       </footer>`;
-    const html = `${headerHtml}<main class="print-body">${contentHtml}</main>${footerHtml}`;
-    const css = `@page{ size: ${orientation}; margin: ${margin}; } body{ font-size:${14*fontScale}px; ${fontFamily ? `font-family:${fontFamily}` : ''} } th{ font-weight:700 }`;
+    const html = noFixedHeader
+      ? `<main class="print-body no-fixed">${contentHtml}</main>`
+      : `${headerHtml}<main class="print-body">${contentHtml}</main>${footerHtml}`;
+    const css = `@page{ size: ${orientation}; margin: ${margin}; } body{ font-size:${14*fontScale}px; ${fontFamily ? `font-family:${fontFamily}` : ''} } th{ font-weight:700 } .print-body.no-fixed{ padding: 12mm }`;
     printHtml(html, { title: docTitle || 'طباعة', css });
   }
 

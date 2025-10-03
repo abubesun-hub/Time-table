@@ -1982,40 +1982,65 @@
     const allDays = db.timetable?.days || [];
     const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
     const slots = db.timetable?.slots || [];
+    const prn = Store.getDB().settings?.printing || {};
+    const ht = prn.headerTypography || {};
+    // تحويل الجنس لعرضه كنص سليم
+    const genderRaw = (db.school?.gender || '').toString();
+    const norm = genderRaw.replace(/[\sـ]/g, '');
+    let genderDisplay = '';
+    if (/(ذكور|للذكور|بنين)/.test(norm)) genderDisplay = 'للبنين';
+    else if (/(اناث|إناث|للاناث|للإناث|بنات)/.test(norm)) genderDisplay = 'للبنات';
+    else if (/(مختلط|مشترك)/.test(norm)) genderDisplay = 'المختلطة';
+    else genderDisplay = genderRaw;
+
+    let bigHtml = '';
     (db.classes || []).forEach((cls, ci) => {
       const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
       sections.forEach((sec, si) => {
-        // نبني جدول هذه الشعبة فقط ونفتح نافذة طباعة مستقلة لها
-        let html = '';
-        // عنوان الصف/الشعبة داخل المحتوى (الاسم سيظهر في هيدر النافذة يسار أيضًا)
-        html += `<table><thead><tr><th>اليوم/الحصة</th>${slots.map((_,i)=>`<th>${i+1}</th>`).join('')}</tr></thead><tbody>`;
+        // هيدر داخل المحتوى لكل شعبة (بدون تاريخ)
+        const leftTitle = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}`;
+        bigHtml += `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px; border-bottom:1px solid #ddd; padding:10px 0">
+            <div style="text-align:center">
+              <div style="font-weight:800; ${ht.schoolName?.family ? `font-family:${ht.schoolName.family};` : ''} font-size:${(ht.schoolName?.size??18)}px">${db.school?.name || 'المدرسة'}</div>
+              <div class="muted" style="${ht.gender?.family ? `font-family:${ht.gender.family};` : ''} font-size:${(ht.gender?.size??12)}px">${genderDisplay || ''}</div>
+            </div>
+            <div style="text-align:center;flex:1">
+              <div style="font-weight:800; ${ht.docTitle?.family ? `font-family:${ht.docTitle.family};` : ''} font-size:${(ht.docTitle?.size??16)}px">الجدول الأسبوعي للصفوف</div>
+              ${db.school?.year ? `<div class="muted" style="${ht.year?.family ? `font-family:${ht.year.family};` : ''} font-size:${(ht.year?.size??12)}px">للعام الدراسي ${db.school.year}</div>` : ''}
+            </div>
+            <div style="text-align:left">
+              <div style="font-weight:800; ${ht.left?.family ? `font-family:${ht.left.family};` : ''} font-size:${(ht.left?.size??16)}px">${leftTitle}</div>
+            </div>
+          </div>`;
+        // جدول الشعبة
+        bigHtml += `<table style="margin-top:8px"><thead><tr><th>اليوم/الحصة</th>${slots.map((_,i)=>`<th>${i+1}</th>`).join('')}</tr></thead><tbody>`;
         days.forEach(day => {
-          html += `<tr><td>${day}</td>`;
+          bigHtml += `<tr><td>${day}</td>`;
           slots.forEach((slotName, s) => {
             const key = `${ci}:${si}|${day}|${slotName}`;
             const legacy = `${ci}:${si}|${day}|${s+1}`;
             const val = grid[key] ?? grid[legacy] ?? '';
-            html += `<td>${val || '—'}</td>`;
+            bigHtml += `<td>${val || '—'}</td>`;
           });
-          html += `</tr>`;
+          bigHtml += `</tr>`;
         });
-        html += `</tbody></table>`;
-
-        const prn = Store.getDB().settings?.printing || {};
-        UI.printDocument({
-          contentHtml: html,
-          docTitle: 'الجدول الأسبوعي للصفوف',
-          school: Store.getDB().school,
-          orientation: prn.orientations?.sections || 'portrait',
-          margin: prn.margin || '12mm',
-          fontScale: prn.fontScale || 1,
-          fontFamily: prn.fontFamily || '',
-          headerTypography: prn.headerTypography || {},
-          footerLeftImageUrl: prn.footer?.leftImageUrl || '',
-          footerRightHtml: prn.footer?.rightHtml || '',
-          leftHeaderHtml: `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}`
-        });
+        bigHtml += `</tbody></table>`;
+        bigHtml += `<div style="page-break-after:always;height:1px"></div>`;
       });
+    });
+    UI.printDocument({
+      contentHtml: bigHtml,
+      docTitle: 'الجدول الأسبوعي للصفوف',
+      school: Store.getDB().school,
+      orientation: prn.orientations?.sections || 'portrait',
+      margin: prn.margin || '12mm',
+      fontScale: prn.fontScale || 1,
+      fontFamily: prn.fontFamily || '',
+      headerTypography: prn.headerTypography || {},
+      footerLeftImageUrl: prn.footer?.leftImageUrl || '',
+      footerRightHtml: prn.footer?.rightHtml || '',
+      noFixedHeader: true
     });
   }
 
@@ -2181,7 +2206,6 @@
     else genderDisplay = genderRaw;
     const scale = parseFloat(qs('#prnFontScale')?.value) || 1;
     const logoHtml = db.school?.logo ? `<img style="height:${52*scale}px" src="${db.school.logo}">` : '';
-    const dateStr = new Date().toLocaleString('ar-EG');
     host.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px; border-bottom:1px solid #ddd; padding:10px 0">
         <div style="text-align:center">
@@ -2191,7 +2215,6 @@
         <div style="text-align:center;flex:1">
           <div style="font-weight:800; ${ht.docTitle.family ? `font-family:${ht.docTitle.family};` : ''} font-size:${ht.docTitle.size*scale}px">الجدول الأسبوعي للصفوف</div>
           ${db.school?.year ? `<div class="muted" style="${ht.year.family ? `font-family:${ht.year.family};` : ''} font-size:${ht.year.size*scale}px">للعام الدراسي ${db.school.year}</div>` : ''}
-          <div class="muted" style="${ht.date.family ? `font-family:${ht.date.family};` : ''} font-size:${ht.date.size*scale}px">التاريخ: ${dateStr}</div>
         </div>
         <div style="text-align:left;display:flex;align-items:center;gap:8px">
           <div style="font-weight:800; ${ht.left.family ? `font-family:${ht.left.family};` : ''} font-size:${ht.left.size*scale}px">الأول — أ</div>
