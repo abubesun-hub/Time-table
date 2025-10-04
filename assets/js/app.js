@@ -2163,7 +2163,8 @@
               const clsName = db.classes?.[ci]?.name || '—';
               const secName = (db.classes?.[ci]?.sections || [])[si]?.name || '';
               const subjName = db.subjectsCatalog?.[meta.subjIdx]?.name || '';
-              cell = `${clsName}${secName ? ' — ' + secName : ''} • ${subjName}`;
+              const timeRange = calcSlotTimeRange(db, day, s);
+              cell = `<div>${clsName}${secName ? ' — ' + secName : ''} • ${subjName}</div><div class="muted" style="font-size:0.92em">${timeRange}</div>`;
               return true;
             }
             return false;
