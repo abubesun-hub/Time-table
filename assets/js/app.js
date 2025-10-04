@@ -2165,7 +2165,11 @@
 
   // Build reverse index per teacher
     let html = '';
-    teachers.forEach((t, ti) => {
+  // Helper: Arabic ordinals for lesson headers
+  const ordinal = (n) => ({1:'الأول',2:'الثاني',3:'الثالث',4:'الرابع',5:'الخامس',6:'السادس',7:'السابع',8:'الثامن',9:'التاسع',10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'})[n] || String(n);
+  const lessonHeader = (i) => `الدرس ${ordinal(i+1)}`;
+
+  teachers.forEach((t, ti) => {
       // جدول واحد لكل معلم + ترويسة صفحة خفيفة تحاكي رأس الطباعة لكن بدون تثبيت
       html += `<div class="sect-page" style="page-break-after:always">
         <div class="page-header">
@@ -2185,7 +2189,7 @@
           <thead>
             <tr>
               <th>اليوم/الحصة</th>
-              ${slots.map((_,i)=>`<th>${i+1}</th>`).join('')}
+              ${slots.map((_,i)=>`<th>${lessonHeader(i)}</th>`).join('')}
             </tr>
           </thead>
           <tbody>`;
@@ -2206,7 +2210,10 @@
               const secName = (db.classes?.[ci]?.sections || [])[si]?.name || '';
               const subjName = db.subjectsCatalog?.[meta.subjIdx]?.name || '';
               const timeRange = calcSlotTimeRange(db, day, s);
-              cell = `<div class="main">${clsName}${secName ? ' — ' + secName : ''} • ${subjName}</div><div class="time">${timeRange}</div>`;
+              cell = `
+                <div class="cls">${clsName}${secName ? ' — ' + secName : ''}</div>
+                <div class="subj">${subjName}</div>
+                <div class="time">${timeRange}</div>`;
               return true;
             }
             return false;
@@ -2231,7 +2238,8 @@
       .teach-table{ width:100%; border-collapse:collapse }
       .teach-table th, .teach-table td{ border:1px solid ${C_BORDER}; padding:8px }
       .teach-table thead th{ background:${C_HEADER_BG}; color:${C_HEADER_TX}; font-weight:800 }
-      .teach-table td .main{ font-size:${S_MAIN}px; }
+  .teach-table td .cls{ font-size:${S_MAIN}px; color:#374151 }
+  .teach-table td .subj{ font-size:${S_MAIN}px; font-weight:800 }
       .teach-table td .time{ font-size:${S_TIME}px; color:#6b7280 }
       .teach-table td.day{ background:${C_DAY_BG}; font-weight:700; color:${C_DAY}; font-size:${S_DAY}px }
       .teach-table tr:nth-child(odd) td.day{ background:${C_DAY_ALT} }
@@ -2433,10 +2441,10 @@
     const sample = `
       <style>${css}</style>
       <table class="tprev">
-        <thead><tr><th>اليوم/الحصة</th><th>1</th><th>2</th><th>3</th></tr></thead>
+        <thead><tr><th>اليوم/الحصة</th><th>الدرس الأول</th><th>الدرس الثاني</th><th>الدرس الثالث</th></tr></thead>
         <tbody>
-          <tr><td class="day">الأحد</td><td><div class="main">أ-1 • رياضيات</div><div class="time">08:00 - 08:40</div></td><td>—</td><td><div class="main">ج-2 • عربي</div><div class="time">09:30 - 10:10</div></td></tr>
-          <tr><td class="day">الاثنين</td><td>—</td><td><div class="main">ب-1 • علوم</div><div class="time">08:50 - 09:30</div></td><td>—</td></tr>
+          <tr><td class="day">الأحد</td><td><div class="cls">أ-1</div><div class="subj">رياضيات</div><div class="time">08:00 - 08:40</div></td><td>—</td><td><div class="cls">ج-2</div><div class="subj">عربي</div><div class="time">09:30 - 10:10</div></td></tr>
+          <tr><td class="day">الاثنين</td><td>—</td><td><div class="cls">ب-1</div><div class="subj">علوم</div><div class="time">08:50 - 09:30</div></td><td>—</td></tr>
         </tbody>
       </table>`;
     host.innerHTML = sample;
