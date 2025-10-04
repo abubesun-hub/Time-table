@@ -1945,21 +1945,52 @@
     const allDays = db.timetable?.days || [];
     const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
     const slots = db.timetable?.slots || [];
-    // Simple table
-  let html = '';
-    html += `<table><thead><tr><th>الصف/الشعبة</th>`;
-    days.forEach(day => { for (let i=0;i<slots.length;i++) html += `<th>${day} ${i+1}</th>`; });
+    const st = db.settings?.printing?.globalStyle || {};
+    const C_DAY_BG = st.dayHeaderBg || '#eef2ff';
+    const C_DAY_TX = st.dayHeaderText || '#111827';
+    const C_SLOT_BG = st.slotHeaderBg || '#f3f4f6';
+    const C_SLOT_TX = st.slotHeaderText || '#111827';
+    const C_BORDER = st.border || '#d1d5db';
+    const C_CLASS_BG = st.classColBg || '#f9fafb';
+    const C_CLASS_TX = st.classColText || '#ef4444';
+    const S_SUBJ = st.subjSize || 15;
+    const S_TEACH = st.teacherSize || 13;
+    const S_TIME = st.timeSize || 12;
+    let html = '';
+    html += `<style>
+      .gtable{ width:100%; border-collapse:separate; border-spacing:0 }
+      .gtable th,.gtable td{ border:1px solid ${C_BORDER}; padding:8px }
+      .gtable thead .row-days th{ background:${C_DAY_BG}; color:${C_DAY_TX}; text-align:center; font-weight:800 }
+      .gtable thead .row-slots th{ background:${C_SLOT_BG}; color:${C_SLOT_TX}; text-align:center; font-weight:700 }
+      .gtable .class-col{ position:sticky; right:0; background:${C_CLASS_BG}; color:${C_CLASS_TX}; font-weight:800; white-space:nowrap }
+      .gtable .cell-subj{ font-weight:800; font-size:${S_SUBJ}px }
+      .gtable .cell-teacher{ color:#374151; font-size:${S_TEACH}px }
+      .gtable .cell-time{ color:#6b7280; font-size:${S_TIME}px }
+    </style>`;
+    html += `<table class="gtable"><thead>`;
+    // Days row
+    html += `<tr class="row-days"><th rowspan="2" class="class-col">الصف/الشعبة</th>`;
+    days.forEach(day => { html += `<th colspan="${slots.length}">${day}</th>`; });
+    html += `</tr>`;
+    // Slots row
+    html += `<tr class="row-slots">`;
+    days.forEach(() => { for (let i=0;i<slots.length;i++) html += `<th>${i+1}</th>`; });
     html += `</tr></thead><tbody>`;
     classes.forEach((cls, ci) => {
       const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
       sections.forEach((sec, si) => {
-        html += `<tr><td>${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}</td>`;
+        html += `<tr><td class="class-col">${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}</td>`;
         days.forEach(day => {
           for (let s=0;s<slots.length;s++) {
             const key = `${ci}:${si}|${day}|${slots[s]}`;
             const legacy = `${ci}:${si}|${day}|${s+1}`;
             const val = grid[key] ?? grid[legacy] ?? '';
-            html += `<td>${val || '—'}</td>`;
+            if (!val) { html += `<td>—</td>`; continue; }
+            const meta = getTeacherAndSubjectByCellValue(db, val);
+            const subj = db.subjectsCatalog?.[meta?.subjIdx || -1]?.name || val.split('•')[0]?.trim() || '';
+            const teacher = db.teachers?.[meta?.teacherIdx || -1]?.name || val.split('•')[1]?.trim() || '';
+            const time = calcSlotTimeRange(db, day, s);
+            html += `<td><div class="cell-subj">${subj}</div>${teacher?`<div class="cell-teacher">${teacher}</div>`:''}<div class="cell-time">${time}</div></td>`;
           }
         });
         html += `</tr>`;
@@ -1972,7 +2003,7 @@
       docTitle: 'الجدول الأسبوعي للصفوف',
       school: db.school,
       orientation: prn.orientations?.global || 'landscape',
-      margin: prn.margin || '12mm',
+      margin: prn.marginGlobal || prn.margin || '10mm 5mm',
       fontScale: prn.fontScale || 1,
       fontFamily: prn.fontFamily || '',
       headerTypography: prn.headerTypography || {},
@@ -2317,6 +2348,7 @@
     setVal('#prnOrientationSections', or.sections, 'portrait');
     setVal('#prnOrientationTeachers', or.teachers, 'portrait');
     setVal('#prnMargin', prn.margin, '12mm');
+  setVal('#prnMarginGlobal', prn.marginGlobal, '10mm 5mm');
     setVal('#prnFontScale', prn.fontScale, 1);
   setVal('#prnFontFamily', prn.fontFamily || '', '');
     setVal('#prnFooterImage', prn.footer?.leftImageUrl || '', '');
@@ -2337,6 +2369,18 @@
   setVal('#htLeftSize', ht.left?.size || 16, 16);
   // sections preview style settings (defaults)
   const sec = prn.sectionsStyle || {};
+  // global style
+  const gst = prn.globalStyle || {};
+  setVal('#prnGlobalDayHeaderBg', gst.dayHeaderBg || '#eef2ff', '#eef2ff');
+  setVal('#prnGlobalDayHeaderText', gst.dayHeaderText || '#111827', '#111827');
+  setVal('#prnGlobalSlotHeaderBg', gst.slotHeaderBg || '#f3f4f6', '#f3f4f6');
+  setVal('#prnGlobalSlotHeaderText', gst.slotHeaderText || '#111827', '#111827');
+  setVal('#prnGlobalBorder', gst.border || '#d1d5db', '#d1d5db');
+  setVal('#prnGlobalClassColBg', gst.classColBg || '#f9fafb', '#f9fafb');
+  setVal('#prnGlobalClassColText', gst.classColText || '#ef4444', '#ef4444');
+  setVal('#prnGlobalSubjSize', gst.subjSize || 15, 15);
+  setVal('#prnGlobalTeacherSize', gst.teacherSize || 13, 13);
+  setVal('#prnGlobalTimeSize', gst.timeSize || 12, 12);
   setVal('#prnSecHeaderBg', sec.headerBg || '#eef2ff', '#eef2ff');
   setVal('#prnSecHeaderText', sec.headerText || '#111827', '#111827');
   setVal('#prnSecDayColBg', sec.dayColBg || '#f9fafb', '#f9fafb');
@@ -2483,6 +2527,7 @@
       teachers: qs('#prnOrientationTeachers')?.value || 'portrait'
     };
     prn.margin = qs('#prnMargin')?.value || '12mm';
+  prn.marginGlobal = qs('#prnMarginGlobal')?.value || '10mm 5mm';
     const fs = parseFloat(qs('#prnFontScale')?.value); prn.fontScale = isNaN(fs) ? 1 : Math.max(0.8, Math.min(1.6, fs));
   prn.fontFamily = (qs('#prnFontFamily')?.value || '').trim();
     prn.footer = prn.footer || {};
@@ -2528,6 +2573,18 @@
     prn.sectionsStyle.timeSize = num('#prnSecTimeSize', 13);
   prn.sectionsStyle.dayFontColor = getColor('#prnSecDayFontColor', '#111827');
   prn.sectionsStyle.dayFontSize = num('#prnSecDayFontSize', 14);
+  // global style save
+  prn.globalStyle = prn.globalStyle || {};
+  prn.globalStyle.dayHeaderBg = getColor('#prnGlobalDayHeaderBg', '#eef2ff');
+  prn.globalStyle.dayHeaderText = getColor('#prnGlobalDayHeaderText', '#111827');
+  prn.globalStyle.slotHeaderBg = getColor('#prnGlobalSlotHeaderBg', '#f3f4f6');
+  prn.globalStyle.slotHeaderText = getColor('#prnGlobalSlotHeaderText', '#111827');
+  prn.globalStyle.border = getColor('#prnGlobalBorder', '#d1d5db');
+  prn.globalStyle.classColBg = getColor('#prnGlobalClassColBg', '#f9fafb');
+  prn.globalStyle.classColText = getColor('#prnGlobalClassColText', '#ef4444');
+  prn.globalStyle.subjSize = num('#prnGlobalSubjSize', 15);
+  prn.globalStyle.teacherSize = num('#prnGlobalTeacherSize', 13);
+  prn.globalStyle.timeSize = num('#prnGlobalTimeSize', 12);
     // teachers style save
     prn.teachersStyle = prn.teachersStyle || {};
   prn.teachersStyle.headerBg = getColor('#prnTeachHeaderBg', '#eef2ff');

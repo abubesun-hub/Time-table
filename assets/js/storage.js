@@ -47,6 +47,7 @@
       printing: {
         orientations: { global: 'landscape', sections: 'portrait', teachers: 'portrait' },
         margin: '12mm',
+        marginGlobal: '10mm 5mm',
   fontScale: 1,
   fontFamily: '',
         headerTypography: {
@@ -66,6 +67,13 @@
         sectionsStyle: {
           headerBg: '#eef2ff', headerText: '#111827', dayColBg: '#f9fafb', dayColAlt: '#f3f4f6', border: '#d1d5db',
           subjSize: 16, teacherSize: 14, timeSize: 13, dayFontColor: '#111827', dayFontSize: 14
+        },
+        globalStyle: {
+          dayHeaderBg: '#eef2ff', dayHeaderText: '#111827',
+          slotHeaderBg: '#f3f4f6', slotHeaderText: '#111827',
+          border: '#d1d5db',
+          classColBg: '#f9fafb', classColText: '#ef4444',
+          subjSize: 15, teacherSize: 13, timeSize: 12
         },
         teachersStyle: {
           headerBg: '#eef2ff', headerText: '#111827', dayColBg: '#f9fafb', dayColAlt: '#f3f4f6', border: '#d1d5db',
