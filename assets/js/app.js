@@ -1984,6 +1984,15 @@
     const slots = db.timetable?.slots || [];
     const prn = Store.getDB().settings?.printing || {};
     const ht = prn.headerTypography || {};
+    // Helper: Arabic ordinals for lesson headers
+    const ordinal = (n) => {
+      const map = {
+        1: 'الأول', 2: 'الثاني', 3: 'الثالث', 4: 'الرابع', 5: 'الخامس', 6: 'السادس',
+        7: 'السابع', 8: 'الثامن', 9: 'التاسع', 10: 'العاشر', 11: 'الحادي عشر', 12: 'الثاني عشر'
+      };
+      return map[n] || String(n);
+    };
+    const lessonHeader = (i) => `الدرس ${ordinal(i+1)}`;
     // تحويل الجنس لعرضه كنص سليم
     const genderRaw = (db.school?.gender || '').toString();
     const norm = genderRaw.replace(/[\sـ]/g, '');
@@ -2014,14 +2023,31 @@
             </div>
           </div>`;
         // جدول الشعبة
-        bigHtml += `<table style="margin-top:8px"><thead><tr><th>اليوم/الحصة</th>${slots.map((_,i)=>`<th>${i+1}</th>`).join('')}</tr></thead><tbody>`;
+        bigHtml += `<table style="margin-top:8px"><thead><tr><th>اليوم/الحصة</th>${slots.map((_,i)=>`<th>${lessonHeader(i)}</th>`).join('')}</tr></thead><tbody>`;
         days.forEach(day => {
           bigHtml += `<tr><td>${day}</td>`;
           slots.forEach((slotName, s) => {
             const key = `${ci}:${si}|${day}|${slotName}`;
             const legacy = `${ci}:${si}|${day}|${s+1}`;
             const val = grid[key] ?? grid[legacy] ?? '';
-            bigHtml += `<td>${val || '—'}</td>`;
+            if (!val) {
+              bigHtml += `<td>—</td>`;
+            } else {
+              // Parse "المادة • المعلم" then render:
+              // line1: subject name
+              // line2: teacher first name only
+              // line3: time range from school times (e.g., 12:00 - 12:40)
+              const meta = getTeacherAndSubjectByCellValue(db, val);
+              if (!meta) {
+                bigHtml += `<td>${val}</td>`;
+              } else {
+                const subjName = (db.subjectsCatalog?.[meta.subjIdx]?.name || '').trim();
+                const teacherFull = (db.teachers?.[meta.teacherIdx]?.name || '').trim();
+                const teacherFirst = teacherFull.split(/\s+/)[0] || teacherFull;
+                const timeRange = calcSlotTimeRange(db, day, s);
+                bigHtml += `<td><div>${subjName}</div><div>${teacherFirst}</div><div class="muted">${timeRange}</div></td>`;
+              }
+            }
           });
           bigHtml += `</tr>`;
         });
