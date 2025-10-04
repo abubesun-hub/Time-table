@@ -2086,6 +2086,35 @@
         bigHtml += `</section><div class="page-break"></div>`;
       });
     });
+    // Auto-fit script to keep each section within a single page even if fonts are large
+    bigHtml += `
+      <script>(function(){
+        function fit(){
+          try{
+            var avail = window.innerHeight || document.documentElement.clientHeight || 800;
+            var main = document.querySelector('main.print-body');
+            if (main){
+              var cs = getComputedStyle(main);
+              var pt = parseFloat(cs.paddingTop)||0; var pb = parseFloat(cs.paddingBottom)||0;
+              avail = avail - pt - pb; // المساحة الفعلية داخل الـ main
+            }
+            var safety = 6; // هامش أمان صغير لتفادي كسر الصفحة الأولى
+            document.querySelectorAll('.sect-page').forEach(function(pg){
+              pg.style.transform = '';
+              pg.style.width = '';
+              var h = pg.scrollHeight;
+              if (h > (avail - safety)){
+                var scale = Math.max(0.7, Math.min(1, (avail - safety) / h));
+                pg.style.transformOrigin = 'top center';
+                pg.style.transform = 'scale(' + scale + ')';
+                pg.style.width = (100/scale) + '%';
+              }
+            });
+          }catch(e){}
+        }
+        if (document.readyState === 'complete') setTimeout(fit, 20);
+        else window.addEventListener('load', function(){ setTimeout(fit, 20); });
+      })();</script>`;
     UI.printDocument({
       contentHtml: bigHtml,
       docTitle: 'الجدول الأسبوعي للصفوف',
