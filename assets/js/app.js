@@ -1297,9 +1297,14 @@
     return h * 60 + m;
   }
   function fmtHm(totalMins) {
-    const h = Math.floor(totalMins / 60) % 24; const m = totalMins % 60;
+    // Format as 12-hour with leading zeros (e.g., 13:25 -> 01:25)
+    const minsInDay = 24 * 60;
+    const t = ((totalMins % minsInDay) + minsInDay) % minsInDay; // normalize
+    const h24 = Math.floor(t / 60);
+    const m = t % 60;
+    let h12 = h24 % 12; if (h12 === 0) h12 = 12;
     const pad = (n) => (n < 10 ? '0' + n : '' + n);
-    return `${pad(h)}:${pad(m)}`;
+    return `${pad(h12)}:${pad(m)}`;
   }
   function getBreakAfter(db, idx) {
     const g = db.times?.global || { breakMinutes: 10 };
