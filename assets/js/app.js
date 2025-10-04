@@ -2003,21 +2003,30 @@
     else genderDisplay = genderRaw;
 
     // Inline CSS to make each class/section fill page and improve look
+    const secSt = prn.sectionsStyle || {};
+    const C_HEADER_BG = secSt.headerBg || '#eef2ff';
+    const C_HEADER_TX = secSt.headerText || '#111827';
+    const C_DAY_BG = secSt.dayColBg || '#f9fafb';
+    const C_DAY_BG_ALT = secSt.dayColAlt || '#f3f4f6';
+    const C_BORDER = secSt.border || '#d1d5db';
+    const S_SUBJ = (secSt.subjSize || 16) + 'px';
+    const S_TEACH = (secSt.teacherSize || 14) + 'px';
+    const S_TIME = (secSt.timeSize || 13) + 'px';
     const extraCss = `
       <style>
         .sect-page{ min-height: calc(100vh - 24mm); display:flex; flex-direction:column; }
         .sect-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid #e5e7eb; padding:10px 0 }
         .sect-table{ width:100%; border-collapse:collapse; table-layout:fixed; height:100%; }
-        .sect-table thead th{ background:#eef2ff; color:#111827; border:1px solid #d1d5db; padding:10px 8px; font-weight:800; font-size:1.05em }
+        .sect-table thead th{ background:${C_HEADER_BG}; color:${C_HEADER_TX}; border:1px solid ${C_BORDER}; padding:10px 8px; font-weight:800; font-size:1.05em }
         .sect-table tbody{ height:100% }
         .sect-table tbody tr{ height: calc(100% / var(--days, 6)); }
-        .sect-table tbody td{ border:1px solid #e5e7eb; padding:14px 10px; vertical-align:middle; text-align:center; height:100% }
-        .sect-table th:first-child, .sect-table td:first-child{ width:120px; background:#f9fafb; font-weight:700 }
-        .sect-table tbody tr:nth-child(odd) td:first-child{ background:#f3f4f6 }
+        .sect-table tbody td{ border:1px solid ${C_BORDER}; padding:14px 10px; vertical-align:middle; text-align:center; height:100% }
+        .sect-table th:first-child, .sect-table td:first-child{ width:120px; background:${C_DAY_BG}; font-weight:700 }
+        .sect-table tbody tr:nth-child(odd) td:first-child{ background:${C_DAY_BG_ALT} }
         .lesson-cell{ line-height:1.35; }
-        .lesson-subj{ font-weight:800; font-size:1.12em; margin-bottom:4px }
-        .lesson-teacher{ color:#374151; margin-bottom:4px; font-size:1.02em }
-        .lesson-time{ color:#6b7280; font-size:0.96em }
+        .lesson-subj{ font-weight:800; font-size:${S_SUBJ}; margin-bottom:4px }
+        .lesson-teacher{ color:#374151; margin-bottom:4px; font-size:${S_TEACH} }
+        .lesson-time{ color:#6b7280; font-size:${S_TIME} }
         .page-break{ page-break-after:always; height:0 }
       </style>`;
 
@@ -2218,6 +2227,16 @@
   setVal('#htDateSize', ht.date?.size || 11, 11);
   setVal('#htLeftFamily', ht.left?.family || '', '');
   setVal('#htLeftSize', ht.left?.size || 16, 16);
+  // sections preview style settings (defaults)
+  const sec = prn.sectionsStyle || {};
+  setVal('#prnSecHeaderBg', sec.headerBg || '#eef2ff', '#eef2ff');
+  setVal('#prnSecHeaderText', sec.headerText || '#111827', '#111827');
+  setVal('#prnSecDayColBg', sec.dayColBg || '#f9fafb', '#f9fafb');
+  setVal('#prnSecDayColAlt', sec.dayColAlt || '#f3f4f6', '#f3f4f6');
+  setVal('#prnSecBorder', sec.border || '#d1d5db', '#d1d5db');
+  setVal('#prnSecSubjSize', sec.subjSize || 16, 16);
+  setVal('#prnSecTeacherSize', sec.teacherSize || 14, 14);
+  setVal('#prnSecTimeSize', sec.timeSize || 13, 13);
   }
   // Live preview on change (without saving)
   const themeSel = qs('#themeSelect'); if (themeSel) themeSel.addEventListener('change', () => {
@@ -2316,6 +2335,17 @@
       family: (qs('#htLeftFamily')?.value || '').trim(),
       size: num('#htLeftSize', 16)
     };
+    // sections preview style save
+    prn.sectionsStyle = prn.sectionsStyle || {};
+    const getColor = (id, d) => { const v = (qs(id)?.value || '').trim(); return v || d; };
+    prn.sectionsStyle.headerBg = getColor('#prnSecHeaderBg', '#eef2ff');
+    prn.sectionsStyle.headerText = getColor('#prnSecHeaderText', '#111827');
+    prn.sectionsStyle.dayColBg = getColor('#prnSecDayColBg', '#f9fafb');
+    prn.sectionsStyle.dayColAlt = getColor('#prnSecDayColAlt', '#f3f4f6');
+    prn.sectionsStyle.border = getColor('#prnSecBorder', '#d1d5db');
+    prn.sectionsStyle.subjSize = num('#prnSecSubjSize', 16);
+    prn.sectionsStyle.teacherSize = num('#prnSecTeacherSize', 14);
+    prn.sectionsStyle.timeSize = num('#prnSecTimeSize', 13);
     Store.setDB(db);
     loadSettings();
     showToast('تم حفظ الإعدادات');
