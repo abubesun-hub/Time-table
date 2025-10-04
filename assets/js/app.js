@@ -2144,13 +2144,15 @@
     const teachers = db.teachers || [];
     const prn = Store.getDB().settings?.printing || {};
     const tStyle = prn.teachersStyle || {};
-    const C_HEADER_BG = tStyle.headerBg || '#eef2ff';
-    const C_HEADER_TX = tStyle.headerText || '#111827';
+  const C_HEADER_BG = tStyle.headerBg || '#eef2ff';
+  const C_HEADER_TX = tStyle.headerText || '#111827';
     const C_DAY_BG = tStyle.dayColBg || '#f9fafb';
     const C_DAY_ALT = tStyle.dayColAlt || '#f3f4f6';
     const C_BORDER = tStyle.border || '#d1d5db';
-    const S_MAIN = tStyle.mainSize || 16;
-    const S_TIME = tStyle.timeSize || 13;
+  const S_HEAD = tStyle.headerSize || 14; const B_HEAD = tStyle.headerBold ? 800 : 700;
+  const S_CLS = tStyle.clsSize || 16; const COL_CLS = tStyle.clsColor || '#374151'; const B_CLS = tStyle.clsBold ? 700 : 500;
+  const S_SUBJ = tStyle.subjSize || 16; const COL_SUBJ = tStyle.subjColor || '#111827'; const B_SUBJ = tStyle.subjBold === false ? 500 : 800;
+  const S_TIME = tStyle.timeSize || 13; const COL_TIME = tStyle.timeColor || '#6b7280'; const B_TIME = tStyle.timeBold ? 700 : 500;
     const S_DAY = tStyle.dayFontSize || 14;
     const C_DAY = tStyle.dayFontColor || '#111827';
 
@@ -2231,16 +2233,16 @@
       .page-header .sch .n{ font-weight:800 }
       .page-header .sch .g{ color:#6b7280; font-size:0.95em }
       .page-header .ttl{ text-align:center; flex:1 }
-      .page-header .ttl .t{ font-weight:800 }
+  .page-header .ttl .t{ font-weight:${B_HEAD}; font-size:${S_HEAD}px }
       .page-header .ttl .y{ color:#6b7280; font-size:0.95em }
       .page-header .l{ text-align:left }
       .page-header .teacher-name{ font-weight:800 }
       .teach-table{ width:100%; border-collapse:collapse }
       .teach-table th, .teach-table td{ border:1px solid ${C_BORDER}; padding:8px }
       .teach-table thead th{ background:${C_HEADER_BG}; color:${C_HEADER_TX}; font-weight:800 }
-  .teach-table td .cls{ font-size:${S_MAIN}px; color:#374151 }
-  .teach-table td .subj{ font-size:${S_MAIN}px; font-weight:800 }
-      .teach-table td .time{ font-size:${S_TIME}px; color:#6b7280 }
+  .teach-table td .cls{ font-size:${S_CLS}px; color:${COL_CLS}; font-weight:${B_CLS} }
+  .teach-table td .subj{ font-size:${S_SUBJ}px; color:${COL_SUBJ}; font-weight:${B_SUBJ} }
+  .teach-table td .time{ font-size:${S_TIME}px; color:${COL_TIME}; font-weight:${B_TIME} }
       .teach-table td.day{ background:${C_DAY_BG}; font-weight:700; color:${C_DAY}; font-size:${S_DAY}px }
       .teach-table tr:nth-child(odd) td.day{ background:${C_DAY_ALT} }
     `;
@@ -2352,8 +2354,18 @@
   setVal('#prnTeachDayColBg', ts.dayColBg || '#f9fafb', '#f9fafb');
   setVal('#prnTeachDayColAlt', ts.dayColAlt || '#f3f4f6', '#f3f4f6');
   setVal('#prnTeachBorder', ts.border || '#d1d5db', '#d1d5db');
-  setVal('#prnTeachMainSize', ts.mainSize || 16, 16);
+  setVal('#prnTeachHeaderSize', ts.headerSize || 14, 14);
+  const setChk = (id, v) => { const el = qs(id); if (el) el.checked = !!v; };
+  setChk('#prnTeachHeaderBold', !!ts.headerBold);
+  setVal('#prnTeachClsSize', ts.clsSize || 16, 16);
+  setVal('#prnTeachClsColor', ts.clsColor || '#374151', '#374151');
+  setChk('#prnTeachClsBold', !!ts.clsBold);
+  setVal('#prnTeachSubjSize', ts.subjSize || 16, 16);
+  setVal('#prnTeachSubjColor', ts.subjColor || '#111827', '#111827');
+  setChk('#prnTeachSubjBold', ts.subjBold !== false); // default true
   setVal('#prnTeachTimeSize', ts.timeSize || 13, 13);
+  setVal('#prnTeachTimeColor', ts.timeColor || '#6b7280', '#6b7280');
+  setChk('#prnTeachTimeBold', !!ts.timeBold);
   setVal('#prnTeachDayFontColor', ts.dayFontColor || '#111827', '#111827');
   setVal('#prnTeachDayFontSize', ts.dayFontSize || 14, 14);
   // render previews after values are populated
@@ -2424,19 +2436,25 @@
       dayColBg: get('#prnTeachDayColBg', '#f9fafb'),
       dayColAlt: get('#prnTeachDayColAlt', '#f3f4f6'),
       border: get('#prnTeachBorder', '#d1d5db'),
-      mainSize: num('#prnTeachMainSize', 16),
+      headerSize: num('#prnTeachHeaderSize', 14), headerBold: !!qs('#prnTeachHeaderBold')?.checked,
+      clsSize: num('#prnTeachClsSize', 16),
+      clsColor: get('#prnTeachClsColor', '#374151'), clsBold: !!qs('#prnTeachClsBold')?.checked,
+      subjSize: num('#prnTeachSubjSize', 16),
+      subjColor: get('#prnTeachSubjColor', '#111827'), subjBold: !!qs('#prnTeachSubjBold')?.checked,
       timeSize: num('#prnTeachTimeSize', 13),
+      timeColor: get('#prnTeachTimeColor', '#6b7280'), timeBold: !!qs('#prnTeachTimeBold')?.checked,
       dayFontColor: get('#prnTeachDayFontColor', '#111827'),
       dayFontSize: num('#prnTeachDayFontSize', 14)
     };
     const css = `
       .tprev{ width:100%; border-collapse:collapse }
       .tprev th, .tprev td{ border:1px solid ${st.border}; padding:6px }
-      .tprev thead th{ background:${st.headerBg}; color:${st.headerText}; font-weight:800 }
+      .tprev thead th{ background:${st.headerBg}; color:${st.headerText}; font-weight:${st.headerBold?'800':'600'}; font-size:${st.headerSize}px }
       .tprev .day{ background:${st.dayColBg}; color:${st.dayFontColor}; font-weight:700; font-size:${st.dayFontSize}px }
       .tprev tr:nth-child(odd) .day{ background:${st.dayColAlt} }
-      .tprev .main{ font-size:${st.mainSize}px }
-      .tprev .time{ font-size:${st.timeSize}px; color:#6b7280 }
+      .tprev .cls{ font-size:${st.clsSize}px; color:${st.clsColor}; font-weight:${st.clsBold?'700':'500'} }
+      .tprev .subj{ font-size:${st.subjSize}px; color:${st.subjColor}; font-weight:${st.subjBold?'800':'500'} }
+      .tprev .time{ font-size:${st.timeSize}px; color:${st.timeColor}; font-weight:${st.timeBold?'700':'500'} }
     `;
     const sample = `
       <style>${css}</style>
@@ -2450,7 +2468,7 @@
     host.innerHTML = sample;
   }
   // Attach listeners for teacher preview
-  ['#prnTeachHeaderBg','#prnTeachHeaderText','#prnTeachDayColBg','#prnTeachDayColAlt','#prnTeachBorder','#prnTeachMainSize','#prnTeachTimeSize','#prnTeachDayFontColor','#prnTeachDayFontSize']
+  ['#prnTeachHeaderBg','#prnTeachHeaderText','#prnTeachDayColBg','#prnTeachDayColAlt','#prnTeachBorder','#prnTeachHeaderSize','#prnTeachHeaderBold','#prnTeachClsSize','#prnTeachClsColor','#prnTeachClsBold','#prnTeachSubjSize','#prnTeachSubjColor','#prnTeachSubjBold','#prnTeachTimeSize','#prnTeachTimeColor','#prnTeachTimeBold','#prnTeachDayFontColor','#prnTeachDayFontSize']
     .forEach(sel => { const el = qs(sel); if (el) el.addEventListener('input', renderTeacherPrintPreview); });
 
   qs('#btnSaveSettings').addEventListener('click', () => {
@@ -2512,13 +2530,22 @@
   prn.sectionsStyle.dayFontSize = num('#prnSecDayFontSize', 14);
     // teachers style save
     prn.teachersStyle = prn.teachersStyle || {};
-    prn.teachersStyle.headerBg = getColor('#prnTeachHeaderBg', '#eef2ff');
-    prn.teachersStyle.headerText = getColor('#prnTeachHeaderText', '#111827');
-    prn.teachersStyle.dayColBg = getColor('#prnTeachDayColBg', '#f9fafb');
-    prn.teachersStyle.dayColAlt = getColor('#prnTeachDayColAlt', '#f3f4f6');
-    prn.teachersStyle.border = getColor('#prnTeachBorder', '#d1d5db');
-    prn.teachersStyle.mainSize = num('#prnTeachMainSize', 16);
-    prn.teachersStyle.timeSize = num('#prnTeachTimeSize', 13);
+  prn.teachersStyle.headerBg = getColor('#prnTeachHeaderBg', '#eef2ff');
+  prn.teachersStyle.headerText = getColor('#prnTeachHeaderText', '#111827');
+  prn.teachersStyle.dayColBg = getColor('#prnTeachDayColBg', '#f9fafb');
+  prn.teachersStyle.dayColAlt = getColor('#prnTeachDayColAlt', '#f3f4f6');
+  prn.teachersStyle.border = getColor('#prnTeachBorder', '#d1d5db');
+  prn.teachersStyle.headerSize = num('#prnTeachHeaderSize', 14);
+  prn.teachersStyle.headerBold = !!qs('#prnTeachHeaderBold')?.checked;
+  prn.teachersStyle.clsSize = num('#prnTeachClsSize', 16);
+  prn.teachersStyle.clsColor = getColor('#prnTeachClsColor', '#374151');
+  prn.teachersStyle.clsBold = !!qs('#prnTeachClsBold')?.checked;
+  prn.teachersStyle.subjSize = num('#prnTeachSubjSize', 16);
+  prn.teachersStyle.subjColor = getColor('#prnTeachSubjColor', '#111827');
+  prn.teachersStyle.subjBold = !!qs('#prnTeachSubjBold')?.checked;
+  prn.teachersStyle.timeSize = num('#prnTeachTimeSize', 13);
+  prn.teachersStyle.timeColor = getColor('#prnTeachTimeColor', '#6b7280');
+  prn.teachersStyle.timeBold = !!qs('#prnTeachTimeBold')?.checked;
     prn.teachersStyle.dayFontColor = getColor('#prnTeachDayFontColor', '#111827');
     prn.teachersStyle.dayFontSize = num('#prnTeachDayFontSize', 14);
     Store.setDB(db);

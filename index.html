@@ -723,6 +723,34 @@
             <input id="prnTeachDayFontSize" class="input" type="number" min="10" max="24" step="1" value="14" />
           </div>
         </div>
+        <div class="row wrap" style="gap:12px; margin-top:6px">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachHeaderSize">حجم خط عناوين الدروس (px)</label>
+            <input id="prnTeachHeaderSize" class="input" type="number" min="10" max="24" step="1" value="14" />
+            <label class="label"><input id="prnTeachHeaderBold" type="checkbox" /> عريض</label>
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachClsSize">حجم خط اسم الصف (px)</label>
+            <input id="prnTeachClsSize" class="input" type="number" min="10" max="28" step="1" value="16" />
+            <label class="label" for="prnTeachClsColor">لون اسم الصف</label>
+            <input id="prnTeachClsColor" class="input" type="color" value="#374151" />
+            <label class="label"><input id="prnTeachClsBold" type="checkbox" /> عريض</label>
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachSubjSize">حجم خط اسم المادة (px)</label>
+            <input id="prnTeachSubjSize" class="input" type="number" min="10" max="28" step="1" value="16" />
+            <label class="label" for="prnTeachSubjColor">لون اسم المادة</label>
+            <input id="prnTeachSubjColor" class="input" type="color" value="#111827" />
+            <label class="label"><input id="prnTeachSubjBold" type="checkbox" checked /> عريض</label>
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachTimeSize">حجم خط الوقت (px)</label>
+            <input id="prnTeachTimeSize" class="input" type="number" min="8" max="24" step="1" value="13" />
+            <label class="label" for="prnTeachTimeColor">لون الوقت</label>
+            <input id="prnTeachTimeColor" class="input" type="color" value="#6b7280" />
+            <label class="label"><input id="prnTeachTimeBold" type="checkbox" /> عريض</label>
+          </div>
+        </div>
         <div id="teacherPrintPreview" class="neo-surface" style="margin-top:10px">
           <div class="muted small">معاينة تنسيق جدول حصص المعلمين (تتحدّث لحظيًا دون حفظ)</div>
           <div id="teacherPrintPreviewHost" style="margin-top:8px"></div>

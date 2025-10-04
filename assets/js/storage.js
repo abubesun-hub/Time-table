@@ -69,7 +69,16 @@
         },
         teachersStyle: {
           headerBg: '#eef2ff', headerText: '#111827', dayColBg: '#f9fafb', dayColAlt: '#f3f4f6', border: '#d1d5db',
-          mainSize: 16, timeSize: 13, dayFontColor: '#111827', dayFontSize: 14
+          // header size for lesson titles (e.g., الدرس الأول)
+          headerSize: 14, headerBold: true,
+          // class/section line
+          clsSize: 16, clsColor: '#374151', clsBold: false,
+          // subject line
+          subjSize: 16, subjColor: '#111827', subjBold: true,
+          // time line
+          timeSize: 13, timeColor: '#6b7280', timeBold: false,
+          // day column
+          dayFontColor: '#111827', dayFontSize: 14
         }
       }
     },
