@@ -2002,28 +2002,48 @@
     else if (/(مختلط|مشترك)/.test(norm)) genderDisplay = 'المختلطة';
     else genderDisplay = genderRaw;
 
-    let bigHtml = '';
+    // Inline CSS to make each class/section fill page and improve look
+    const extraCss = `
+      <style>
+        .sect-page{ min-height: calc(100vh - 24mm); display:flex; flex-direction:column; }
+        .sect-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid #e5e7eb; padding:10px 0 }
+        .sect-table{ width:100%; border-collapse:collapse; table-layout:fixed; height:100%; }
+        .sect-table thead th{ background:#eef2ff; color:#111827; border:1px solid #d1d5db; padding:10px 8px; font-weight:800; font-size:1.05em }
+        .sect-table tbody{ height:100% }
+        .sect-table tbody tr{ height: calc(100% / var(--days, 6)); }
+        .sect-table tbody td{ border:1px solid #e5e7eb; padding:14px 10px; vertical-align:middle; text-align:center; height:100% }
+        .sect-table th:first-child, .sect-table td:first-child{ width:120px; background:#f9fafb; font-weight:700 }
+        .sect-table tbody tr:nth-child(odd) td:first-child{ background:#f3f4f6 }
+        .lesson-cell{ line-height:1.35; }
+        .lesson-subj{ font-weight:800; font-size:1.12em; margin-bottom:4px }
+        .lesson-teacher{ color:#374151; margin-bottom:4px; font-size:1.02em }
+        .lesson-time{ color:#6b7280; font-size:0.96em }
+        .page-break{ page-break-after:always; height:0 }
+      </style>`;
+
+    let bigHtml = extraCss;
     (db.classes || []).forEach((cls, ci) => {
       const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
       sections.forEach((sec, si) => {
         // هيدر داخل المحتوى لكل شعبة (بدون تاريخ)
         const leftTitle = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}`;
         bigHtml += `
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px; border-bottom:1px solid #ddd; padding:10px 0">
-            <div style="text-align:center">
-              <div style="font-weight:800; ${ht.schoolName?.family ? `font-family:${ht.schoolName.family};` : ''} font-size:${(ht.schoolName?.size??18)}px">${db.school?.name || 'المدرسة'}</div>
-              <div class="muted" style="${ht.gender?.family ? `font-family:${ht.gender.family};` : ''} font-size:${(ht.gender?.size??12)}px">${genderDisplay || ''}</div>
-            </div>
-            <div style="text-align:center;flex:1">
-              <div style="font-weight:800; ${ht.docTitle?.family ? `font-family:${ht.docTitle.family};` : ''} font-size:${(ht.docTitle?.size??16)}px">الجدول الأسبوعي للصفوف</div>
-              ${db.school?.year ? `<div class="muted" style="${ht.year?.family ? `font-family:${ht.year.family};` : ''} font-size:${(ht.year?.size??12)}px">للعام الدراسي ${db.school.year}</div>` : ''}
-            </div>
-            <div style="text-align:left">
-              <div style="font-weight:800; ${ht.left?.family ? `font-family:${ht.left.family};` : ''} font-size:${(ht.left?.size??16)}px">${leftTitle}</div>
-            </div>
-          </div>`;
-        // جدول الشعبة
-        bigHtml += `<table style="margin-top:8px"><thead><tr><th>اليوم/الحصة</th>${slots.map((_,i)=>`<th>${lessonHeader(i)}</th>`).join('')}</tr></thead><tbody>`;
+          <section class="sect-page" style="--days:${days.length}">
+            <div class="sect-header">
+              <div style="text-align:center">
+                <div style="font-weight:800; ${ht.schoolName?.family ? `font-family:${ht.schoolName.family};` : ''} font-size:${(ht.schoolName?.size??18)}px">${db.school?.name || 'المدرسة'}</div>
+                <div class="muted" style="${ht.gender?.family ? `font-family:${ht.gender.family};` : ''} font-size:${(ht.gender?.size??12)}px">${genderDisplay || ''}</div>
+              </div>
+              <div style="text-align:center;flex:1">
+                <div style="font-weight:800; ${ht.docTitle?.family ? `font-family:${ht.docTitle.family};` : ''} font-size:${(ht.docTitle?.size??16)}px">الجدول الأسبوعي للصفوف</div>
+                ${db.school?.year ? `<div class="muted" style="${ht.year?.family ? `font-family:${ht.year.family};` : ''} font-size:${(ht.year?.size??12)}px">للعام الدراسي ${db.school.year}</div>` : ''}
+              </div>
+              <div style="text-align:left">
+                <div style="font-weight:800; ${ht.left?.family ? `font-family:${ht.left.family};` : ''} font-size:${(ht.left?.size??16)}px">${leftTitle}</div>
+              </div>
+            </div>`;
+        // جدول الشعبة (يمتد ليملأ الصفحة)
+        bigHtml += `<table class="sect-table" style="margin-top:8px"><thead><tr><th>اليوم/الحصة</th>${slots.map((_,i)=>`<th>${lessonHeader(i)}</th>`).join('')}</tr></thead><tbody>`;
         days.forEach(day => {
           bigHtml += `<tr><td>${day}</td>`;
           slots.forEach((slotName, s) => {
@@ -2045,14 +2065,14 @@
                 const teacherFull = (db.teachers?.[meta.teacherIdx]?.name || '').trim();
                 const teacherFirst = teacherFull.split(/\s+/)[0] || teacherFull;
                 const timeRange = calcSlotTimeRange(db, day, s);
-                bigHtml += `<td><div>${subjName}</div><div>${teacherFirst}</div><div class="muted">${timeRange}</div></td>`;
+                bigHtml += `<td><div class="lesson-cell"><div class="lesson-subj">${subjName}</div><div class="lesson-teacher">${teacherFirst}</div><div class="lesson-time">${timeRange}</div></div></td>`;
               }
             }
           });
           bigHtml += `</tr>`;
         });
         bigHtml += `</tbody></table>`;
-        bigHtml += `<div style="page-break-after:always;height:1px"></div>`;
+        bigHtml += `</section><div class="page-break"></div>`;
       });
     });
     UI.printDocument({
