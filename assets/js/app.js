@@ -2012,6 +2012,8 @@
     const S_SUBJ = (secSt.subjSize || 16) + 'px';
     const S_TEACH = (secSt.teacherSize || 14) + 'px';
     const S_TIME = (secSt.timeSize || 13) + 'px';
+    const DAY_FONT_COLOR = secSt.dayFontColor || '#111827';
+    const DAY_FONT_SIZE = (secSt.dayFontSize || 14) + 'px';
     const extraCss = `
       <style>
         .sect-page{ min-height: calc(100vh - 24mm); display:flex; flex-direction:column; }
@@ -2021,7 +2023,7 @@
         .sect-table tbody{ height:100% }
         .sect-table tbody tr{ height: calc(100% / var(--days, 6)); }
         .sect-table tbody td{ border:1px solid ${C_BORDER}; padding:14px 10px; vertical-align:middle; text-align:center; height:100% }
-        .sect-table th:first-child, .sect-table td:first-child{ width:120px; background:${C_DAY_BG}; font-weight:700 }
+  .sect-table th:first-child, .sect-table td:first-child{ width:120px; background:${C_DAY_BG}; font-weight:700; color:${DAY_FONT_COLOR}; font-size:${DAY_FONT_SIZE} }
         .sect-table tbody tr:nth-child(odd) td:first-child{ background:${C_DAY_BG_ALT} }
         .lesson-cell{ line-height:1.35; }
         .lesson-subj{ font-weight:800; font-size:${S_SUBJ}; margin-bottom:4px }
@@ -2237,6 +2239,8 @@
   setVal('#prnSecSubjSize', sec.subjSize || 16, 16);
   setVal('#prnSecTeacherSize', sec.teacherSize || 14, 14);
   setVal('#prnSecTimeSize', sec.timeSize || 13, 13);
+  setVal('#prnSecDayFontColor', sec.dayFontColor || '#111827', '#111827');
+  setVal('#prnSecDayFontSize', sec.dayFontSize || 14, 14);
   }
   // Live preview on change (without saving)
   const themeSel = qs('#themeSelect'); if (themeSel) themeSel.addEventListener('change', () => {
@@ -2346,6 +2350,8 @@
     prn.sectionsStyle.subjSize = num('#prnSecSubjSize', 16);
     prn.sectionsStyle.teacherSize = num('#prnSecTeacherSize', 14);
     prn.sectionsStyle.timeSize = num('#prnSecTimeSize', 13);
+  prn.sectionsStyle.dayFontColor = getColor('#prnSecDayFontColor', '#111827');
+  prn.sectionsStyle.dayFontSize = num('#prnSecDayFontSize', 14);
     Store.setDB(db);
     loadSettings();
     showToast('تم حفظ الإعدادات');
