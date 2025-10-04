@@ -684,6 +684,45 @@
           <div class="muted small">معاينة رأس الصفحة (تستخدم القيم في الحقول أعلاه دون الحاجة للحفظ)</div>
           <div id="printHeaderPreviewHost" style="margin-top:8px"></div>
         </div>
+        <h4 class="sub-title" style="margin-top:10px">تنسيق جدول حصص المعلمين</h4>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachHeaderBg">لون خلفية عناوين الجدول</label>
+            <input id="prnTeachHeaderBg" class="input" type="color" value="#eef2ff" />
+            <label class="label" for="prnTeachHeaderText">لون نص العناوين</label>
+            <input id="prnTeachHeaderText" class="input" type="color" value="#111827" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachDayColBg">لون عمود اليوم</label>
+            <input id="prnTeachDayColBg" class="input" type="color" value="#f9fafb" />
+            <label class="label" for="prnTeachDayColAlt">لون عمود اليوم (سطر متناوب)</label>
+            <input id="prnTeachDayColAlt" class="input" type="color" value="#f3f4f6" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachBorder">لون الإطار والخطوط</label>
+            <input id="prnTeachBorder" class="input" type="color" value="#d1d5db" />
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px; margin-top:6px">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachMainSize">حجم الخط داخل الخلايا (px)</label>
+            <input id="prnTeachMainSize" class="input" type="number" min="10" max="32" step="1" value="16" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachTimeSize">حجم خط وقت الحصة (px)</label>
+            <input id="prnTeachTimeSize" class="input" type="number" min="8" max="24" step="1" value="13" />
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px; margin-top:6px">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachDayFontColor">لون نص اليوم</label>
+            <input id="prnTeachDayFontColor" class="input" type="color" value="#111827" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachDayFontSize">حجم خط اليوم (px)</label>
+            <input id="prnTeachDayFontSize" class="input" type="number" min="10" max="24" step="1" value="14" />
+          </div>
+        </div>
         <div class="row wrap" style="gap:12px;margin-top:8px">
           <div class="col">
             <label class="label" for="prnFooterImage">صورة التذييل (يسار) - رابط</label>

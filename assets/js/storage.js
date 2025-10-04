@@ -57,9 +57,19 @@
           date: { size: 11, family: '' },
           left: { size: 16, family: '' }
         },
+        // تنسيق الطباعة لعرض "حسب الشعب"
         footer: {
           leftImageUrl: '',
           rightHtml: '<div style="text-align:left">Ahmed Hussein Ali<br>📞 790-588-0479<br>✉️ ltechanbar@gmail.com<br>🌐 www.facebook.com/lthtec</div>'
+        },
+        // تنسيقات إضافية للطباعة
+        sectionsStyle: {
+          headerBg: '#eef2ff', headerText: '#111827', dayColBg: '#f9fafb', dayColAlt: '#f3f4f6', border: '#d1d5db',
+          subjSize: 16, teacherSize: 14, timeSize: 13, dayFontColor: '#111827', dayFontSize: 14
+        },
+        teachersStyle: {
+          headerBg: '#eef2ff', headerText: '#111827', dayColBg: '#f9fafb', dayColAlt: '#f3f4f6', border: '#d1d5db',
+          mainSize: 16, timeSize: 13, dayFontColor: '#111827', dayFontSize: 14
         }
       }
     },

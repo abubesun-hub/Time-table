@@ -2142,13 +2142,46 @@
     const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
     const slots = db.timetable?.slots || [];
     const teachers = db.teachers || [];
-    // Build reverse index: for each teacher, list per day/slot the class-section + subject
+    const prn = Store.getDB().settings?.printing || {};
+    const tStyle = prn.teachersStyle || {};
+    const C_HEADER_BG = tStyle.headerBg || '#eef2ff';
+    const C_HEADER_TX = tStyle.headerText || '#111827';
+    const C_DAY_BG = tStyle.dayColBg || '#f9fafb';
+    const C_DAY_ALT = tStyle.dayColAlt || '#f3f4f6';
+    const C_BORDER = tStyle.border || '#d1d5db';
+    const S_MAIN = tStyle.mainSize || 16;
+    const S_TIME = tStyle.timeSize || 13;
+    const S_DAY = tStyle.dayFontSize || 14;
+    const C_DAY = tStyle.dayFontColor || '#111827';
+
+    // Build reverse index per teacher
     let html = '';
     teachers.forEach((t, ti) => {
-      html += `<h3 style="margin-top:16px">${t.name}</h3>`;
-      html += `<table><thead><tr><th>اليوم/الحصة</th>${slots.map((_,i)=>`<th>${i+1}</th>`).join('')}</tr></thead><tbody>`;
+      // جدول واحد لكل معلم + ترويسة صفحة خفيفة تحاكي رأس الطباعة لكن بدون تثبيت
+      html += `<div class="sect-page" style="page-break-after:always">
+        <div class="page-header">
+          <div class="sch">
+            <div class="n">${db.school?.name || 'المدرسة'}</div>
+            <div class="g">${db.school?.gender || ''}</div>
+          </div>
+          <div class="ttl">
+            <div class="t">جدول حصص المعلمين</div>
+            ${db.school?.year ? `<div class="y">للعام الدراسي ${db.school.year}</div>` : ''}
+          </div>
+          <div class="l">
+            <div class="teacher-name">${t.name}</div>
+          </div>
+        </div>
+        <table class="teach-table" style="margin-top:8px">
+          <thead>
+            <tr>
+              <th>اليوم/الحصة</th>
+              ${slots.map((_,i)=>`<th>${i+1}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>`;
       days.forEach(day => {
-        html += `<tr><td>${day}</td>`;
+        html += `<tr><td class="day">${day}</td>`;
         slots.forEach((slotName, s) => {
           // scan grid to find a cell with this teacher at day/slot
           let cell = '—';
@@ -2164,7 +2197,7 @@
               const secName = (db.classes?.[ci]?.sections || [])[si]?.name || '';
               const subjName = db.subjectsCatalog?.[meta.subjIdx]?.name || '';
               const timeRange = calcSlotTimeRange(db, day, s);
-              cell = `<div>${clsName}${secName ? ' — ' + secName : ''} • ${subjName}</div><div class="muted" style="font-size:0.92em">${timeRange}</div>`;
+              cell = `<div class="main">${clsName}${secName ? ' — ' + secName : ''} • ${subjName}</div><div class="time">${timeRange}</div>`;
               return true;
             }
             return false;
@@ -2173,21 +2206,40 @@
         });
         html += `</tr>`;
       });
-      html += `</tbody></table>`;
-      if (ti < teachers.length - 1) html += `<div style=\"page-break-after:always;height:1px\"></div>`;
+      html += `</tbody></table></div>`;
     });
-    const prn = Store.getDB().settings?.printing || {};
+    // أنماط خاصة بجدول حصص المعلمين
+    const css = `
+      .page-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid ${C_BORDER}; padding:8px 0 }
+      .page-header .sch{ text-align:center }
+      .page-header .sch .n{ font-weight:800 }
+      .page-header .sch .g{ color:#6b7280; font-size:0.95em }
+      .page-header .ttl{ text-align:center; flex:1 }
+      .page-header .ttl .t{ font-weight:800 }
+      .page-header .ttl .y{ color:#6b7280; font-size:0.95em }
+      .page-header .l{ text-align:left }
+      .page-header .teacher-name{ font-weight:800 }
+      .teach-table{ width:100%; border-collapse:collapse }
+      .teach-table th, .teach-table td{ border:1px solid ${C_BORDER}; padding:8px }
+      .teach-table thead th{ background:${C_HEADER_BG}; color:${C_HEADER_TX}; font-weight:800 }
+      .teach-table td .main{ font-size:${S_MAIN}px; }
+      .teach-table td .time{ font-size:${S_TIME}px; color:#6b7280 }
+      .teach-table td.day{ background:${C_DAY_BG}; font-weight:700; color:${C_DAY}; font-size:${S_DAY}px }
+      .teach-table tr:nth-child(odd) td.day{ background:${C_DAY_ALT} }
+    `;
     UI.printDocument({
-      contentHtml: html,
-      docTitle: 'جدول حصص المعلمين',
-      school: Store.getDB().school,
+      contentHtml: `<style>${css}</style>${html}`,
+  docTitle: 'جدول حصص المعلمين',
+  // لا نستخدم رأسًا ثابتًا هنا لتجنّب التداخل بين الصفحات
+  school: { ...Store.getDB().school, logo: '' },
       orientation: prn.orientations?.teachers || 'portrait',
       margin: prn.margin || '12mm',
       fontScale: prn.fontScale || 1,
       fontFamily: prn.fontFamily || '',
       headerTypography: prn.headerTypography || {},
       footerLeftImageUrl: prn.footer?.leftImageUrl || '',
-      footerRightHtml: prn.footer?.rightHtml || ''
+      footerRightHtml: prn.footer?.rightHtml || '',
+      noFixedHeader: true
     });
   }
 
@@ -2276,6 +2328,17 @@
   setVal('#prnSecTimeSize', sec.timeSize || 13, 13);
   setVal('#prnSecDayFontColor', sec.dayFontColor || '#111827', '#111827');
   setVal('#prnSecDayFontSize', sec.dayFontSize || 14, 14);
+  // teachers style
+  const ts = prn.teachersStyle || {};
+  setVal('#prnTeachHeaderBg', ts.headerBg || '#eef2ff', '#eef2ff');
+  setVal('#prnTeachHeaderText', ts.headerText || '#111827', '#111827');
+  setVal('#prnTeachDayColBg', ts.dayColBg || '#f9fafb', '#f9fafb');
+  setVal('#prnTeachDayColAlt', ts.dayColAlt || '#f3f4f6', '#f3f4f6');
+  setVal('#prnTeachBorder', ts.border || '#d1d5db', '#d1d5db');
+  setVal('#prnTeachMainSize', ts.mainSize || 16, 16);
+  setVal('#prnTeachTimeSize', ts.timeSize || 13, 13);
+  setVal('#prnTeachDayFontColor', ts.dayFontColor || '#111827', '#111827');
+  setVal('#prnTeachDayFontSize', ts.dayFontSize || 14, 14);
   }
   // Live preview on change (without saving)
   const themeSel = qs('#themeSelect'); if (themeSel) themeSel.addEventListener('change', () => {
@@ -2387,6 +2450,17 @@
     prn.sectionsStyle.timeSize = num('#prnSecTimeSize', 13);
   prn.sectionsStyle.dayFontColor = getColor('#prnSecDayFontColor', '#111827');
   prn.sectionsStyle.dayFontSize = num('#prnSecDayFontSize', 14);
+    // teachers style save
+    prn.teachersStyle = prn.teachersStyle || {};
+    prn.teachersStyle.headerBg = getColor('#prnTeachHeaderBg', '#eef2ff');
+    prn.teachersStyle.headerText = getColor('#prnTeachHeaderText', '#111827');
+    prn.teachersStyle.dayColBg = getColor('#prnTeachDayColBg', '#f9fafb');
+    prn.teachersStyle.dayColAlt = getColor('#prnTeachDayColAlt', '#f3f4f6');
+    prn.teachersStyle.border = getColor('#prnTeachBorder', '#d1d5db');
+    prn.teachersStyle.mainSize = num('#prnTeachMainSize', 16);
+    prn.teachersStyle.timeSize = num('#prnTeachTimeSize', 13);
+    prn.teachersStyle.dayFontColor = getColor('#prnTeachDayFontColor', '#111827');
+    prn.teachersStyle.dayFontSize = num('#prnTeachDayFontSize', 14);
     Store.setDB(db);
     loadSettings();
     showToast('تم حفظ الإعدادات');
