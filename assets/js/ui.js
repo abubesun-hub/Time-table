@@ -72,9 +72,9 @@
     const _rawGender = (school?.gender || '').toString();
     const _normGender = _rawGender.replace(/[\sـ]/g, '');
     let genderDisplay = '';
-    if (/(ذكور|للذكور|بنين)/.test(_normGender)) genderDisplay = 'للبنين';
-    else if (/(اناث|إناث|للاناث|للإناث|بنات)/.test(_normGender)) genderDisplay = 'للبنات';
-    else if (/(مختلط|مشترك)/.test(_normGender)) genderDisplay = 'المختلطة';
+  if (/(ذكور|للذكور|بنين)/.test(_normGender)) genderDisplay = 'للبنين';
+  else if (/(اناث|إناث|للاناث|للإناث|بنات)/.test(_normGender)) genderDisplay = 'للبنات';
+  else if (/(مختلط|مختلطة|مشترك)/.test(_normGender)) genderDisplay = 'المختلطة';
     else genderDisplay = _rawGender;
 
     const headerHtml = `

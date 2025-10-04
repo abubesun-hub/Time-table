@@ -2004,7 +2004,7 @@
     let genderDisplay = '';
     if (/(ذكور|للذكور|بنين)/.test(norm)) genderDisplay = 'للبنين';
     else if (/(اناث|إناث|للاناث|للإناث|بنات)/.test(norm)) genderDisplay = 'للبنات';
-    else if (/(مختلط|مشترك)/.test(norm)) genderDisplay = 'المختلطة';
+  else if (/(مختلط|مختلطة|مشترك)/.test(norm)) genderDisplay = 'المختلطة';
     else genderDisplay = genderRaw;
 
     // Inline CSS to make each class/section fill page and improve look
@@ -2381,7 +2381,7 @@
     let genderDisplay = '';
     if (/(ذكور|للذكور|بنين)/.test(norm)) genderDisplay = 'للبنين';
     else if (/(اناث|إناث|للاناث|للإناث|بنات)/.test(norm)) genderDisplay = 'للبنات';
-    else if (/(مختلط|مشترك)/.test(norm)) genderDisplay = 'المختلطة';
+  else if (/(مختلط|مختلطة|مشترك)/.test(norm)) genderDisplay = 'المختلطة';
     else genderDisplay = genderRaw;
     const scale = parseFloat(qs('#prnFontScale')?.value) || 1;
     const logoHtml = db.school?.logo ? `<img style="height:${52*scale}px" src="${db.school.logo}">` : '';
