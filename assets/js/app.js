@@ -2339,6 +2339,9 @@
   setVal('#prnTeachTimeSize', ts.timeSize || 13, 13);
   setVal('#prnTeachDayFontColor', ts.dayFontColor || '#111827', '#111827');
   setVal('#prnTeachDayFontSize', ts.dayFontSize || 14, 14);
+  // render previews after values are populated
+  renderHeaderPreview();
+  renderTeacherPrintPreview();
   }
   // Live preview on change (without saving)
   const themeSel = qs('#themeSelect'); if (themeSel) themeSel.addEventListener('change', () => {
@@ -2392,6 +2395,46 @@
   // Attach input listeners
   ['#htSchoolNameFamily','#htSchoolNameSize','#htGenderFamily','#htGenderSize','#htDocTitleFamily','#htDocTitleSize','#htYearFamily','#htYearSize','#htDateFamily','#htDateSize','#htLeftFamily','#htLeftSize','#prnFontScale']
     .forEach(sel => { const el = qs(sel); if (el) el.addEventListener('input', renderHeaderPreview); });
+
+  // Live teacher table preview
+  function renderTeacherPrintPreview() {
+    const host = qs('#teacherPrintPreviewHost'); if (!host) return;
+    const get = (id, d) => { const v = (qs(id)?.value || '').trim(); return v || d; };
+    const num = (id, d) => { const v = parseInt(qs(id)?.value, 10); return isNaN(v) ? d : v; };
+    const st = {
+      headerBg: get('#prnTeachHeaderBg', '#eef2ff'),
+      headerText: get('#prnTeachHeaderText', '#111827'),
+      dayColBg: get('#prnTeachDayColBg', '#f9fafb'),
+      dayColAlt: get('#prnTeachDayColAlt', '#f3f4f6'),
+      border: get('#prnTeachBorder', '#d1d5db'),
+      mainSize: num('#prnTeachMainSize', 16),
+      timeSize: num('#prnTeachTimeSize', 13),
+      dayFontColor: get('#prnTeachDayFontColor', '#111827'),
+      dayFontSize: num('#prnTeachDayFontSize', 14)
+    };
+    const css = `
+      .tprev{ width:100%; border-collapse:collapse }
+      .tprev th, .tprev td{ border:1px solid ${st.border}; padding:6px }
+      .tprev thead th{ background:${st.headerBg}; color:${st.headerText}; font-weight:800 }
+      .tprev .day{ background:${st.dayColBg}; color:${st.dayFontColor}; font-weight:700; font-size:${st.dayFontSize}px }
+      .tprev tr:nth-child(odd) .day{ background:${st.dayColAlt} }
+      .tprev .main{ font-size:${st.mainSize}px }
+      .tprev .time{ font-size:${st.timeSize}px; color:#6b7280 }
+    `;
+    const sample = `
+      <style>${css}</style>
+      <table class="tprev">
+        <thead><tr><th>اليوم/الحصة</th><th>1</th><th>2</th><th>3</th></tr></thead>
+        <tbody>
+          <tr><td class="day">الأحد</td><td><div class="main">أ-1 • رياضيات</div><div class="time">08:00 - 08:40</div></td><td>—</td><td><div class="main">ج-2 • عربي</div><div class="time">09:30 - 10:10</div></td></tr>
+          <tr><td class="day">الاثنين</td><td>—</td><td><div class="main">ب-1 • علوم</div><div class="time">08:50 - 09:30</div></td><td>—</td></tr>
+        </tbody>
+      </table>`;
+    host.innerHTML = sample;
+  }
+  // Attach listeners for teacher preview
+  ['#prnTeachHeaderBg','#prnTeachHeaderText','#prnTeachDayColBg','#prnTeachDayColAlt','#prnTeachBorder','#prnTeachMainSize','#prnTeachTimeSize','#prnTeachDayFontColor','#prnTeachDayFontSize']
+    .forEach(sel => { const el = qs(sel); if (el) el.addEventListener('input', renderTeacherPrintPreview); });
 
   qs('#btnSaveSettings').addEventListener('click', () => {
     const db = Store.getDB();
@@ -2463,6 +2506,9 @@
     prn.teachersStyle.dayFontSize = num('#prnTeachDayFontSize', 14);
     Store.setDB(db);
     loadSettings();
+    // ensure previews are up-to-date immediately
+    renderHeaderPreview();
+    renderTeacherPrintPreview();
     showToast('تم حفظ الإعدادات');
   });
 
