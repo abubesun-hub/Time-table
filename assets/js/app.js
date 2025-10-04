@@ -2154,7 +2154,16 @@
     const S_DAY = tStyle.dayFontSize || 14;
     const C_DAY = tStyle.dayFontColor || '#111827';
 
-    // Build reverse index per teacher
+  // Normalize gender display for header
+  const rawGender = (db.school?.gender || '').toString();
+  const normG = rawGender.replace(/[\sـ]/g, '');
+  let genderDisplay = '';
+  if (/(ذكور|للذكور|بنين)/.test(normG)) genderDisplay = 'للبنين';
+  else if (/(اناث|إناث|للاناث|للإناث|بنات)/.test(normG)) genderDisplay = 'للبنات';
+  else if (/(مختلط|مختلطة|مشترك)/.test(normG)) genderDisplay = 'المختلطة';
+  else genderDisplay = rawGender;
+
+  // Build reverse index per teacher
     let html = '';
     teachers.forEach((t, ti) => {
       // جدول واحد لكل معلم + ترويسة صفحة خفيفة تحاكي رأس الطباعة لكن بدون تثبيت
@@ -2162,7 +2171,7 @@
         <div class="page-header">
           <div class="sch">
             <div class="n">${db.school?.name || 'المدرسة'}</div>
-            <div class="g">${db.school?.gender || ''}</div>
+            <div class="g">${genderDisplay || ''}</div>
           </div>
           <div class="ttl">
             <div class="t">جدول حصص المعلمين</div>
