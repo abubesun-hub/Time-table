@@ -1953,21 +1953,19 @@
     const C_BORDER = st.border || '#d1d5db';
     const C_CLASS_BG = st.classColBg || '#f9fafb';
     const C_CLASS_TX = st.classColText || '#ef4444';
-    const S_SUBJ = st.subjSize || 15;
-    const S_TEACH = st.teacherSize || 13;
-    const S_TIME = st.timeSize || 12;
+  const S_SUBJ = st.subjSize || 15;
+  const S_TEACH = st.teacherSize || 13;
     let html = '';
     html += `<style>
       .gtable{ width:100%; border-collapse:separate; border-spacing:0 }
-      .gtable th,.gtable td{ border:1px solid ${C_BORDER}; padding:8px }
-      .gtable thead .row-days th{ background:${C_DAY_BG}; color:${C_DAY_TX}; text-align:center; font-weight:800 }
-      .gtable thead .row-slots th{ background:${C_SLOT_BG}; color:${C_SLOT_TX}; text-align:center; font-weight:700 }
+      .gtable th,.gtable td{ border:1px solid ${C_BORDER}; padding:6px }
+      .gtable thead .row-days th{ background:${C_DAY_BG}; color:${C_DAY_TX}; text-align:center; font-weight:800; font-size:13px }
+      .gtable thead .row-slots th{ background:${C_SLOT_BG}; color:${C_SLOT_TX}; text-align:center; font-weight:700; font-size:12px }
       .gtable .class-col{ position:sticky; right:0; background:${C_CLASS_BG}; color:${C_CLASS_TX}; font-weight:800; white-space:nowrap }
-      .gtable .cell-subj{ font-weight:800; font-size:${S_SUBJ}px }
-      .gtable .cell-teacher{ color:#374151; font-size:${S_TEACH}px }
-      .gtable .cell-time{ color:#6b7280; font-size:${S_TIME}px }
+      .gtable .cell-subj{ font-weight:800; font-size:${S_SUBJ}px; line-height:1.1 }
+      .gtable .cell-teacher{ color:#374151; font-size:${S_TEACH}px; line-height:1.05 }
     </style>`;
-    html += `<table class="gtable"><thead>`;
+    html += `<div id="globFitWrap"><table class="gtable"><thead>`;
     // Days row
     html += `<tr class="row-days"><th rowspan="2" class="class-col">الصف/الشعبة</th>`;
     days.forEach(day => { html += `<th colspan="${slots.length}">${day}</th>`; });
@@ -1988,15 +1986,16 @@
             if (!val) { html += `<td>—</td>`; continue; }
             const meta = getTeacherAndSubjectByCellValue(db, val);
             const subj = db.subjectsCatalog?.[meta?.subjIdx || -1]?.name || val.split('•')[0]?.trim() || '';
-            const teacher = db.teachers?.[meta?.teacherIdx || -1]?.name || val.split('•')[1]?.trim() || '';
-            const time = calcSlotTimeRange(db, day, s);
-            html += `<td><div class="cell-subj">${subj}</div>${teacher?`<div class="cell-teacher">${teacher}</div>`:''}<div class="cell-time">${time}</div></td>`;
+            const full = db.teachers?.[meta?.teacherIdx || -1]?.name || val.split('•')[1]?.trim() || '';
+            const teacher = (full.split(/\s+/)[0] || full);
+            html += `<td><div class="cell-subj">${subj}</div>${teacher?`<div class="cell-teacher">${teacher}</div>`:''}</td>`;
           }
         });
         html += `</tr>`;
       });
     });
-    html += `</tbody></table>`;
+  html += `</tbody></table></div>`;
+  html += `<script>(function(){function fit(){try{var w=document.getElementById('globFitWrap');if(!w)return;var m=document.querySelector('main.print-body');if(!m)return;w.style.transform='';w.style.width='';var a=m.clientWidth;var n=w.scrollWidth;if(n>a){var s=Math.max(0.6,a/n);w.style.transformOrigin='top right';w.style.transform='scale('+s+')';w.style.width=(100/s)+'%';}}catch(e){}}if(document.readyState==='complete')setTimeout(fit,30);else window.addEventListener('load',function(){setTimeout(fit,30)});})();</script>`;
     const prn = db.settings?.printing || {};
     UI.printDocument({
       contentHtml: html,
@@ -2415,6 +2414,7 @@
   // render previews after values are populated
   renderHeaderPreview();
   renderTeacherPrintPreview();
+  renderGlobalPrintPreview();
   }
   // Live preview on change (without saving)
   const themeSel = qs('#themeSelect'); if (themeSel) themeSel.addEventListener('change', () => {
@@ -2515,6 +2515,43 @@
   ['#prnTeachHeaderBg','#prnTeachHeaderText','#prnTeachDayColBg','#prnTeachDayColAlt','#prnTeachBorder','#prnTeachHeaderSize','#prnTeachHeaderBold','#prnTeachClsSize','#prnTeachClsColor','#prnTeachClsBold','#prnTeachSubjSize','#prnTeachSubjColor','#prnTeachSubjBold','#prnTeachTimeSize','#prnTeachTimeColor','#prnTeachTimeBold','#prnTeachDayFontColor','#prnTeachDayFontSize']
     .forEach(sel => { const el = qs(sel); if (el) el.addEventListener('input', renderTeacherPrintPreview); });
 
+  // Live global table preview (compact)
+  function renderGlobalPrintPreview() {
+    const host = qs('#globalPrintPreviewHost'); if (!host) return;
+    const get = (id, d) => (qs(id)?.value || '').trim() || d;
+    const num = (id, d) => { const v = parseInt(qs(id)?.value, 10); return isNaN(v) ? d : v; };
+    const st = {
+      dayHeaderBg: get('#prnGlobalDayHeaderBg', '#eef2ff'), dayHeaderText: get('#prnGlobalDayHeaderText', '#111827'),
+      slotHeaderBg: get('#prnGlobalSlotHeaderBg', '#f3f4f6'), slotHeaderText: get('#prnGlobalSlotHeaderText', '#111827'),
+      border: get('#prnGlobalBorder', '#d1d5db'),
+      classColBg: get('#prnGlobalClassColBg', '#f9fafb'), classColText: get('#prnGlobalClassColText', '#ef4444'),
+      subjSize: num('#prnGlobalSubjSize', 15), teacherSize: num('#prnGlobalTeacherSize', 13), timeSize: num('#prnGlobalTimeSize', 12)
+    };
+    const css = `
+      .gprev{ width:100%; border-collapse:separate; border-spacing:0 }
+      .gprev th,.gprev td{ border:1px solid ${st.border}; padding:6px }
+      .gprev .row-days th{ background:${st.dayHeaderBg}; color:${st.dayHeaderText}; text-align:center; font-weight:800; font-size:13px }
+      .gprev .row-slots th{ background:${st.slotHeaderBg}; color:${st.slotHeaderText}; text-align:center; font-weight:700; font-size:12px }
+      .gprev .class-col{ background:${st.classColBg}; color:${st.classColText}; font-weight:800; white-space:nowrap }
+      .gprev .cell-subj{ font-weight:800; font-size:${st.subjSize}px; line-height:1.1 }
+      .gprev .cell-teacher{ color:#374151; font-size:${st.teacherSize}px; line-height:1.05 }
+    `;
+    const sample = `
+      <style>${css}</style>
+      <table class="gprev">
+        <thead>
+          <tr class="row-days"><th rowspan="2" class="class-col">الصف/الشعبة</th><th colspan="3">الأحد</th><th colspan="3">الاثنين</th></tr>
+          <tr class="row-slots"><th>1</th><th>2</th><th>3</th><th>1</th><th>2</th><th>3</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="class-col">الأول — أ</td><td><div class="cell-subj">رياضيات</div><div class="cell-teacher">أحمد</div></td><td>—</td><td><div class="cell-subj">علوم</div><div class="cell-teacher">خالد</div></td><td>—</td><td><div class="cell-subj">عربي</div><div class="cell-teacher">سارة</div></td><td>—</td></tr>
+        </tbody>
+      </table>`;
+    host.innerHTML = sample;
+  }
+  ['#prnGlobalDayHeaderBg','#prnGlobalDayHeaderText','#prnGlobalSlotHeaderBg','#prnGlobalSlotHeaderText','#prnGlobalBorder','#prnGlobalClassColBg','#prnGlobalClassColText','#prnGlobalSubjSize','#prnGlobalTeacherSize','#prnGlobalTimeSize']
+    .forEach(sel => { const el = qs(sel); if (el) el.addEventListener('input', renderGlobalPrintPreview); });
+
   qs('#btnSaveSettings').addEventListener('click', () => {
     const db = Store.getDB();
     db.settings.theme = qs('#themeSelect').value;
@@ -2610,6 +2647,7 @@
     // ensure previews are up-to-date immediately
     renderHeaderPreview();
     renderTeacherPrintPreview();
+    renderGlobalPrintPreview();
     showToast('تم حفظ الإعدادات');
   });
 
