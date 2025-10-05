@@ -2286,8 +2286,100 @@
     });
   }
 
+  // Global timetable preview (classes/sections x days*slots)
+  function previewGlobal() {
+    const db = Store.getDB();
+    const grid = db.timetable?.grid || {};
+    const allDays = db.timetable?.days || [];
+    const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
+    const slots = db.timetable?.slots || [];
+    const classes = db.classes || [];
+    const prn = db.settings?.printing || {};
+    const secSt = prn.sectionsStyle || {};
+    const C_HEADER_BG = secSt.headerBg || '#eef2ff';
+    const C_HEADER_TX = secSt.headerText || '#111827';
+    const C_DAY_BG = secSt.dayColBg || '#f9fafb';
+    const C_DAY_BG_ALT = secSt.dayColAlt || '#f3f4f6';
+    const C_BORDER = secSt.border || '#d1d5db';
+    const S_SUBJ = (secSt.subjSize || 16) + 'px';
+    const S_TEACH = (secSt.teacherSize || 13) + 'px';
+
+    // build header rows
+    let thead = `<thead>`;
+    thead += `<tr class="days-row"><th class="class-col" rowspan="2">الصف / الشعبة</th>`;
+    days.forEach(d => { thead += `<th class="day-head" colspan="${slots.length}">${d}</th>`; });
+    thead += `</tr>`;
+    thead += `<tr class="periods-row">`;
+    days.forEach(() => {
+      for (let i = 1; i <= slots.length; i++) thead += `<th class="p">${i}</th>`;
+    });
+    thead += `</tr></thead>`;
+
+    // body rows
+    let tbody = '<tbody>';
+    classes.forEach((cls, ci) => {
+      const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
+      sections.forEach((sec, si) => {
+        tbody += `<tr>`;
+        const label = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`;
+        tbody += `<td class="class-col">${label}</td>`;
+        days.forEach((day, di) => {
+          for (let s = 0; s < slots.length; s++) {
+            const key = `${ci}:${si}|${day}|${slots[s]}`;
+            const legacy = `${ci}:${si}|${day}|${s+1}`;
+            const val = grid[key] ?? grid[legacy] ?? '';
+            const sepClass = (s === 0) ? ' sep' : '';
+            if (!val) { tbody += `<td class="slot${sepClass}">—</td>`; }
+            else {
+              let subj = '', teach = '';
+              const meta = getTeacherAndSubjectByCellValue(db, val);
+              if (meta) {
+                subj = (db.subjectsCatalog?.[meta.subjIdx]?.name || '').trim();
+                const tFull = (db.teachers?.[meta.teacherIdx]?.name || '').trim();
+                teach = tFull.split(/\s+/)[0] || tFull;
+              } else {
+                const parts = String(val).split('•');
+                subj = (parts[0]||'').trim(); teach = (parts[1]||'').trim();
+              }
+              tbody += `<td class="slot filled${sepClass}"><div class="g-cell"><div class="g-subj">${subj||val}</div>${teach?`<div class="g-teach">${teach}</div>`:''}</div></td>`;
+            }
+          }
+        });
+        tbody += `</tr>`;
+      });
+    });
+    tbody += '</tbody>';
+
+    const css = `
+      table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed }
+      .global-tt th, .global-tt td{ border:1px solid ${C_BORDER}; padding:6px; vertical-align:middle; text-align:center }
+      .global-tt thead th.day-head{ background:${C_HEADER_BG}; color:${C_HEADER_TX}; font-weight:800 }
+      .global-tt .class-col{ width:170px; text-align:right; font-weight:700; background:${C_DAY_BG} }
+      .global-tt tr:nth-child(odd) .class-col{ background:${C_DAY_BG_ALT} }
+      .global-tt td.sep, .global-tt th.p:first-child{ border-right-width:2px }
+      .global-tt .g-cell{ line-height:1.25 }
+      .global-tt .g-subj{ font-weight:800; font-size:${S_SUBJ} }
+      .global-tt .g-teach{ color:#374151; font-size:${S_TEACH} }
+    `;
+    const html = `<style>${css}</style><table class="global-tt">${thead}${tbody}</table>`;
+    UI.printDocument({
+      contentHtml: html,
+      docTitle: 'الجدول الأسبوعي (عرض عام)',
+      school: Store.getDB().school,
+      orientation: 'landscape',
+      margin: prn.margin || '12mm',
+      fontScale: prn.fontScale || 1,
+      fontFamily: prn.fontFamily || '',
+      headerTypography: prn.headerTypography || {},
+      footerLeftImageUrl: prn.footer?.leftImageUrl || '',
+      footerRightHtml: prn.footer?.rightHtml || '',
+      leftHeaderHtml: 'جميع الصفوف'
+    });
+  }
+
   const btnPreviewBySections = qs('#btnPreviewBySections'); if (btnPreviewBySections) btnPreviewBySections.addEventListener('click', previewBySections);
   const btnPreviewTeachers = qs('#btnPreviewTeachers'); if (btnPreviewTeachers) btnPreviewTeachers.addEventListener('click', previewTeachers);
+  const btnPreviewGlobal = qs('#btnPreviewGlobal'); if (btnPreviewGlobal) btnPreviewGlobal.addEventListener('click', previewGlobal);
 
   // Backup & Import/Export
   function renderBackups() {
