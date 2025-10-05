@@ -1967,8 +1967,15 @@
   .gtable .cell-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; max-width:100%; width:100% }
   .gtable .cell-subj{ display:block; font-weight:800; font-size:${S_SUBJ}px; line-height:1.22 }
   .gtable .cell-teacher{ display:block; color:#374151; font-size:${S_TEACH}px; line-height:1.15 }
-  /* Vertical writing: لا ندير الخلية، فقط نفعّل وضع الكتابة العمودي */
-  .gtable.dir-vert .cell-wrap{ writing-mode: vertical-rl; text-orientation: mixed; white-space: normal }
+  /* Vertical writing: اتجاه عمودي مع قلب اتجاه القراءة داخل الخلية فقط */
+  .gtable.dir-vert .cell-wrap{
+    writing-mode: vertical-lr; /* عمودي مع تدفق بعكس السابق */
+    text-orientation: mixed;
+    white-space: normal;
+    transform: rotate(180deg); /* لا ندير الصفحة، فقط محتوى الخلية */
+    flex-direction: column-reverse; /* نحافظ بصريًا على ترتيب: المادة فوق المعلم */
+  }
+  .gtable.dir-vert .cell-wrap > span{ display:block; transform: rotate(180deg); }
       .gpage{ page-break-after:always }
       .gpage:last-child{ page-break-after:auto }
     </style>`;
@@ -2553,7 +2560,14 @@
   .gprev .cell-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; max-width:100%; width:100% }
   .gprev .cell-subj{ display:block; font-weight:800; font-size:${st.subjSize}px; line-height:1.1 }
   .gprev .cell-teacher{ display:block; color:#374151; font-size:${st.teacherSize}px; line-height:1.05 }
-  .gprev.dir-vert .cell-wrap{ writing-mode: vertical-rl; text-orientation: mixed; white-space: normal }
+  .gprev.dir-vert .cell-wrap{
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+    white-space: normal;
+    transform: rotate(180deg);
+    flex-direction: column-reverse;
+  }
+  .gprev.dir-vert .cell-wrap > span{ display:block; transform: rotate(180deg); }
     `;
     const sample = `
       <style>${css}</style>
