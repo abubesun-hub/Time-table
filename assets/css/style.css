@@ -243,6 +243,11 @@ body {
 @media (max-width: 1100px) {
   .teacher-sidebar { position: static; width: auto; max-height: none; margin-bottom: 12px; }
 }
+/* Reserve room for the floating sidebar inside the تخصيص view on wide screens
+   Note: sidebar is placed at inline-end (left in RTL), so we add padding-inline-end */
+@media (min-width: 1101px) {
+  #view-subjects { padding-inline-end: 332px; }
+}
 /* Sidebar items compact */
 #teacherSidebarList .list-item { grid-template-columns: 1fr auto; padding: 10px; }
 #teacherSidebarList .count { font-weight: 800; }
