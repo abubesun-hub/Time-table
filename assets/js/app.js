@@ -1955,29 +1955,39 @@
     const C_CLASS_TX = st.classColText || '#ef4444';
   const S_SUBJ = st.subjSize || 15;
   const S_TEACH = st.teacherSize || 13;
+    // CSS shared across pages
     let html = '';
     html += `<style>
-      .gtable{ width:100%; border-collapse:separate; border-spacing:0 }
-      .gtable th,.gtable td{ border:1px solid ${C_BORDER}; padding:6px }
-      .gtable thead .row-days th{ background:${C_DAY_BG}; color:${C_DAY_TX}; text-align:center; font-weight:800; font-size:13px }
-      .gtable thead .row-slots th{ background:${C_SLOT_BG}; color:${C_SLOT_TX}; text-align:center; font-weight:700; font-size:12px }
+      .gtable{ width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed }
+      .gtable th,.gtable td{ border:1px solid ${C_BORDER}; padding:4.5px; word-break: break-word; overflow-wrap: anywhere; white-space: normal; vertical-align: top }
+      .gtable thead .row-days th{ background:${C_DAY_BG}; color:${C_DAY_TX}; text-align:center; font-weight:800; font-size:12px }
+      .gtable thead .row-slots th{ background:${C_SLOT_BG}; color:${C_SLOT_TX}; text-align:center; font-weight:700; font-size:11px }
       .gtable .class-col{ position:sticky; right:0; background:${C_CLASS_BG}; color:${C_CLASS_TX}; font-weight:800; white-space:nowrap }
-      .gtable .cell-subj{ font-weight:800; font-size:${S_SUBJ}px; line-height:1.1 }
-      .gtable .cell-teacher{ color:#374151; font-size:${S_TEACH}px; line-height:1.05 }
+      .gtable .cell-subj{ display:block; font-weight:800; font-size:${S_SUBJ}px; line-height:1.22; margin-bottom:2px }
+      .gtable .cell-teacher{ display:block; color:#374151; font-size:${S_TEACH}px; line-height:1.15 }
+      .gpage{ page-break-after:always }
+      .gpage:last-child{ page-break-after:auto }
     </style>`;
-    html += `<div id="globFitWrap"><table class="gtable"><thead>`;
-    // Days row
-    html += `<tr class="row-days"><th rowspan="2" class="class-col">الصف/الشعبة</th>`;
-    days.forEach(day => { html += `<th colspan="${slots.length}">${day}</th>`; });
-    html += `</tr>`;
-    // Slots row
-    html += `<tr class="row-slots">`;
-    days.forEach(() => { for (let i=0;i<slots.length;i++) html += `<th>${i+1}</th>`; });
-    html += `</tr></thead><tbody>`;
+
+    // Flatten rows (class/section pairs)
+    const rows = [];
     classes.forEach((cls, ci) => {
       const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
-      sections.forEach((sec, si) => {
-        html += `<tr><td class="class-col">${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}</td>`;
+      sections.forEach((sec, si) => rows.push({ ci, si, label: `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}` }));
+    });
+    const perPage = 4; // 4 صفوف لكل صفحة
+    for (let start = 0; start < rows.length; start += perPage) {
+      const slice = rows.slice(start, start + perPage);
+      html += `<section class="gpage"><div class="gfit">`;
+      html += `<table class="gtable"><thead>`;
+      html += `<tr class="row-days"><th rowspan="2" class="class-col">الصف/الشعبة</th>`;
+      days.forEach(day => { html += `<th colspan="${slots.length}">${day}</th>`; });
+      html += `</tr>`;
+      html += `<tr class="row-slots">`;
+      days.forEach(() => { for (let i=0;i<slots.length;i++) html += `<th>${i+1}</th>`; });
+      html += `</tr></thead><tbody>`;
+      slice.forEach(({ci, si, label}) => {
+        html += `<tr><td class="class-col">${label}</td>`;
         days.forEach(day => {
           for (let s=0;s<slots.length;s++) {
             const key = `${ci}:${si}|${day}|${slots[s]}`;
@@ -1988,14 +1998,15 @@
             const subj = db.subjectsCatalog?.[meta?.subjIdx || -1]?.name || val.split('•')[0]?.trim() || '';
             const full = db.teachers?.[meta?.teacherIdx || -1]?.name || val.split('•')[1]?.trim() || '';
             const teacher = (full.split(/\s+/)[0] || full);
-            html += `<td><div class="cell-subj">${subj}</div>${teacher?`<div class="cell-teacher">${teacher}</div>`:''}</td>`;
+            html += `<td><span class="cell-subj">${subj}</span>${teacher?`<span class="cell-teacher">${teacher}</span>`:''}</td>`;
           }
         });
         html += `</tr>`;
       });
-    });
-  html += `</tbody></table></div>`;
-  html += `<script>(function(){function fit(){try{var w=document.getElementById('globFitWrap');if(!w)return;var m=document.querySelector('main.print-body');if(!m)return;w.style.transform='';w.style.width='';var a=m.clientWidth;var n=w.scrollWidth;if(n>a){var s=Math.max(0.6,a/n);w.style.transformOrigin='top right';w.style.transform='scale('+s+')';w.style.width=(100/s)+'%';}}catch(e){}}if(document.readyState==='complete')setTimeout(fit,30);else window.addEventListener('load',function(){setTimeout(fit,30)});})();</script>`;
+      html += `</tbody></table></div></section>`;
+    }
+    // Fit each page to width
+    html += `<script>(function(){function fit(){try{var main=document.querySelector('main.print-body');if(!main)return;var avail=main.clientWidth;document.querySelectorAll('.gfit').forEach(function(w){w.style.transform='';w.style.width='';var need=w.scrollWidth;var s=need>avail?Math.max(0.5,avail/need):1;w.style.transformOrigin='top right';w.style.transform='scale('+s+')';w.style.width=(100/s)+'%';});}catch(e){}}if(document.readyState==='complete')setTimeout(fit,30);else window.addEventListener('load',function(){setTimeout(fit,30)});})();</script>`;
     const prn = db.settings?.printing || {};
     UI.printDocument({
       contentHtml: html,
