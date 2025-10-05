@@ -1955,16 +1955,20 @@
     const C_CLASS_TX = st.classColText || '#ef4444';
   const S_SUBJ = st.subjSize || 15;
   const S_TEACH = st.teacherSize || 13;
+  const DIR = (st.cellDirection || 'horizontal');
     // CSS shared across pages
     let html = '';
     html += `<style>
       .gtable{ width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed }
-      .gtable th,.gtable td{ border:1px solid ${C_BORDER}; padding:4.5px; word-break: break-word; overflow-wrap: anywhere; white-space: normal; vertical-align: top }
+      .gtable th,.gtable td{ border:1px solid ${C_BORDER}; padding:4.5px; word-break: break-word; overflow-wrap: anywhere; white-space: normal; vertical-align: middle; text-align:center }
       .gtable thead .row-days th{ background:${C_DAY_BG}; color:${C_DAY_TX}; text-align:center; font-weight:800; font-size:12px }
       .gtable thead .row-slots th{ background:${C_SLOT_BG}; color:${C_SLOT_TX}; text-align:center; font-weight:700; font-size:11px }
       .gtable .class-col{ position:sticky; right:0; background:${C_CLASS_BG}; color:${C_CLASS_TX}; font-weight:800; white-space:nowrap }
-      .gtable .cell-subj{ display:block; font-weight:800; font-size:${S_SUBJ}px; line-height:1.22; margin-bottom:2px }
-      .gtable .cell-teacher{ display:block; color:#374151; font-size:${S_TEACH}px; line-height:1.15 }
+  .gtable .cell-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; max-width:100%; width:100% }
+  .gtable .cell-subj{ display:block; font-weight:800; font-size:${S_SUBJ}px; line-height:1.22 }
+  .gtable .cell-teacher{ display:block; color:#374151; font-size:${S_TEACH}px; line-height:1.15 }
+  /* Vertical writing: لا ندير الخلية، فقط نفعّل وضع الكتابة العمودي */
+  .gtable.dir-vert .cell-wrap{ writing-mode: vertical-rl; text-orientation: mixed; white-space: normal }
       .gpage{ page-break-after:always }
       .gpage:last-child{ page-break-after:auto }
     </style>`;
@@ -1978,8 +1982,8 @@
     const perPage = 4; // 4 صفوف لكل صفحة
     for (let start = 0; start < rows.length; start += perPage) {
       const slice = rows.slice(start, start + perPage);
-      html += `<section class="gpage"><div class="gfit">`;
-      html += `<table class="gtable"><thead>`;
+  html += `<section class="gpage"><div class="gfit">`;
+  html += `<table class="gtable ${DIR==='vertical'?'dir-vert':''}"><thead>`;
       html += `<tr class="row-days"><th rowspan="2" class="class-col">الصف/الشعبة</th>`;
       days.forEach(day => { html += `<th colspan="${slots.length}">${day}</th>`; });
       html += `</tr>`;
@@ -1998,7 +2002,7 @@
             const subj = db.subjectsCatalog?.[meta?.subjIdx || -1]?.name || val.split('•')[0]?.trim() || '';
             const full = db.teachers?.[meta?.teacherIdx || -1]?.name || val.split('•')[1]?.trim() || '';
             const teacher = (full.split(/\s+/)[0] || full);
-            html += `<td><span class="cell-subj">${subj}</span>${teacher?`<span class="cell-teacher">${teacher}</span>`:''}</td>`;
+            html += `<td><span class="cell-wrap"><span class="cell-subj">${subj}</span>${teacher?`<span class="cell-teacher">${teacher}</span>`:''}</span></td>`;
           }
         });
         html += `</tr>`;
@@ -2391,6 +2395,7 @@
   setVal('#prnGlobalSubjSize', gst.subjSize || 15, 15);
   setVal('#prnGlobalTeacherSize', gst.teacherSize || 13, 13);
   setVal('#prnGlobalTimeSize', gst.timeSize || 12, 12);
+  setVal('#prnGlobalCellDir', gst.cellDirection || 'vertical', 'vertical');
   setVal('#prnSecHeaderBg', sec.headerBg || '#eef2ff', '#eef2ff');
   setVal('#prnSecHeaderText', sec.headerText || '#111827', '#111827');
   setVal('#prnSecDayColBg', sec.dayColBg || '#f9fafb', '#f9fafb');
@@ -2536,32 +2541,37 @@
       slotHeaderBg: get('#prnGlobalSlotHeaderBg', '#f3f4f6'), slotHeaderText: get('#prnGlobalSlotHeaderText', '#111827'),
       border: get('#prnGlobalBorder', '#d1d5db'),
       classColBg: get('#prnGlobalClassColBg', '#f9fafb'), classColText: get('#prnGlobalClassColText', '#ef4444'),
-      subjSize: num('#prnGlobalSubjSize', 15), teacherSize: num('#prnGlobalTeacherSize', 13), timeSize: num('#prnGlobalTimeSize', 12)
+      subjSize: num('#prnGlobalSubjSize', 15), teacherSize: num('#prnGlobalTeacherSize', 13), timeSize: num('#prnGlobalTimeSize', 12),
+      cellDirection: (qs('#prnGlobalCellDir')?.value || 'horizontal')
     };
     const css = `
       .gprev{ width:100%; border-collapse:separate; border-spacing:0 }
-      .gprev th,.gprev td{ border:1px solid ${st.border}; padding:6px }
+      .gprev th,.gprev td{ border:1px solid ${st.border}; padding:6px; text-align:center; vertical-align: middle }
       .gprev .row-days th{ background:${st.dayHeaderBg}; color:${st.dayHeaderText}; text-align:center; font-weight:800; font-size:13px }
       .gprev .row-slots th{ background:${st.slotHeaderBg}; color:${st.slotHeaderText}; text-align:center; font-weight:700; font-size:12px }
       .gprev .class-col{ background:${st.classColBg}; color:${st.classColText}; font-weight:800; white-space:nowrap }
-      .gprev .cell-subj{ font-weight:800; font-size:${st.subjSize}px; line-height:1.1 }
-      .gprev .cell-teacher{ color:#374151; font-size:${st.teacherSize}px; line-height:1.05 }
+  .gprev .cell-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; max-width:100%; width:100% }
+  .gprev .cell-subj{ display:block; font-weight:800; font-size:${st.subjSize}px; line-height:1.1 }
+  .gprev .cell-teacher{ display:block; color:#374151; font-size:${st.teacherSize}px; line-height:1.05 }
+  .gprev.dir-vert .cell-wrap{ writing-mode: vertical-rl; text-orientation: mixed; white-space: normal }
     `;
     const sample = `
       <style>${css}</style>
-      <table class="gprev">
+  <table class="gprev ${st.cellDirection==='vertical'?'dir-vert':''}">
         <thead>
           <tr class="row-days"><th rowspan="2" class="class-col">الصف/الشعبة</th><th colspan="3">الأحد</th><th colspan="3">الاثنين</th></tr>
           <tr class="row-slots"><th>1</th><th>2</th><th>3</th><th>1</th><th>2</th><th>3</th></tr>
         </thead>
         <tbody>
-          <tr><td class="class-col">الأول — أ</td><td><div class="cell-subj">رياضيات</div><div class="cell-teacher">أحمد</div></td><td>—</td><td><div class="cell-subj">علوم</div><div class="cell-teacher">خالد</div></td><td>—</td><td><div class="cell-subj">عربي</div><div class="cell-teacher">سارة</div></td><td>—</td></tr>
+          <tr><td class="class-col">الأول — أ</td><td><div class="cell-wrap"><div class="cell-subj">رياضيات</div><div class="cell-teacher">أحمد</div></div></td><td>—</td><td><div class="cell-wrap"><div class="cell-subj">علوم</div><div class="cell-teacher">خالد</div></div></td><td>—</td><td><div class="cell-wrap"><div class="cell-subj">عربي</div><div class="cell-teacher">سارة</div></div></td><td>—</td></tr>
         </tbody>
       </table>`;
     host.innerHTML = sample;
   }
   ['#prnGlobalDayHeaderBg','#prnGlobalDayHeaderText','#prnGlobalSlotHeaderBg','#prnGlobalSlotHeaderText','#prnGlobalBorder','#prnGlobalClassColBg','#prnGlobalClassColText','#prnGlobalSubjSize','#prnGlobalTeacherSize','#prnGlobalTimeSize']
     .forEach(sel => { const el = qs(sel); if (el) el.addEventListener('input', renderGlobalPrintPreview); });
+  // Ensure select change triggers too
+  const dirSel = qs('#prnGlobalCellDir'); if (dirSel) { dirSel.addEventListener('change', renderGlobalPrintPreview); dirSel.addEventListener('input', renderGlobalPrintPreview); }
 
   qs('#btnSaveSettings').addEventListener('click', () => {
     const db = Store.getDB();
@@ -2633,6 +2643,7 @@
   prn.globalStyle.subjSize = num('#prnGlobalSubjSize', 15);
   prn.globalStyle.teacherSize = num('#prnGlobalTeacherSize', 13);
   prn.globalStyle.timeSize = num('#prnGlobalTimeSize', 12);
+  prn.globalStyle.cellDirection = qs('#prnGlobalCellDir')?.value || 'vertical';
     // teachers style save
     prn.teachersStyle = prn.teachersStyle || {};
   prn.teachersStyle.headerBg = getColor('#prnTeachHeaderBg', '#eef2ff');

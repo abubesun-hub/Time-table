@@ -73,7 +73,8 @@
           slotHeaderBg: '#f3f4f6', slotHeaderText: '#111827',
           border: '#d1d5db',
           classColBg: '#f9fafb', classColText: '#ef4444',
-          subjSize: 15, teacherSize: 13, timeSize: 12
+          subjSize: 15, teacherSize: 13, timeSize: 12,
+          cellDirection: 'vertical' // vertical | horizontal
         },
         teachersStyle: {
           headerBg: '#eef2ff', headerText: '#111827', dayColBg: '#f9fafb', dayColAlt: '#f3f4f6', border: '#d1d5db',
