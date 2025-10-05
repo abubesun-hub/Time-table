@@ -824,6 +824,65 @@
           </div>
         </div>
 
+        <h5 class="sub-title" style="margin-top:8px">هوامش الصفحة (mm)</h5>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:160px">
+            <label class="label" for="prnGlobMarginTop">الهامش العلوي</label>
+            <input id="prnGlobMarginTop" class="input" type="text" placeholder="مثال: 12mm" />
+          </div>
+          <div class="col" style="min-width:160px">
+            <label class="label" for="prnGlobMarginRight">الهامش الأيمن</label>
+            <input id="prnGlobMarginRight" class="input" type="text" placeholder="مثال: 12mm" />
+          </div>
+          <div class="col" style="min-width:160px">
+            <label class="label" for="prnGlobMarginBottom">الهامش السفلي</label>
+            <input id="prnGlobMarginBottom" class="input" type="text" placeholder="مثال: 12mm" />
+          </div>
+          <div class="col" style="min-width:160px">
+            <label class="label" for="prnGlobMarginLeft">الهامش الأيسر</label>
+            <input id="prnGlobMarginLeft" class="input" type="text" placeholder="مثال: 12mm" />
+          </div>
+        </div>
+
+        <h5 class="sub-title" style="margin-top:8px">خلفيات وأُطر الجدول العام</h5>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobDayHeadBg">لون خلفية رؤوس الأيام</label>
+            <input id="prnGlobDayHeadBg" class="input" type="color" value="#eef2ff" />
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobClassBg">لون خلفية عمود الصف/الشعبة</label>
+            <input id="prnGlobClassBg" class="input" type="color" value="#f9fafb" />
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobClassAltBg">لون خلفية عمود الصف/الشعبة (سطر متناوب)</label>
+            <input id="prnGlobClassAltBg" class="input" type="color" value="#f3f4f6" />
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobClassColWidth">عرض عمود الصف/الشعبة (px)</label>
+            <input id="prnGlobClassColWidth" class="input" type="number" min="100" max="400" step="5" value="170" />
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobBorderColor">لون إطار الجدول العام</label>
+            <input id="prnGlobBorderColor" class="input" type="color" value="#d1d5db" />
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobBorderWidth">سمك إطار الجدول العام (px)</label>
+            <input id="prnGlobBorderWidth" class="input" type="number" min="1" max="4" step="1" value="1" />
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobSlotColWidth">عرض عمود الدروس (px)</label>
+            <input id="prnGlobSlotColWidth" class="input" type="number" min="40" max="160" step="2" value="72" />
+          </div>
+        </div>
+
+        <div id="globalPrintPreview" class="neo-surface" style="margin-top:10px">
+          <div class="muted small">معاينة تنسيق الجدول العام (تتحدّث لحظيًا دون حفظ)</div>
+          <div id="globalPrintPreviewHost" style="margin-top:8px"></div>
+        </div>
+
         <div class="row gap-8" style="margin-top:8px">
           <button id="btnSaveSettings" class="btn primary"><i class="bi bi-save2"></i> حفظ</button>
           <button id="btnResetApp" class="btn danger"><i class="bi bi-recycle"></i> إعادة ضبط التطبيق</button>
