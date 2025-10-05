@@ -105,7 +105,12 @@
     const html = noFixedHeader
       ? `<main class="print-body no-fixed">${contentHtml}</main>`
       : `${headerHtml}<main class="print-body">${contentHtml}</main>${footerHtml}`;
-    const css = `@page{ size: ${orientation}; margin: ${margin}; } body{ font-size:${14*fontScale}px; ${fontFamily ? `font-family:${fontFamily}` : ''} } th{ font-weight:700 } .print-body.no-fixed{ padding: 12mm }`;
+    const o = String(orientation||'portrait').toLowerCase();
+    const pageSize = /landscape/.test(o) ? 'A4 landscape' : /portrait/.test(o) ? 'A4 portrait' : o;
+    const css = `@page{ size: ${pageSize}; margin: ${margin}; }
+      body{ font-size:${14*fontScale}px; ${fontFamily ? `font-family:${fontFamily}` : ''} }
+      th{ font-weight:700 }
+      .print-body.no-fixed{ padding: 12mm }`;
     printHtml(html, { title: docTitle || 'طباعة', css });
   }
 

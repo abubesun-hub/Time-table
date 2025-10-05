@@ -232,7 +232,6 @@
         <div class="row gap-8 wrap">
           <button id="btnPreviewBySections" class="btn"><i class="bi bi-grid-3x3-gap"></i> الجدول حسب الشعب</button>
           <button id="btnPreviewTeachers" class="btn"><i class="bi bi-people"></i> جدول حصص المعلمين</button>
-          <button id="btnPreviewGlobal" class="btn"><i class="bi bi-calendar-week"></i> الجدول العام</button>
         </div>
         <div class="alert" style="margin-top:12px">
           <div class="alert-title">تنبيه</div>
@@ -564,13 +563,6 @@
         <h3 class="sub-title">إعدادات الطباعة</h3>
         <div class="row wrap" style="gap:12px">
           <div class="col" style="min-width:220px">
-            <label class="label" for="prnOrientationGlobal">اتجاه طباعة: الجدول العام</label>
-            <select id="prnOrientationGlobal" class="input">
-              <option value="portrait">عمودي</option>
-              <option value="landscape">أفقي</option>
-            </select>
-          </div>
-          <div class="col" style="min-width:220px">
             <label class="label" for="prnOrientationSections">اتجاه طباعة: حسب الشعب</label>
             <select id="prnOrientationSections" class="input">
               <option value="portrait">عمودي</option>
@@ -587,10 +579,6 @@
           <div class="col" style="min-width:180px">
             <label class="label" for="prnMargin">الهوامش (mm)</label>
             <input id="prnMargin" class="input" type="text" placeholder="12mm" />
-          </div>
-          <div class="col" style="min-width:180px">
-            <label class="label" for="prnMarginGlobal">هوامش: الجدول العام (mm)</label>
-            <input id="prnMarginGlobal" class="input" type="text" placeholder="10mm 5mm" />
           </div>
           <div class="col" style="min-width:180px">
             <label class="label" for="prnFontScale">حجم الخط (x)</label>
@@ -641,57 +629,7 @@
             <input id="htLeftSize" class="input" type="number" min="12" max="28" step="1" />
           </div>
   </div>
-  <h4 class="sub-title" style="margin-top:10px">تنسيق الجدول العام</h4>
-        <div class="row wrap" style="gap:12px">
-          <div class="col" style="min-width:200px">
-            <label class="label" for="prnGlobalDayHeaderBg">لون رأس اليوم</label>
-            <input id="prnGlobalDayHeaderBg" class="input" type="color" value="#eef2ff" />
-            <label class="label" for="prnGlobalDayHeaderText">لون نص رأس اليوم</label>
-            <input id="prnGlobalDayHeaderText" class="input" type="color" value="#111827" />
-          </div>
-          <div class="col" style="min-width:200px">
-            <label class="label" for="prnGlobalSlotHeaderBg">لون رأس الحصص</label>
-            <input id="prnGlobalSlotHeaderBg" class="input" type="color" value="#f3f4f6" />
-            <label class="label" for="prnGlobalSlotHeaderText">لون نص رأس الحصص</label>
-            <input id="prnGlobalSlotHeaderText" class="input" type="color" value="#111827" />
-          </div>
-          <div class="col" style="min-width:200px">
-            <label class="label" for="prnGlobalBorder">لون الإطار والخطوط</label>
-            <input id="prnGlobalBorder" class="input" type="color" value="#d1d5db" />
-          </div>
-        </div>
-        <div id="globalPrintPreview" class="neo-surface" style="margin-top:10px">
-          <div class="muted small">معاينة تنسيق الجدول العام (تتحدث لحظيًا دون حفظ)</div>
-          <div id="globalPrintPreviewHost" style="margin-top:8px"></div>
-        </div>
-        <div class="row wrap" style="gap:12px; margin-top:6px">
-          <div class="col" style="min-width:200px">
-            <label class="label" for="prnGlobalClassColBg">لون عمود الصف</label>
-            <input id="prnGlobalClassColBg" class="input" type="color" value="#f9fafb" />
-            <label class="label" for="prnGlobalClassColText">لون نص عمود الصف</label>
-            <input id="prnGlobalClassColText" class="input" type="color" value="#ef4444" />
-          </div>
-          <div class="col" style="min-width:200px">
-            <label class="label" for="prnGlobalSubjSize">حجم خط المادة (px)</label>
-            <input id="prnGlobalSubjSize" class="input" type="number" min="10" max="28" step="1" value="15" />
-          </div>
-          <div class="col" style="min-width:200px">
-            <label class="label" for="prnGlobalTeacherSize">حجم خط المعلم (px)</label>
-            <input id="prnGlobalTeacherSize" class="input" type="number" min="10" max="24" step="1" value="13" />
-          </div>
-          <div class="col" style="min-width:200px">
-            <label class="label" for="prnGlobalTimeSize">حجم خط الوقت (px)</label>
-            <input id="prnGlobalTimeSize" class="input" type="number" min="8" max="24" step="1" value="12" />
-          </div>
-          <div class="col" style="min-width:220px">
-            <label class="label" for="prnGlobalCellDir">اتجاه نص الخلية (المادة/المعلم)</label>
-            <select id="prnGlobalCellDir" class="input">
-              <option value="vertical">عمودي</option>
-              <option value="horizontal">أفقي</option>
-            </select>
-            <small class="muted">العمودي يعرض المادة فوق المعلم؛ الأفقي يجعلهما في سطر واحد.</small>
-          </div>
-  </div>
+  
   <h4 class="sub-title" style="margin-top:10px">تنسيق الجدول حسب الشعب</h4>
   <div class="row wrap" style="gap:12px">
           <div class="col" style="min-width:200px">

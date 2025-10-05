@@ -2004,102 +2004,6 @@
   // Note: Header will be rendered by UI.printDocument; keep contentHtml minimal
   function buildPreviewHeader() { return ''; }
 
-  function previewGlobalTable() {
-    const db = Store.getDB();
-    const grid = db.timetable?.grid || {};
-    const classes = db.classes || [];
-    const allDays = db.timetable?.days || [];
-    const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
-    const slots = db.timetable?.slots || [];
-    const st = db.settings?.printing?.globalStyle || {};
-    const C_DAY_BG = st.dayHeaderBg || '#eef2ff';
-    const C_DAY_TX = st.dayHeaderText || '#111827';
-    const C_SLOT_BG = st.slotHeaderBg || '#f3f4f6';
-    const C_SLOT_TX = st.slotHeaderText || '#111827';
-    const C_BORDER = st.border || '#d1d5db';
-    const C_CLASS_BG = st.classColBg || '#f9fafb';
-    const C_CLASS_TX = st.classColText || '#ef4444';
-  const S_SUBJ = st.subjSize || 15;
-  const S_TEACH = st.teacherSize || 13;
-  const DIR = (st.cellDirection || 'horizontal');
-    // CSS shared across pages
-    let html = '';
-    html += `<style>
-      .gtable{ width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed }
-      .gtable th,.gtable td{ border:1px solid ${C_BORDER}; padding:4.5px; word-break: break-word; overflow-wrap: anywhere; white-space: normal; vertical-align: middle; text-align:center }
-      .gtable thead .row-days th{ background:${C_DAY_BG}; color:${C_DAY_TX}; text-align:center; font-weight:800; font-size:12px }
-      .gtable thead .row-slots th{ background:${C_SLOT_BG}; color:${C_SLOT_TX}; text-align:center; font-weight:700; font-size:11px }
-      .gtable .class-col{ position:sticky; right:0; background:${C_CLASS_BG}; color:${C_CLASS_TX}; font-weight:800; white-space:nowrap }
-  .gtable .cell-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; max-width:100%; width:100% }
-  .gtable .cell-subj{ display:block; font-weight:800; font-size:${S_SUBJ}px; line-height:1.22 }
-  .gtable .cell-teacher{ display:block; color:#374151; font-size:${S_TEACH}px; line-height:1.15 }
-  /* Vertical writing: عمودي لكن كعمودين متجاورين داخل الخلية (المعلم يمينًا، المادة يسارًا) */
-  .gtable.dir-vert .cell-wrap{
-    display:flex; flex-direction: row; align-items:center; justify-content:center; gap:6px;
-  }
-  .gtable.dir-vert .cell-wrap .cell-subj,
-  .gtable.dir-vert .cell-wrap .cell-teacher{
-    writing-mode: vertical-lr; text-orientation: mixed; white-space: normal; transform:none;
-  }
-  /* ترتيب الأعمدة: في صف RTL، أول عنصر يظهر يمينًا. نريد المعلم يمينًا والمادة يسارًا */
-  .gtable.dir-vert .cell-teacher{ order:1 }
-  .gtable.dir-vert .cell-subj{ order:2 }
-      .gpage{ page-break-after:always }
-      .gpage:last-child{ page-break-after:auto }
-    </style>`;
-
-    // Flatten rows (class/section pairs)
-    const rows = [];
-    classes.forEach((cls, ci) => {
-      const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
-      sections.forEach((sec, si) => rows.push({ ci, si, label: `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}` }));
-    });
-    const perPage = 4; // 4 صفوف لكل صفحة
-    for (let start = 0; start < rows.length; start += perPage) {
-      const slice = rows.slice(start, start + perPage);
-  html += `<section class="gpage"><div class="gfit">`;
-  html += `<table class="gtable ${DIR==='vertical'?'dir-vert':''}"><thead>`;
-      html += `<tr class="row-days"><th rowspan="2" class="class-col">الصف/الشعبة</th>`;
-      days.forEach(day => { html += `<th colspan="${slots.length}">${day}</th>`; });
-      html += `</tr>`;
-      html += `<tr class="row-slots">`;
-      days.forEach(() => { for (let i=0;i<slots.length;i++) html += `<th>${i+1}</th>`; });
-      html += `</tr></thead><tbody>`;
-      slice.forEach(({ci, si, label}) => {
-        html += `<tr><td class="class-col">${label}</td>`;
-        days.forEach(day => {
-          for (let s=0;s<slots.length;s++) {
-            const key = `${ci}:${si}|${day}|${slots[s]}`;
-            const legacy = `${ci}:${si}|${day}|${s+1}`;
-            const val = grid[key] ?? grid[legacy] ?? '';
-            if (!val) { html += `<td>—</td>`; continue; }
-            const meta = getTeacherAndSubjectByCellValue(db, val);
-            const subj = db.subjectsCatalog?.[meta?.subjIdx || -1]?.name || val.split('•')[0]?.trim() || '';
-            const full = db.teachers?.[meta?.teacherIdx || -1]?.name || val.split('•')[1]?.trim() || '';
-            const teacher = (full.split(/\s+/)[0] || full);
-            html += `<td><span class="cell-wrap"><span class="cell-subj">${subj}</span>${teacher?`<span class="cell-teacher">${teacher}</span>`:''}</span></td>`;
-          }
-        });
-        html += `</tr>`;
-      });
-      html += `</tbody></table></div></section>`;
-    }
-    // Fit each page to width
-    html += `<script>(function(){function fit(){try{var main=document.querySelector('main.print-body');if(!main)return;var avail=main.clientWidth;document.querySelectorAll('.gfit').forEach(function(w){w.style.transform='';w.style.width='';var need=w.scrollWidth;var s=need>avail?Math.max(0.5,avail/need):1;w.style.transformOrigin='top right';w.style.transform='scale('+s+')';w.style.width=(100/s)+'%';});}catch(e){}}if(document.readyState==='complete')setTimeout(fit,30);else window.addEventListener('load',function(){setTimeout(fit,30)});})();</script>`;
-    const prn = db.settings?.printing || {};
-    UI.printDocument({
-      contentHtml: html,
-      docTitle: 'الجدول الأسبوعي للصفوف',
-      school: db.school,
-      orientation: prn.orientations?.global || 'landscape',
-      margin: prn.marginGlobal || prn.margin || '10mm 5mm',
-      fontScale: prn.fontScale || 1,
-      fontFamily: prn.fontFamily || '',
-      headerTypography: prn.headerTypography || {},
-      footerLeftImageUrl: prn.footer?.leftImageUrl || '',
-      footerRightHtml: prn.footer?.rightHtml || ''
-    });
-  }
 
   function previewBySections() {
     const db = Store.getDB();
@@ -2382,7 +2286,6 @@
     });
   }
 
-  const btnPreviewGlobal = qs('#btnPreviewGlobal'); if (btnPreviewGlobal) btnPreviewGlobal.addEventListener('click', previewGlobalTable);
   const btnPreviewBySections = qs('#btnPreviewBySections'); if (btnPreviewBySections) btnPreviewBySections.addEventListener('click', previewBySections);
   const btnPreviewTeachers = qs('#btnPreviewTeachers'); if (btnPreviewTeachers) btnPreviewTeachers.addEventListener('click', previewTeachers);
 
@@ -2433,13 +2336,12 @@
     const prn = db.settings.printing || {};
     const or = prn.orientations || {};
     const setVal = (id, v, d='') => { const el = qs(id); if (el) el.value = v ?? d; };
-    setVal('#prnOrientationGlobal', or.global, 'landscape');
+    // Global print feature removed; only keep sections and teachers
     setVal('#prnOrientationSections', or.sections, 'portrait');
     setVal('#prnOrientationTeachers', or.teachers, 'portrait');
     setVal('#prnMargin', prn.margin, '12mm');
-  setVal('#prnMarginGlobal', prn.marginGlobal, '10mm 5mm');
     setVal('#prnFontScale', prn.fontScale, 1);
-  setVal('#prnFontFamily', prn.fontFamily || '', '');
+    setVal('#prnFontFamily', prn.fontFamily || '', '');
     setVal('#prnFooterImage', prn.footer?.leftImageUrl || '', '');
     setVal('#prnFooterRight', prn.footer?.rightHtml || '', '');
   // header typography
@@ -2458,19 +2360,7 @@
   setVal('#htLeftSize', ht.left?.size || 16, 16);
   // sections preview style settings (defaults)
   const sec = prn.sectionsStyle || {};
-  // global style
-  const gst = prn.globalStyle || {};
-  setVal('#prnGlobalDayHeaderBg', gst.dayHeaderBg || '#eef2ff', '#eef2ff');
-  setVal('#prnGlobalDayHeaderText', gst.dayHeaderText || '#111827', '#111827');
-  setVal('#prnGlobalSlotHeaderBg', gst.slotHeaderBg || '#f3f4f6', '#f3f4f6');
-  setVal('#prnGlobalSlotHeaderText', gst.slotHeaderText || '#111827', '#111827');
-  setVal('#prnGlobalBorder', gst.border || '#d1d5db', '#d1d5db');
-  setVal('#prnGlobalClassColBg', gst.classColBg || '#f9fafb', '#f9fafb');
-  setVal('#prnGlobalClassColText', gst.classColText || '#ef4444', '#ef4444');
-  setVal('#prnGlobalSubjSize', gst.subjSize || 15, 15);
-  setVal('#prnGlobalTeacherSize', gst.teacherSize || 13, 13);
-  setVal('#prnGlobalTimeSize', gst.timeSize || 12, 12);
-  setVal('#prnGlobalCellDir', gst.cellDirection || 'vertical', 'vertical');
+  // global style removed with global print feature
   setVal('#prnSecHeaderBg', sec.headerBg || '#eef2ff', '#eef2ff');
   setVal('#prnSecHeaderText', sec.headerText || '#111827', '#111827');
   setVal('#prnSecDayColBg', sec.dayColBg || '#f9fafb', '#f9fafb');
@@ -2505,7 +2395,6 @@
   // render previews after values are populated
   renderHeaderPreview();
   renderTeacherPrintPreview();
-  renderGlobalPrintPreview();
   }
   // Live preview on change (without saving)
   const themeSel = qs('#themeSelect'); if (themeSel) themeSel.addEventListener('change', () => {
@@ -2606,51 +2495,7 @@
   ['#prnTeachHeaderBg','#prnTeachHeaderText','#prnTeachDayColBg','#prnTeachDayColAlt','#prnTeachBorder','#prnTeachHeaderSize','#prnTeachHeaderBold','#prnTeachClsSize','#prnTeachClsColor','#prnTeachClsBold','#prnTeachSubjSize','#prnTeachSubjColor','#prnTeachSubjBold','#prnTeachTimeSize','#prnTeachTimeColor','#prnTeachTimeBold','#prnTeachDayFontColor','#prnTeachDayFontSize']
     .forEach(sel => { const el = qs(sel); if (el) el.addEventListener('input', renderTeacherPrintPreview); });
 
-  // Live global table preview (compact)
-  function renderGlobalPrintPreview() {
-    const host = qs('#globalPrintPreviewHost'); if (!host) return;
-    const get = (id, d) => (qs(id)?.value || '').trim() || d;
-    const num = (id, d) => { const v = parseInt(qs(id)?.value, 10); return isNaN(v) ? d : v; };
-    const st = {
-      dayHeaderBg: get('#prnGlobalDayHeaderBg', '#eef2ff'), dayHeaderText: get('#prnGlobalDayHeaderText', '#111827'),
-      slotHeaderBg: get('#prnGlobalSlotHeaderBg', '#f3f4f6'), slotHeaderText: get('#prnGlobalSlotHeaderText', '#111827'),
-      border: get('#prnGlobalBorder', '#d1d5db'),
-      classColBg: get('#prnGlobalClassColBg', '#f9fafb'), classColText: get('#prnGlobalClassColText', '#ef4444'),
-      subjSize: num('#prnGlobalSubjSize', 15), teacherSize: num('#prnGlobalTeacherSize', 13), timeSize: num('#prnGlobalTimeSize', 12),
-      cellDirection: (qs('#prnGlobalCellDir')?.value || 'horizontal')
-    };
-    const css = `
-      .gprev{ width:100%; border-collapse:separate; border-spacing:0 }
-      .gprev th,.gprev td{ border:1px solid ${st.border}; padding:6px; text-align:center; vertical-align: middle }
-      .gprev .row-days th{ background:${st.dayHeaderBg}; color:${st.dayHeaderText}; text-align:center; font-weight:800; font-size:13px }
-      .gprev .row-slots th{ background:${st.slotHeaderBg}; color:${st.slotHeaderText}; text-align:center; font-weight:700; font-size:12px }
-      .gprev .class-col{ background:${st.classColBg}; color:${st.classColText}; font-weight:800; white-space:nowrap }
-  .gprev .cell-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; max-width:100%; width:100% }
-  .gprev .cell-subj{ display:block; font-weight:800; font-size:${st.subjSize}px; line-height:1.1 }
-  .gprev .cell-teacher{ display:block; color:#374151; font-size:${st.teacherSize}px; line-height:1.05 }
-  .gprev.dir-vert .cell-wrap{ display:flex; flex-direction: row; align-items:center; justify-content:center; gap:6px }
-  .gprev.dir-vert .cell-wrap .cell-subj,
-  .gprev.dir-vert .cell-wrap .cell-teacher{ writing-mode: vertical-lr; text-orientation: mixed; white-space: normal; transform:none }
-  .gprev.dir-vert .cell-teacher{ order:1 }
-  .gprev.dir-vert .cell-subj{ order:2 }
-    `;
-    const sample = `
-      <style>${css}</style>
-  <table class="gprev ${st.cellDirection==='vertical'?'dir-vert':''}">
-        <thead>
-          <tr class="row-days"><th rowspan="2" class="class-col">الصف/الشعبة</th><th colspan="3">الأحد</th><th colspan="3">الاثنين</th></tr>
-          <tr class="row-slots"><th>1</th><th>2</th><th>3</th><th>1</th><th>2</th><th>3</th></tr>
-        </thead>
-        <tbody>
-          <tr><td class="class-col">الأول — أ</td><td><div class="cell-wrap"><div class="cell-subj">رياضيات</div><div class="cell-teacher">أحمد</div></div></td><td>—</td><td><div class="cell-wrap"><div class="cell-subj">علوم</div><div class="cell-teacher">خالد</div></div></td><td>—</td><td><div class="cell-wrap"><div class="cell-subj">عربي</div><div class="cell-teacher">سارة</div></div></td><td>—</td></tr>
-        </tbody>
-      </table>`;
-    host.innerHTML = sample;
-  }
-  ['#prnGlobalDayHeaderBg','#prnGlobalDayHeaderText','#prnGlobalSlotHeaderBg','#prnGlobalSlotHeaderText','#prnGlobalBorder','#prnGlobalClassColBg','#prnGlobalClassColText','#prnGlobalSubjSize','#prnGlobalTeacherSize','#prnGlobalTimeSize']
-    .forEach(sel => { const el = qs(sel); if (el) el.addEventListener('input', renderGlobalPrintPreview); });
-  // Ensure select change triggers too
-  const dirSel = qs('#prnGlobalCellDir'); if (dirSel) { dirSel.addEventListener('change', renderGlobalPrintPreview); dirSel.addEventListener('input', renderGlobalPrintPreview); }
+  // Global table print preview removed
 
   qs('#btnSaveSettings').addEventListener('click', () => {
     const db = Store.getDB();
@@ -2659,14 +2504,12 @@
     db.settings.printing = db.settings.printing || {};
     const prn = db.settings.printing;
     prn.orientations = {
-      global: qs('#prnOrientationGlobal')?.value || 'landscape',
       sections: qs('#prnOrientationSections')?.value || 'portrait',
       teachers: qs('#prnOrientationTeachers')?.value || 'portrait'
     };
     prn.margin = qs('#prnMargin')?.value || '12mm';
-  prn.marginGlobal = qs('#prnMarginGlobal')?.value || '10mm 5mm';
     const fs = parseFloat(qs('#prnFontScale')?.value); prn.fontScale = isNaN(fs) ? 1 : Math.max(0.8, Math.min(1.6, fs));
-  prn.fontFamily = (qs('#prnFontFamily')?.value || '').trim();
+    prn.fontFamily = (qs('#prnFontFamily')?.value || '').trim();
     prn.footer = prn.footer || {};
     prn.footer.leftImageUrl = qs('#prnFooterImage')?.value || '';
     prn.footer.rightHtml = qs('#prnFooterRight')?.value || '';
@@ -2710,19 +2553,7 @@
     prn.sectionsStyle.timeSize = num('#prnSecTimeSize', 13);
   prn.sectionsStyle.dayFontColor = getColor('#prnSecDayFontColor', '#111827');
   prn.sectionsStyle.dayFontSize = num('#prnSecDayFontSize', 14);
-  // global style save
-  prn.globalStyle = prn.globalStyle || {};
-  prn.globalStyle.dayHeaderBg = getColor('#prnGlobalDayHeaderBg', '#eef2ff');
-  prn.globalStyle.dayHeaderText = getColor('#prnGlobalDayHeaderText', '#111827');
-  prn.globalStyle.slotHeaderBg = getColor('#prnGlobalSlotHeaderBg', '#f3f4f6');
-  prn.globalStyle.slotHeaderText = getColor('#prnGlobalSlotHeaderText', '#111827');
-  prn.globalStyle.border = getColor('#prnGlobalBorder', '#d1d5db');
-  prn.globalStyle.classColBg = getColor('#prnGlobalClassColBg', '#f9fafb');
-  prn.globalStyle.classColText = getColor('#prnGlobalClassColText', '#ef4444');
-  prn.globalStyle.subjSize = num('#prnGlobalSubjSize', 15);
-  prn.globalStyle.teacherSize = num('#prnGlobalTeacherSize', 13);
-  prn.globalStyle.timeSize = num('#prnGlobalTimeSize', 12);
-  prn.globalStyle.cellDirection = qs('#prnGlobalCellDir')?.value || 'vertical';
+    // global style save removed with global print feature
     // teachers style save
     prn.teachersStyle = prn.teachersStyle || {};
   prn.teachersStyle.headerBg = getColor('#prnTeachHeaderBg', '#eef2ff');
@@ -2748,7 +2579,6 @@
     // ensure previews are up-to-date immediately
     renderHeaderPreview();
     renderTeacherPrintPreview();
-    renderGlobalPrintPreview();
     showToast('تم حفظ الإعدادات');
   });
 
