@@ -2295,14 +2295,14 @@
     const slots = db.timetable?.slots || [];
     const classes = db.classes || [];
     const prn = db.settings?.printing || {};
-    const secSt = prn.sectionsStyle || {};
+  const secSt = prn.sectionsStyle || {};
+  const gSt = prn.globalStyle || {};
     const C_HEADER_BG = secSt.headerBg || '#eef2ff';
     const C_HEADER_TX = secSt.headerText || '#111827';
     const C_DAY_BG = secSt.dayColBg || '#f9fafb';
     const C_DAY_BG_ALT = secSt.dayColAlt || '#f3f4f6';
     const C_BORDER = secSt.border || '#d1d5db';
-    const S_SUBJ = (secSt.subjSize || 16) + 'px';
-    const S_TEACH = (secSt.teacherSize || 13) + 'px';
+  // لا نستخدم أحجامًا خاصة هنا لضمان أن المتحكم العام يؤثر على كل النصوص
 
     // build header rows
     let thead = `<thead>`;
@@ -2329,7 +2329,7 @@
             const legacy = `${ci}:${si}|${day}|${s+1}`;
             const val = grid[key] ?? grid[legacy] ?? '';
             const sepClass = (s === 0) ? ' sep' : '';
-            if (!val) { tbody += `<td class="slot${sepClass}">—</td>`; }
+            if (!val) { tbody += `<td class=\"slot${sepClass}\">—</td>`; }
             else {
               let subj = '', teach = '';
               const meta = getTeacherAndSubjectByCellValue(db, val);
@@ -2341,7 +2341,10 @@
                 const parts = String(val).split('•');
                 subj = (parts[0]||'').trim(); teach = (parts[1]||'').trim();
               }
-              tbody += `<td class="slot filled${sepClass}"><div class="g-cell"><div class="g-subj">${subj||val}</div>${teach?`<div class="g-teach">${teach}</div>`:''}</div></td>`;
+              const teachHtml = (gSt.teachShow !== false && teach) ? `<div class=\"g-teach\">${teach}</div>` : '';
+              // optional time line (from settings, uses day/slot index)
+              const timeHtml = gSt.timeShow ? `<div class=\"g-time\">${calcSlotTimeRange(db, day, s)}</div>` : '';
+              tbody += `<td class=\"slot filled${sepClass}\"><div class=\"g-cell\"><div class=\"g-subj\">${subj||val}</div>${teachHtml}${timeHtml}</div></td>`;
             }
           }
         });
@@ -2350,16 +2353,38 @@
     });
     tbody += '</tbody>';
 
+    const BASE_COLOR = gSt.textColor || '#111827';
+    const BASE_SIZE = parseInt(gSt.textSize, 10) || 14;
+    const DAY_COLOR = gSt.dayColor || BASE_COLOR;
+    const DAY_SIZE = parseInt(gSt.daySize, 10) || BASE_SIZE;
+    const DAY_BOLD = (gSt.dayBold !== false) ? 800 : 600;
+    const CLASS_COLOR = gSt.classColor || BASE_COLOR;
+    const CLASS_SIZE = parseInt(gSt.classSize, 10) || BASE_SIZE;
+    const CLASS_BOLD = (gSt.classBold !== false) ? 700 : 500;
+    const HEAD_COLOR = gSt.headColor || BASE_COLOR;
+    const HEAD_SIZE = parseInt(gSt.headSize, 10) || (BASE_SIZE - 1);
+    const HEAD_BOLD = (gSt.headBold !== false) ? 800 : 600;
+    const SUBJ_COLOR = gSt.subjColor || BASE_COLOR;
+    const SUBJ_SIZE = parseInt(gSt.subjSize, 10) || (BASE_SIZE + 2);
+    const SUBJ_BOLD = (gSt.subjBold !== false) ? 800 : 600;
+    const TEACH_COLOR = gSt.teachColor || '#374151';
+    const TEACH_SIZE = parseInt(gSt.teachSize, 10) || (BASE_SIZE - 1);
+    const TEACH_BOLD = gSt.teachBold ? 700 : 500;
+    const TIME_COLOR = gSt.timeColor || '#6b7280';
+    const TIME_SIZE = parseInt(gSt.timeSize, 10) || (BASE_SIZE - 2);
+    const TIME_BOLD = gSt.timeBold ? 700 : 500;
     const css = `
-      table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed }
+      table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed; color:${BASE_COLOR}; font-size:${BASE_SIZE}px }
       .global-tt th, .global-tt td{ border:1px solid ${C_BORDER}; padding:6px; vertical-align:middle; text-align:center }
-      .global-tt thead th.day-head{ background:${C_HEADER_BG}; color:${C_HEADER_TX}; font-weight:800 }
-      .global-tt .class-col{ width:170px; text-align:right; font-weight:700; background:${C_DAY_BG} }
+      .global-tt thead th.day-head{ background:${C_HEADER_BG}; color:${DAY_COLOR}; font-weight:${HEAD_BOLD}; font-size:${HEAD_SIZE}px }
+      .global-tt .class-col{ width:170px; text-align:right; font-weight:${CLASS_BOLD}; background:${C_DAY_BG}; color:${CLASS_COLOR}; font-size:${CLASS_SIZE}px }
       .global-tt tr:nth-child(odd) .class-col{ background:${C_DAY_BG_ALT} }
       .global-tt td.sep, .global-tt th.p:first-child{ border-right-width:2px }
-      .global-tt .g-cell{ line-height:1.25 }
-      .global-tt .g-subj{ font-weight:800; font-size:${S_SUBJ} }
-      .global-tt .g-teach{ color:#374151; font-size:${S_TEACH} }
+      .global-tt .p{ color:${HEAD_COLOR}; font-size:${HEAD_SIZE}px; font-weight:${HEAD_BOLD} }
+      .global-tt .g-cell{ line-height:1.25; color:${BASE_COLOR} }
+      .global-tt .g-subj{ color:${SUBJ_COLOR}; font-weight:${SUBJ_BOLD}; font-size:${SUBJ_SIZE}px }
+      .global-tt .g-teach{ color:${TEACH_COLOR}; font-weight:${TEACH_BOLD}; font-size:${TEACH_SIZE}px }
+      .global-tt .g-time{ color:${TIME_COLOR}; font-weight:${TIME_BOLD}; font-size:${TIME_SIZE}px }
     `;
     const html = `<style>${css}</style><table class="global-tt">${thead}${tbody}</table>`;
     UI.printDocument({
@@ -2471,7 +2496,7 @@
   setVal('#prnTeachDayColAlt', ts.dayColAlt || '#f3f4f6', '#f3f4f6');
   setVal('#prnTeachBorder', ts.border || '#d1d5db', '#d1d5db');
   setVal('#prnTeachHeaderSize', ts.headerSize || 14, 14);
-  const setChk = (id, v) => { const el = qs(id); if (el) el.checked = !!v; };
+  const setChkGlob = (id, v) => { const el = qs(id); if (el) el.checked = !!v; };
   setChk('#prnTeachHeaderBold', !!ts.headerBold);
   setVal('#prnTeachClsSize', ts.clsSize || 16, 16);
   setVal('#prnTeachClsColor', ts.clsColor || '#374151', '#374151');
@@ -2484,6 +2509,33 @@
   setChk('#prnTeachTimeBold', !!ts.timeBold);
   setVal('#prnTeachDayFontColor', ts.dayFontColor || '#111827', '#111827');
   setVal('#prnTeachDayFontSize', ts.dayFontSize || 14, 14);
+  // global timetable style (detailed)
+  const gs = prn.globalStyle || {};
+  setVal('#prnGlobTextColor', gs.textColor || '#111827', '#111827');
+  setVal('#prnGlobTextSize', gs.textSize || 14, 14);
+  // headers
+  setVal('#prnGlobDayColor', gs.dayColor || '#111827', '#111827');
+  setVal('#prnGlobDaySize', gs.daySize || 14, 14);
+  const setChk = (id, v) => { const el = qs(id); if (el) el.checked = !!v; };
+  setChkGlob('#prnGlobDayBold', gs.dayBold !== false); // default true
+  setVal('#prnGlobClassColor', gs.classColor || '#111827', '#111827');
+  setVal('#prnGlobClassSize', gs.classSize || 14, 14);
+  setChkGlob('#prnGlobClassBold', gs.classBold !== false); // default true
+  setVal('#prnGlobHeadColor', gs.headColor || '#111827', '#111827');
+  setVal('#prnGlobHeadSize', gs.headSize || 13, 13);
+  setChkGlob('#prnGlobHeadBold', gs.headBold !== false);
+  // cells
+  setVal('#prnGlobSubjColor', gs.subjColor || '#111827', '#111827');
+  setVal('#prnGlobSubjSize', gs.subjSize || 16, 16);
+  setChkGlob('#prnGlobSubjBold', gs.subjBold !== false);
+  setChkGlob('#prnGlobTeachShow', gs.teachShow !== false); // default true
+  setVal('#prnGlobTeachColor', gs.teachColor || '#374151', '#374151');
+  setVal('#prnGlobTeachSize', gs.teachSize || 13, 13);
+  setChkGlob('#prnGlobTeachBold', !!gs.teachBold);
+  setChkGlob('#prnGlobTimeShow', !!gs.timeShow); // default false
+  setVal('#prnGlobTimeColor', gs.timeColor || '#6b7280', '#6b7280');
+  setVal('#prnGlobTimeSize', gs.timeSize || 12, 12);
+  setChkGlob('#prnGlobTimeBold', !!gs.timeBold);
   // render previews after values are populated
   renderHeaderPreview();
   renderTeacherPrintPreview();
@@ -2632,9 +2684,8 @@
       family: (qs('#htLeftFamily')?.value || '').trim(),
       size: num('#htLeftSize', 16)
     };
-    // sections preview style save
+  // sections preview style save
     prn.sectionsStyle = prn.sectionsStyle || {};
-    const getColor = (id, d) => { const v = (qs(id)?.value || '').trim(); return v || d; };
     prn.sectionsStyle.headerBg = getColor('#prnSecHeaderBg', '#eef2ff');
     prn.sectionsStyle.headerText = getColor('#prnSecHeaderText', '#111827');
     prn.sectionsStyle.dayColBg = getColor('#prnSecDayColBg', '#f9fafb');
@@ -2646,7 +2697,7 @@
   prn.sectionsStyle.dayFontColor = getColor('#prnSecDayFontColor', '#111827');
   prn.sectionsStyle.dayFontSize = num('#prnSecDayFontSize', 14);
     // global style save removed with global print feature
-    // teachers style save
+  // teachers style save
     prn.teachersStyle = prn.teachersStyle || {};
   prn.teachersStyle.headerBg = getColor('#prnTeachHeaderBg', '#eef2ff');
   prn.teachersStyle.headerText = getColor('#prnTeachHeaderText', '#111827');
@@ -2666,6 +2717,32 @@
   prn.teachersStyle.timeBold = !!qs('#prnTeachTimeBold')?.checked;
     prn.teachersStyle.dayFontColor = getColor('#prnTeachDayFontColor', '#111827');
     prn.teachersStyle.dayFontSize = num('#prnTeachDayFontSize', 14);
+  // global timetable style save
+  prn.globalStyle = prn.globalStyle || {};
+  prn.globalStyle.textColor = getColor('#prnGlobTextColor', '#111827');
+  prn.globalStyle.textSize = num('#prnGlobTextSize', 14);
+  // headers
+  prn.globalStyle.dayColor = getColor('#prnGlobDayColor', '#111827');
+  prn.globalStyle.daySize = num('#prnGlobDaySize', 14);
+  prn.globalStyle.dayBold = !!qs('#prnGlobDayBold')?.checked;
+  prn.globalStyle.classColor = getColor('#prnGlobClassColor', '#111827');
+  prn.globalStyle.classSize = num('#prnGlobClassSize', 14);
+  prn.globalStyle.classBold = !!qs('#prnGlobClassBold')?.checked;
+  prn.globalStyle.headColor = getColor('#prnGlobHeadColor', '#111827');
+  prn.globalStyle.headSize = num('#prnGlobHeadSize', 13);
+  prn.globalStyle.headBold = !!qs('#prnGlobHeadBold')?.checked;
+  // cells
+  prn.globalStyle.subjColor = getColor('#prnGlobSubjColor', '#111827');
+  prn.globalStyle.subjSize = num('#prnGlobSubjSize', 16);
+  prn.globalStyle.subjBold = !!qs('#prnGlobSubjBold')?.checked;
+  prn.globalStyle.teachShow = !!qs('#prnGlobTeachShow')?.checked;
+  prn.globalStyle.teachColor = getColor('#prnGlobTeachColor', '#374151');
+  prn.globalStyle.teachSize = num('#prnGlobTeachSize', 13);
+  prn.globalStyle.teachBold = !!qs('#prnGlobTeachBold')?.checked;
+  prn.globalStyle.timeShow = !!qs('#prnGlobTimeShow')?.checked;
+  prn.globalStyle.timeColor = getColor('#prnGlobTimeColor', '#6b7280');
+  prn.globalStyle.timeSize = num('#prnGlobTimeSize', 12);
+  prn.globalStyle.timeBold = !!qs('#prnGlobTimeBold')?.checked;
     Store.setDB(db);
     loadSettings();
     // ensure previews are up-to-date immediately
