@@ -599,8 +599,17 @@
       if (v > 0) map[ci] = v;
     });
     if (Object.keys(map).length > 0) db.allocations[subjIdx] = map; else delete db.allocations[subjIdx];
-    Store.setDB(db); showToast('تم حفظ التخصيص');
+    Store.setDB(db);
+    // بعد حفظ التخصيص العام، تأكد من مزامنة تعيينات المعلمين بحيث لا تتجاوز القيم الجديدة
+    try { reconcileAssignmentsWithAllocations(subjIdx); } catch {}
+    showToast('تم حفظ التخصيص وتحديث تعيينات المعلمين');
+    // تحديث الواجهات والإحصاءات المرتبطة
+    renderAssignList();
+    renderAssignStats();
+    renderTeacherStatsTable();
+    updateAssignRemaining(true);
     renderTeacherSidebar();
+    renderTimetable();
   });
 
   // Assign lessons to teachers per class/section/subject
@@ -813,6 +822,44 @@
       if (asg[csKey] && Object.keys(asg[csKey]).length === 0) { delete asg[csKey]; changed = true; }
     });
     if (changed) { db.assignments = asg; Store.setDB(db); }
+    return changed;
+  }
+
+  // قم بمواءمة تعيينات المعلمين مع التخصيص العام عند تغييره
+  // إذا تم تخفيض عدد الحصص المخصصة لمادة/صف، يتم تقليم التعيينات بحيث لا تتجاوز العدد الجديد.
+  function reconcileAssignmentsWithAllocations(onlySubjIdx = null) {
+    const db = Store.getDB();
+    const asg = db.assignments || {};
+    let changed = false;
+    Object.entries(asg).forEach(([csKey, subjMaps]) => {
+      const [ciStr, siStr] = csKey.split(':');
+      const ci = parseInt(ciStr, 10);
+      Object.entries(subjMaps || {}).forEach(([subjIdxStr, teachMap]) => {
+        const subjIdx = parseInt(subjIdxStr, 10);
+        if (onlySubjIdx != null && subjIdx !== onlySubjIdx) return;
+        const alloc = Math.max(0, parseInt(db.allocations?.[subjIdx]?.[ci], 10) || 0);
+        if (alloc <= 0) {
+          // لا يوجد تخصيص لهذه المادة لهذا الصف: احذف كل التعيينات
+          delete asg[csKey][subjIdx];
+          changed = true;
+          return;
+        }
+        // مجموع التعيينات الحالية
+        const entries = Object.entries(teachMap || {}).map(([t, c]) => [parseInt(t,10), Math.max(0, parseInt(c,10) || 0)]).filter(([,c])=>c>0);
+        if (entries.length === 0) return; // لا شيء
+        // افرض معلمًا واحدًا لكل مادة (الأعلى أولاً) ثم قلّم العدد إن لزم
+        entries.sort((a,b)=>b[1]-a[1]);
+        const [keepT, keepC] = entries[0];
+        const clamped = Math.min(keepC, alloc);
+        if (!teachMap || teachMap[keepT] !== clamped || entries.length > 1) changed = true;
+        asg[csKey][subjIdx] = {};
+        if (clamped > 0) asg[csKey][subjIdx][keepT] = clamped; else delete asg[csKey][subjIdx];
+      });
+      if (asg[csKey] && Object.keys(asg[csKey]).length === 0) delete asg[csKey];
+    });
+    if (changed) { db.assignments = asg; Store.setDB(db); }
+    // إعادة توحيد لضمان القيد إن لم يحدث أعلاه
+    normalizeAssignmentsUniquePerSubject();
     return changed;
   }
 
@@ -1516,7 +1563,26 @@
             const nameKey = `${ci}:${si}|${day}|${slots[sIndex]}`;
             const legacyKey = `${ci}:${si}|${day}|${sIndex + 1}`;
             const val = grid[nameKey] ?? grid[legacyKey] ?? '';
-            if (val) { box.textContent = val; box.classList.add('filled'); }
+            if (val) {
+              // عرض من سطرين: المادة في الأعلى، المعلم في السطر التالي
+              const wrap = document.createElement('div'); wrap.className = 'cell-wrap';
+              let subjTxt = '' , teacherTxt = '';
+              try {
+                const meta = getTeacherAndSubjectByCellValue(Store.getDB(), val);
+                if (meta) {
+                  subjTxt = (Store.getDB().subjectsCatalog?.[meta.subjIdx]?.name || '').trim();
+                  teacherTxt = (Store.getDB().teachers?.[meta.teacherIdx]?.name || '').trim();
+                } else {
+                  const parts = String(val).split('•');
+                  subjTxt = (parts[0] || '').trim();
+                  teacherTxt = (parts[1] || '').trim();
+                }
+              } catch { const parts = String(val).split('•'); subjTxt = (parts[0]||'').trim(); teacherTxt = (parts[1]||'').trim(); }
+              const s1 = document.createElement('div'); s1.className = 'cell-subj'; s1.textContent = subjTxt || val;
+              const s2 = document.createElement('div'); s2.className = 'cell-teacher'; s2.textContent = teacherTxt || '';
+              wrap.appendChild(s1); if (teacherTxt) wrap.appendChild(s2);
+              box.appendChild(wrap); box.classList.add('filled');
+            }
             else { box.textContent = '—'; box.classList.add('tt-empty'); }
             // اجعل الخلية قابلة للنقر والـ DnD
             box.dataset.key = nameKey;
@@ -2705,6 +2771,8 @@
     renderInvoices();
     populateAllocSubjectSelect();
     renderAllocations();
+    // تأكد من اتساق التعيينات مع التخصيصات عند بدء التشغيل (بعد أي استيراد/ترقية)
+    try { reconcileAssignmentsWithAllocations(); } catch {}
   // Assignments (teachers per class/section/subject)
   const normalized = normalizeAssignmentsUniquePerSubject();
   populateAssignSelectors();

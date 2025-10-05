@@ -152,6 +152,10 @@ body {
 .tt-table .slot { min-width: 140px; }
 .tt-cell-box { min-height: 42px; border-radius: 10px; background: var(--bg); box-shadow: inset -4px -4px 8px var(--shadow-light), inset 4px 4px 8px var(--shadow-dark); padding: 6px 8px; }
 .tt-empty { color: var(--muted); opacity: 0.8; }
+/* two-line layout inside timetable cells */
+.tt-cell-box .cell-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+.tt-cell-box .cell-subj{ font-weight:800; line-height:1.15 }
+.tt-cell-box .cell-teacher{ color:#374151; font-size:0.92em; line-height:1.1 }
 
 /* Visual day separators (class-based for full-height consistency in RTL/LTR) */
 .tt-sep { border-inline-start: var(--day-sep-width) solid var(--day-sep-color) !important; }
