@@ -2512,6 +2512,94 @@
   const btnPreviewBySections = qs('#btnPreviewBySections'); if (btnPreviewBySections) btnPreviewBySections.addEventListener('click', previewBySections);
   const btnPreviewTeachers = qs('#btnPreviewTeachers'); if (btnPreviewTeachers) btnPreviewTeachers.addEventListener('click', previewTeachers);
   const btnPreviewGlobal = qs('#btnPreviewGlobal'); if (btnPreviewGlobal) btnPreviewGlobal.addEventListener('click', previewGlobal);
+  const btnPreviewByDay = qs('#btnPreviewByDay'); if (btnPreviewByDay) btnPreviewByDay.addEventListener('click', previewByDay);
+
+  // Per-day timetable preview (one page per working day)
+  function previewByDay() {
+    const db = Store.getDB();
+    const grid = db.timetable?.grid || {};
+    const allDays = db.timetable?.days || [];
+    const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
+    const slots = db.timetable?.slots || [];
+    const classes = db.classes || [];
+    const prn = db.settings?.printing || {};
+
+    // Build one table per day
+    let html = '';
+    const css = `
+      .day-page{ page-break-after:always }
+      .day-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid #d1d5db; padding:6px 0 }
+      .day-header .sch{ text-align:center }
+      .day-header .sch .n{ font-weight:800 }
+      .day-header .sch .g{ color:#6b7280; font-size:0.95em }
+      .day-header .ttl{ text-align:center; flex:1 }
+      .day-header .ttl .t{ font-weight:800; font-size:18px }
+      .day-header .ttl .y{ color:#6b7280; font-size:0.95em }
+      table.day-tt{ width:100%; border-collapse:collapse; table-layout:fixed }
+      table.day-tt th, table.day-tt td{ border:1px solid #d1d5db; padding:4px; text-align:center; vertical-align:top }
+      table.day-tt th.p{ background:#eef2ff; font-weight:800 }
+      table.day-tt td.class-col{ background:#f9fafb; font-weight:700; text-align:right; white-space:normal }
+      table.day-tt tr:nth-child(odd) td.class-col{ background:#f3f4f6 }
+      .gcell{ line-height:1.45; white-space:normal; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; display:block }
+      .gcell .subj{ display:block; font-weight:800; font-size:12px; color:#111827; margin-bottom:2px; overflow-wrap:normal; word-break:normal; white-space:normal }
+      .gcell .teach{ display:block; font-size:10px; color:#374151 }
+      .gcell .time{ display:block; font-size:11px; color:#6b7280 }
+    `;
+
+    days.forEach(day => {
+      let thead = '<thead><tr><th class="class-col">الصف / الشعبة</th>';
+      for (let i = 0; i < slots.length; i++) thead += `<th class="p">${i+1}</th>`;
+      thead += '</tr></thead>';
+      let tbody = '<tbody>';
+      classes.forEach((cls, ci) => {
+        const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
+        sections.forEach((sec, si) => {
+          tbody += '<tr>';
+          const label = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`;
+          tbody += `<td class="class-col">${label}</td>`;
+          for (let s = 0; s < slots.length; s++) {
+            const key = `${ci}:${si}|${day}|${slots[s]}`;
+            const legacy = `${ci}:${si}|${day}|${s+1}`;
+            const val = grid[key] ?? grid[legacy] ?? '';
+            if (!val) { tbody += '<td>—</td>'; }
+            else {
+              const meta = getTeacherAndSubjectByCellValue(db, val);
+              let subj = '', teach = '';
+              if (meta) {
+                const subjObj = db.subjectsCatalog?.[meta.subjIdx] || {};
+                subj = (subjObj.short || subjObj.name || '').trim();
+                const tFull = (db.teachers?.[meta.teacherIdx]?.name || '').trim();
+                teach = tFull.split(/\s+/)[0] || tFull;
+              } else {
+                const parts = String(val).split('•'); subj = (parts[0]||'').trim(); teach = (parts[1]||'').trim();
+              }
+              const timeRange = calcSlotTimeRange(db, day, s);
+              const timeHtml = prn.globalStyle?.timeShow ? `<div class=\"time\">${timeRange}</div>` : '';
+              tbody += `<td><div class=\"gcell\"><div class=\"subj\">${subj||val}</div><div class=\"teach\">${teach}</div>${timeHtml}</div></td>`;
+            }
+          }
+          tbody += '</tr>';
+        });
+      });
+      tbody += '</tbody>';
+      html += `<div class="day-page"><div class="day-header"><div class="sch"><div class="n">${db.school?.name || 'المدرسة'}</div><div class="g">${(db.school?.gender||'')}</div></div><div class="ttl"><div class="t">الجدول اليومي — ${day}</div>${db.school?.year?`<div class=\"y\">للعام الدراسي ${db.school.year}</div>`:''}</div><div class="l"></div></div><table class="day-tt">${thead}${tbody}</table></div>`;
+    });
+
+    UI.printDocument({
+      contentHtml: `<style>${css}</style>${html}`,
+      docTitle: 'الجدول حسب اليوم',
+      // لا نثبت رأس الطباعة هنا: لدينا رأس خفيف داخل كل صفحة يوم
+      school: { ...Store.getDB().school, logo: '' },
+      orientation: 'A4 landscape',
+      margin: '12mm 5mm 12mm 5mm',
+      fontScale: prn.fontScale || 1,
+      fontFamily: prn.fontFamily || '',
+      headerTypography: prn.headerTypography || {},
+      footerLeftImageUrl: prn.footer?.leftImageUrl || '',
+      footerRightHtml: prn.footer?.rightHtml || '',
+      noFixedHeader: true
+    });
+  }
 
   // Backup & Import/Export
   function renderBackups() {
