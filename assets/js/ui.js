@@ -106,8 +106,9 @@
       ? `<main class="print-body no-fixed">${contentHtml}</main>`
       : `${headerHtml}<main class="print-body">${contentHtml}</main>${footerHtml}`;
     const o = String(orientation||'portrait').toLowerCase();
-    const pageSize = /landscape/.test(o) ? 'A4 landscape' : /portrait/.test(o) ? 'A4 portrait' : o;
-    const css = `@page{ size: ${pageSize}; margin: ${margin}; }
+    // لا نفرض مقاس ورق محدد (A4)، بل نحدد الاتجاه فقط ليتكيّف مع ما تختاره من مربع الطباعة (A3/A4...)
+    const pageOrientation = /landscape/.test(o) ? 'landscape' : /portrait/.test(o) ? 'portrait' : 'auto';
+    const css = `@page{ size: ${pageOrientation}; margin: ${margin}; }
       body{ font-size:${14*fontScale}px; ${fontFamily ? `font-family:${fontFamily}` : ''} }
       th{ font-weight:700 }
       .print-body.no-fixed{ padding: 12mm }`;
