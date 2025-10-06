@@ -2301,16 +2301,56 @@
     const slots = db.timetable?.slots || [];
     const classes = db.classes || [];
     const prn = db.settings?.printing || {};
-  const secSt = prn.sectionsStyle || {};
-  const gSt = prn.globalStyle || {};
-  const C_HEADER_BG = (prn.globalStyle?.dayHeadBg) || secSt.headerBg || '#eef2ff';
-  const C_HEADER_TX = secSt.headerText || '#111827';
-  const C_DAY_BG = (prn.globalStyle?.classBg) || secSt.dayColBg || '#f9fafb';
-  const C_DAY_BG_ALT = (prn.globalStyle?.classAltBg) || secSt.dayColAlt || '#f3f4f6';
-  const C_BORDER = (prn.globalStyle?.borderColor) || secSt.border || '#d1d5db';
-  const B_WIDTH = Math.max(1, parseInt(prn.globalStyle?.borderWidth, 10) || 1);
-  const CLASS_W = Math.max(80, parseInt(prn.globalStyle?.classColWidth, 10) || 170);
-  const SLOT_W = Math.max(40, parseInt(prn.globalStyle?.slotColWidth, 10) || 72);
+    const secSt = prn.sectionsStyle || {};
+    // Prefer live (unsaved) UI values if available; fall back to saved settings
+    const get = (id) => (qs(id)?.value || '').trim();
+    const num = (id, d) => { const v = parseInt(get(id), 10); return isNaN(v) ? d : v; };
+    const on = (id, d=false) => { const el = qs(id); return el ? !!el.checked : d; };
+    const saved = prn.globalStyle || {};
+    const gSt = {
+      textColor: get('#prnGlobTextColor') || saved.textColor || '#111827',
+      textSize: num('#prnGlobTextSize', saved.textSize || 14),
+      dayColor: get('#prnGlobDayColor') || saved.dayColor || '#111827',
+      daySize: num('#prnGlobDaySize', saved.daySize || 14),
+      dayBold: on('#prnGlobDayBold', (saved.dayBold !== false)),
+      classColor: get('#prnGlobClassColor') || saved.classColor || '#111827',
+      classSize: num('#prnGlobClassSize', saved.classSize || 14),
+      classBold: on('#prnGlobClassBold', (saved.classBold !== false)),
+      headColor: get('#prnGlobHeadColor') || saved.headColor || '#111827',
+      headSize: num('#prnGlobHeadSize', saved.headSize || 13),
+      headBold: on('#prnGlobHeadBold', (saved.headBold !== false)),
+      subjColor: get('#prnGlobSubjColor') || saved.subjColor || '#111827',
+      subjSize: num('#prnGlobSubjSize', saved.subjSize || 16),
+      subjBold: on('#prnGlobSubjBold', (saved.subjBold !== false)),
+      teachShow: on('#prnGlobTeachShow', saved.teachShow !== false),
+      teachColor: get('#prnGlobTeachColor') || saved.teachColor || '#374151',
+      teachSize: num('#prnGlobTeachSize', saved.teachSize || 13),
+      teachBold: on('#prnGlobTeachBold', !!saved.teachBold),
+      timeShow: on('#prnGlobTimeShow', !!saved.timeShow),
+      timeColor: get('#prnGlobTimeColor') || saved.timeColor || '#6b7280',
+      timeSize: num('#prnGlobTimeSize', saved.timeSize || 12),
+      timeBold: on('#prnGlobTimeBold', !!saved.timeBold),
+      dayHeadBg: get('#prnGlobDayHeadBg') || saved.dayHeadBg || '#eef2ff',
+      classBg: get('#prnGlobClassBg') || saved.classBg || '#f9fafb',
+      classAltBg: get('#prnGlobClassAltBg') || saved.classAltBg || '#f3f4f6',
+      classColWidth: num('#prnGlobClassColWidth', (typeof saved.classColWidth==='number'?saved.classColWidth:parseInt(saved.classColWidth,10)) || 170),
+      borderColor: get('#prnGlobBorderColor') || saved.borderColor || '#d1d5db',
+      borderWidth: num('#prnGlobBorderWidth', (typeof saved.borderWidth==='number'?saved.borderWidth:parseInt(saved.borderWidth,10)) || 1),
+      slotColWidth: num('#prnGlobSlotColWidth', (typeof saved.slotColWidth==='number'?saved.slotColWidth:parseInt(saved.slotColWidth,10)) || 72),
+      // per-side margins (live if filled)
+      marginTop: get('#prnGlobMarginTop') || saved.marginTop || '',
+      marginRight: get('#prnGlobMarginRight') || saved.marginRight || '',
+      marginBottom: get('#prnGlobMarginBottom') || saved.marginBottom || '',
+      marginLeft: get('#prnGlobMarginLeft') || saved.marginLeft || ''
+    };
+    const C_HEADER_BG = gSt.dayHeadBg || secSt.headerBg || '#eef2ff';
+    const C_HEADER_TX = secSt.headerText || '#111827';
+    const C_DAY_BG = gSt.classBg || secSt.dayColBg || '#f9fafb';
+    const C_DAY_BG_ALT = gSt.classAltBg || secSt.dayColAlt || '#f3f4f6';
+    const C_BORDER = gSt.borderColor || secSt.border || '#d1d5db';
+    const B_WIDTH = Math.max(1, parseInt(gSt.borderWidth, 10) || 1);
+    const CLASS_W = Math.max(80, parseInt(gSt.classColWidth, 10) || 170);
+    const SLOT_W = Math.max(40, parseInt(gSt.slotColWidth, 10) || 72);
   // لا نستخدم أحجامًا خاصة هنا لضمان أن المتحكم العام يؤثر على كل النصوص
 
     // build header rows
@@ -2362,26 +2402,26 @@
     });
     tbody += '</tbody>';
 
-    const BASE_COLOR = gSt.textColor || '#111827';
-    const BASE_SIZE = parseInt(gSt.textSize, 10) || 14;
-    const DAY_COLOR = gSt.dayColor || BASE_COLOR;
-    const DAY_SIZE = parseInt(gSt.daySize, 10) || BASE_SIZE;
-    const DAY_BOLD = (gSt.dayBold !== false) ? 800 : 600;
-    const CLASS_COLOR = gSt.classColor || BASE_COLOR;
-    const CLASS_SIZE = parseInt(gSt.classSize, 10) || BASE_SIZE;
-    const CLASS_BOLD = (gSt.classBold !== false) ? 700 : 500;
-    const HEAD_COLOR = gSt.headColor || BASE_COLOR;
-    const HEAD_SIZE = parseInt(gSt.headSize, 10) || (BASE_SIZE - 1);
-    const HEAD_BOLD = (gSt.headBold !== false) ? 800 : 600;
-    const SUBJ_COLOR = gSt.subjColor || BASE_COLOR;
-    const SUBJ_SIZE = parseInt(gSt.subjSize, 10) || (BASE_SIZE + 2);
-    const SUBJ_BOLD = (gSt.subjBold !== false) ? 800 : 600;
-    const TEACH_COLOR = gSt.teachColor || '#374151';
-    const TEACH_SIZE = parseInt(gSt.teachSize, 10) || (BASE_SIZE - 1);
-    const TEACH_BOLD = gSt.teachBold ? 700 : 500;
-    const TIME_COLOR = gSt.timeColor || '#6b7280';
-    const TIME_SIZE = parseInt(gSt.timeSize, 10) || (BASE_SIZE - 2);
-    const TIME_BOLD = gSt.timeBold ? 700 : 500;
+  const BASE_COLOR = gSt.textColor || '#111827';
+  const BASE_SIZE = parseInt(gSt.textSize, 10) || 14;
+  const DAY_COLOR = gSt.dayColor || BASE_COLOR;
+  const DAY_SIZE = parseInt(gSt.daySize, 10) || BASE_SIZE;
+  const DAY_BOLD = gSt.dayBold ? 800 : 600;
+  const CLASS_COLOR = gSt.classColor || BASE_COLOR;
+  const CLASS_SIZE = parseInt(gSt.classSize, 10) || BASE_SIZE;
+  const CLASS_BOLD = gSt.classBold ? 700 : 500;
+  const HEAD_COLOR = gSt.headColor || BASE_COLOR;
+  const HEAD_SIZE = parseInt(gSt.headSize, 10) || (BASE_SIZE - 1);
+  const HEAD_BOLD = gSt.headBold ? 800 : 600;
+  const SUBJ_COLOR = gSt.subjColor || BASE_COLOR;
+  const SUBJ_SIZE = parseInt(gSt.subjSize, 10) || (BASE_SIZE + 2);
+  const SUBJ_BOLD = gSt.subjBold ? 800 : 600;
+  const TEACH_COLOR = gSt.teachColor || '#374151';
+  const TEACH_SIZE = parseInt(gSt.teachSize, 10) || (BASE_SIZE - 1);
+  const TEACH_BOLD = gSt.teachBold ? 700 : 500;
+  const TIME_COLOR = gSt.timeColor || '#6b7280';
+  const TIME_SIZE = parseInt(gSt.timeSize, 10) || (BASE_SIZE - 2);
+  const TIME_BOLD = gSt.timeBold ? 700 : 500;
     const css = `
       table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed; color:${BASE_COLOR}; font-size:${BASE_SIZE}px }
   .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:6px; vertical-align:middle; text-align:center }
@@ -2398,10 +2438,10 @@
     `;
     const html = `<style>${css}</style><table class="global-tt">${thead}${tbody}</table>`;
     // Build per-side margins: if any side provided, merge with global margin defaults
-    const mTop = (prn.globalStyle?.marginTop || '').trim();
-    const mRight = (prn.globalStyle?.marginRight || '').trim();
-    const mBottom = (prn.globalStyle?.marginBottom || '').trim();
-    const mLeft = (prn.globalStyle?.marginLeft || '').trim();
+  const mTop = (gSt.marginTop || '').trim();
+  const mRight = (gSt.marginRight || '').trim();
+  const mBottom = (gSt.marginBottom || '').trim();
+  const mLeft = (gSt.marginLeft || '').trim();
     const parseMargin = (m) => {
       const def = ['12mm','12mm','12mm','12mm'];
       if (!m) return def;
