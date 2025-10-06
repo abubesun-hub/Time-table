@@ -2424,15 +2424,16 @@
   const TIME_BOLD = gSt.timeBold ? 700 : 500;
     const css = `
       table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed; color:${BASE_COLOR}; font-size:${BASE_SIZE}px }
-  .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:6px; vertical-align:middle; text-align:center }
+  .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:6px; vertical-align:top; text-align:center }
   .global-tt thead th.day-head{ background:${C_HEADER_BG}; color:${DAY_COLOR}; font-weight:${HEAD_BOLD}; font-size:${HEAD_SIZE}px }
   .global-tt thead th.p, .global-tt tbody td.slot{ width:${SLOT_W}px }
   .global-tt .class-col{ width:${CLASS_W}px; text-align:right; font-weight:${CLASS_BOLD}; background:${C_DAY_BG}; color:${CLASS_COLOR}; font-size:${CLASS_SIZE}px }
       .global-tt tr:nth-child(odd) .class-col{ background:${C_DAY_BG_ALT} }
   .global-tt td.sep, .global-tt th.p:first-child{ border-right-width:${Math.max(B_WIDTH,2)}px }
       .global-tt .p{ color:${HEAD_COLOR}; font-size:${HEAD_SIZE}px; font-weight:${HEAD_BOLD} }
-      .global-tt .g-cell{ line-height:1.25; color:${BASE_COLOR} }
-      .global-tt .g-subj{ color:${SUBJ_COLOR}; font-weight:${SUBJ_BOLD}; font-size:${SUBJ_SIZE}px }
+      .global-tt .g-cell{ line-height:1.35; color:${BASE_COLOR}; white-space:normal; overflow-wrap:anywhere; word-break:break-word }
+      .global-tt .g-subj, .global-tt .g-teach, .global-tt .g-time{ display:block }
+      .global-tt .g-subj{ color:${SUBJ_COLOR}; font-weight:${SUBJ_BOLD}; font-size:${SUBJ_SIZE}px; margin-bottom:2px }
       .global-tt .g-teach{ color:${TEACH_COLOR}; font-weight:${TEACH_BOLD}; font-size:${TEACH_SIZE}px }
       .global-tt .g-time{ color:${TIME_COLOR}; font-weight:${TIME_BOLD}; font-size:${TIME_SIZE}px }
     `;
@@ -2740,12 +2741,14 @@
     const B = Math.max(1, gs.borderWidth);
     const css = `
       table.gprev{ width:100%; border-collapse:collapse; table-layout:fixed; color:${gs.textColor}; font-size:${gs.textSize}px }
-      .gprev th, .gprev td{ border:${B}px solid ${gs.borderColor}; padding:6px; vertical-align:middle; text-align:center }
+      .gprev th, .gprev td{ border:${B}px solid ${gs.borderColor}; padding:6px; vertical-align:top; text-align:center }
       .gprev .day-head{ background:${gs.dayHeadBg}; color:${gs.dayColor}; font-weight:${gs.headBold?800:600}; font-size:${gs.headSize}px }
       .gprev .class-col{ width:${gs.classColWidth}px; text-align:right; font-weight:${gs.classBold?700:500}; background:${gs.classBg}; color:${gs.classColor}; font-size:${gs.classSize}px }
       .gprev tr:nth-child(odd) .class-col{ background:${gs.classAltBg} }
       .gprev .p{ width:${gs.slotColWidth}px; color:${gs.headColor}; font-size:${gs.headSize}px; font-weight:${gs.headBold?800:600} }
-      .gprev .g-subj{ color:${gs.subjColor}; font-weight:${gs.subjBold?800:600}; font-size:${gs.subjSize}px }
+      .gprev .g-cell{ line-height:1.35; white-space:normal; overflow-wrap:anywhere; word-break:break-word }
+      .gprev .g-subj, .gprev .g-teach, .gprev .g-time{ display:block }
+      .gprev .g-subj{ color:${gs.subjColor}; font-weight:${gs.subjBold?800:600}; font-size:${gs.subjSize}px; margin-bottom:2px }
       .gprev .g-teach{ ${gs.teachShow?'':'display:none;'} color:${gs.teachColor}; font-weight:${gs.teachBold?700:500}; font-size:${gs.teachSize}px }
       .gprev .g-time{ ${gs.timeShow?'':'display:none;'} color:${gs.timeColor}; font-weight:${gs.timeBold?700:500}; font-size:${gs.timeSize}px }
     `;
