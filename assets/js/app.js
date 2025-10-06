@@ -2352,7 +2352,7 @@
     const C_DAY_BG_ALT = gSt.classAltBg || secSt.dayColAlt || '#f3f4f6';
     const C_BORDER = gSt.borderColor || secSt.border || '#d1d5db';
     const B_WIDTH = Math.max(1, parseInt(gSt.borderWidth, 10) || 1);
-    const CLASS_W = Math.max(80, parseInt(gSt.classColWidth, 10) || 170);
+  const CLASS_W = Math.max(60, parseInt(gSt.classColWidth, 10) || 170);
     const SLOT_W = Math.max(40, parseInt(gSt.slotColWidth, 10) || 72);
   // لا نستخدم أحجامًا خاصة هنا لضمان أن المتحكم العام يؤثر على كل النصوص
 
