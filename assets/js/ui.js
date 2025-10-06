@@ -40,17 +40,19 @@
   }
 
   function printHtml(html, opts = {}) {
-    const { title = 'طباعة', css = '', afterWrite } = opts;
+    const { title = 'طباعة', css = '', afterWrite, rasterize = false, rasterScale = 2 } = opts;
     const w = window.open('', '_blank');
     const baseCss = `
-      @page { size: auto; margin: 12mm; }
+      /* اجعل الهوامش الجانبية 5mm افتراضيًا مع إبقاء العلوية/السفلية 12mm */
+      @page { size: auto; margin: 12mm 5mm 12mm 5mm; }
       *{ box-sizing: border-box }
       body{ font-family: Tajawal, Segoe UI, Arial; direction: rtl; padding: 0; margin: 0; color: #111827 }
       header.print-header, footer.print-footer{ position: fixed; inset-inline: 0; }
-      header.print-header{ top: 0; padding: 10mm 12mm 4mm; border-bottom: 1px solid #ddd; }
-      footer.print-footer{ bottom: 0; padding: 6mm 12mm 8mm; border-top: 1px solid #ddd; display:flex; align-items:center; justify-content:space-between; gap:12px }
+      /* قلّل الحشوات الأفقية للاستفادة من هوامش 5mm */
+      header.print-header{ top: 0; padding: 10mm 5mm 4mm; border-bottom: 1px solid #ddd; }
+      footer.print-footer{ bottom: 0; padding: 6mm 5mm 8mm; border-top: 1px solid #ddd; display:flex; align-items:center; justify-content:space-between; gap:12px }
       /* زيدت المسافة العلوية لتفادي تداخل رأس الصفحة مع المحتوى، خاصة مع العنوان والسنة الدراسية */
-      main.print-body{ padding: 46mm 12mm 24mm; }
+      main.print-body{ padding: 46mm 5mm 24mm; }
       table{ width:100%; border-collapse:collapse }
       td,th{ border:1px solid #ccc; padding:6px }
       .muted{ color:#6b7280 }
@@ -58,14 +60,64 @@
       .right{ text-align:right }
       img.logo{ height: 52px }
     `;
-    w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>${title}</title><style>${baseCss}${css}</style></head><body>${html}</body></html>`);
+  w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>${title}</title><style>${baseCss}${css}</style></head><body>${html}</body></html>`);
     w.document.close();
+    // اضبط حشوة محتوى الطباعة حسب ارتفاع الرأس/التذييل لمنع التداخل
+    try {
+      const adjust = () => {
+        const doc = w.document;
+        const main = doc.querySelector('main.print-body');
+        const head = doc.querySelector('header.print-header');
+        const foot = doc.querySelector('footer.print-footer');
+        if (main && head) main.style.paddingTop = (head.offsetHeight + 8) + 'px';
+        if (main && foot) main.style.paddingBottom = (foot.offsetHeight + 8) + 'px';
+      };
+      // نفّذ مباشرة وبعد تحميل الصور وتغيير المقاس
+      w.addEventListener('load', () => setTimeout(adjust, 10));
+      setTimeout(adjust, 30);
+      Array.from(w.document.images || []).forEach(img => { if (!img.complete) img.addEventListener('load', adjust, { once:true }); });
+      w.addEventListener('resize', adjust);
+    } catch {}
     if (typeof afterWrite === 'function') try { afterWrite(w); } catch {}
     w.focus();
-    setTimeout(() => w.print(), 350);
+    // في وضع التحويل إلى صورة: حمّل html2canvas ثم حوّل المحتوى إلى صورة واطبع
+    if (rasterize) {
+      const loadScript = (win, src) => new Promise((resolve, reject) => {
+        const s = win.document.createElement('script'); s.src = src; s.async = true;
+        s.onload = () => resolve(); s.onerror = (e) => reject(e); win.document.head.appendChild(s);
+      });
+      const doRaster = async () => {
+        try {
+          // حمّل المكتبة من CDN إذا لم تكن موجودة
+          if (!w.html2canvas) {
+            await loadScript(w, 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+          }
+          const root = w.document.body;
+          // انتظر دورة رسم لضمان اكتمال التهيئة
+          await new Promise(r => setTimeout(r, 50));
+          const canvas = await w.html2canvas(root, {
+            scale: rasterScale,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            windowWidth: root.scrollWidth,
+            windowHeight: root.scrollHeight
+          });
+          const dataURL = canvas.toDataURL('image/png');
+          w.document.body.innerHTML = `<img src="${dataURL}" style="width:100%;height:auto;display:block">`;
+          setTimeout(() => w.print(), 200);
+        } catch (e) {
+          // فشل التحويل (غالبًا بسبب CORS للصور) → عُد للطباعة العادية
+          setTimeout(() => w.print(), 350);
+        }
+      };
+      doRaster();
+    } else {
+      setTimeout(() => w.print(), 350);
+    }
   }
 
-  function printDocument({ contentHtml, docTitle, school, orientation = 'portrait', margin = '12mm', fontScale = 1, footerLeftImageUrl = '', footerRightHtml = '', fontFamily = '' , leftHeaderHtml = '', headerTypography = {}, noFixedHeader = false }) {
+  function printDocument({ contentHtml, docTitle, school, orientation = 'portrait', margin = '12mm', fontScale = 1, footerLeftImageUrl = '', footerRightHtml = '', fontFamily = '' , leftHeaderHtml = '', headerTypography = {}, noFixedHeader = false, rasterize = false, rasterScale = 2 }) {
     const dateStr = new Date().toLocaleString('ar-EG');
     const logoHtml = school?.logo ? `<img class="logo" src="${school.logo}" alt="logo">` : '';
     // حقل الجنس يُعرَض بصيغ: ذكور→ للبنين، إناث→ للبنات، مختلط→ المختلطة
@@ -87,7 +139,7 @@
           </div>
           <!-- Center: document title + academic year -->
           <div style="text-align:center; flex:1">
-            <div style="font-weight:800; letter-spacing:0.25px; ${headerTypography?.docTitle?.family ? `font-family:${headerTypography.docTitle.family};` : ''} font-size:${(headerTypography?.docTitle?.size ?? 16)*fontScale}px">${docTitle || ''}</div>
+            <div style="font-weight:800; letter-spacing:0; direction:rtl; unicode-bidi:isolate; ${headerTypography?.docTitle?.family ? `font-family:${headerTypography.docTitle.family};` : ''} font-size:${(headerTypography?.docTitle?.size ?? 16)*fontScale}px">${docTitle || ''}</div>
             ${school?.year ? `<div class="muted" style="margin-top:2px; ${headerTypography?.year?.family ? `font-family:${headerTypography.year.family};` : ''} font-size:${(headerTypography?.year?.size ?? 12)*fontScale}px">للعام الدراسي ${school.year}</div>` : ''}
           </div>
           <!-- Left: optional slot (e.g. class/section) + logo below -->
@@ -113,7 +165,7 @@
       body{ font-size:${14*fontScale}px; ${fontFamily ? `font-family:${fontFamily}` : ''} }
       th{ font-weight:700 }
       .print-body.no-fixed{ padding: 12mm }`;
-    printHtml(html, { title: docTitle || 'طباعة', css });
+    printHtml(html, { title: docTitle || 'طباعة', css, rasterize, rasterScale });
   }
 
   global.UI = { qs, qsa, routeTo, showToast, renderList, printHtml, printDocument };

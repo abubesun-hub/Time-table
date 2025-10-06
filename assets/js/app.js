@@ -2353,7 +2353,8 @@
     const C_BORDER = gSt.borderColor || secSt.border || '#d1d5db';
     const B_WIDTH = Math.max(1, parseInt(gSt.borderWidth, 10) || 1);
   const CLASS_W = Math.max(60, parseInt(gSt.classColWidth, 10) || 170);
-    const SLOT_W = Math.max(40, parseInt(gSt.slotColWidth, 10) || 72);
+    // زِد العرض الافتراضي لعمود الحصة في طباعة الجدول العام
+  const SLOT_W = Math.max(40, parseInt(gSt.slotColWidth, 10) || 132);
   // لا نستخدم أحجامًا خاصة هنا لضمان أن المتحكم العام يؤثر على كل النصوص
 
     // build header rows
@@ -2427,20 +2428,22 @@
   const TIME_SIZE = parseInt(gSt.timeSize, 10) || (BASE_SIZE - 2);
   const TIME_BOLD = gSt.timeBold ? 700 : 500;
     const css = `
-      table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed; color:${BASE_COLOR}; font-size:${BASE_SIZE}px }
-  .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:2px; vertical-align:top; text-align:center }
+    table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed; color:${BASE_COLOR}; font-size:${BASE_SIZE}px }
+  .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:3px; vertical-align:top; text-align:center; box-sizing:border-box }
   .global-tt thead th.day-head{ background:${C_HEADER_BG}; color:${DAY_COLOR}; font-weight:${HEAD_BOLD}; font-size:${HEAD_SIZE}px }
   /* عرض الأعمدة يُحدده colgroup؛ لا نعيد فرضه هنا حتى لا نتجاوز تفضيلات المستخدم */
   .global-tt thead th.p, .global-tt tbody td.slot{ }
-  .global-tt .class-col{ text-align:right; font-weight:${CLASS_BOLD}; background:${C_DAY_BG}; color:${CLASS_COLOR}; font-size:${CLASS_SIZE}px; white-space:nowrap }
+  .global-tt .class-col{ text-align:right; font-weight:${CLASS_BOLD}; background:${C_DAY_BG}; color:${CLASS_COLOR}; font-size:${CLASS_SIZE}px; white-space:normal; overflow-wrap:normal; word-break:normal }
       .global-tt tr:nth-child(odd) .class-col{ background:${C_DAY_BG_ALT} }
   .global-tt td.sep, .global-tt th.p:first-child{ border-right-width:${Math.max(B_WIDTH,2)}px }
-      .global-tt td.slot{ padding-top:3px; padding-bottom:3px }
+  .global-tt td.slot{ padding-top:3px; padding-bottom:3px }
       .global-tt .p{ color:${HEAD_COLOR}; font-size:${HEAD_SIZE}px; font-weight:${HEAD_BOLD} }
-  .global-tt .g-cell{ line-height:1.4; color:${BASE_COLOR}; white-space:normal; overflow-wrap:normal; word-break:normal; display:flex; flex-direction:column; align-items:center; gap:2px }
-  .global-tt .g-subj, .global-tt .g-teach, .global-tt .g-time{ display:block; overflow-wrap:normal; word-break:normal }
+  .global-tt .g-cell{ line-height:1.45; color:${BASE_COLOR}; white-space:normal; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; display:block; max-width:100% }
+  .global-tt .g-subj, .global-tt .g-teach, .global-tt .g-time{ display:block; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; max-width:100% }
       .global-tt .g-subj{ color:${SUBJ_COLOR}; font-weight:${SUBJ_BOLD}; font-size:${SUBJ_SIZE}px; margin-bottom:2px }
-      .global-tt .g-teach{ color:${TEACH_COLOR}; font-weight:${TEACH_BOLD}; font-size:${TEACH_SIZE}px }
+    /* لا تقسّم الكلمة الواحدة لاسم المادة؛ اسمح باللف عند المسافات فقط */
+    .global-tt .g-subj{ overflow-wrap: normal; word-break: normal; white-space: normal }
+  .global-tt .g-teach{ color:${TEACH_COLOR}; font-weight:${TEACH_BOLD}; font-size:${TEACH_SIZE}px; overflow-wrap: normal; word-break: normal; white-space: normal }
       .global-tt .g-time{ color:${TIME_COLOR}; font-weight:${TIME_BOLD}; font-size:${TIME_SIZE}px }
     `;
   // استخدم colgroup بنِسَب مئوية لضمان ملاءمة الجدول لعرض الصفحة
@@ -2455,9 +2458,11 @@
     return m;
   }, 0);
   // كل حرف ~ 8px كمتوسط مع الخط الحالي؛ حشو داخلي 2px وحدود ~2px
-  const estimatedPx = Math.max(CLASS_W, Math.min(420, longestLabel * 8 + 12));
+  // حرّر مساحة أكبر للأعمدة (الحصص) على حساب عمود الصف/الشعبة إن كان واسعًا بلا حاجة
+  const estimatedPx = Math.max(CLASS_W, Math.min(140, longestLabel * 5 + 6));
   const requested = estimatedPx + SLOT_W * totalPeriodCols;
-  const pctClass = Math.max(8, Math.min(35, (estimatedPx / requested) * 100));
+  // قلّص الحد الأعلى لنسبة عمود الصف إلى 7.5% وحده الأدنى 4% لاستغلال المساحة لصالح الحصص
+  const pctClass = Math.max(4, Math.min(7.5, (estimatedPx / requested) * 100));
   const pctSlot = (100 - pctClass) / totalPeriodCols;
   let colgroup = `<colgroup><col class="col-class" style="width:${pctClass}%">`;
   for (let i = 0; i < totalPeriodCols; i++) colgroup += `<col class="col-slot" style="width:${pctSlot}%">`;
@@ -2488,14 +2493,19 @@
       contentHtml: html,
       docTitle: 'الجدول الأسبوعي (عرض عام)',
       school: Store.getDB().school,
-      orientation: 'A3 landscape', // إجبار A3
-      margin: '12mm', // هامش ثابت مناسب لـ A3
+      // إجبار A3 أفقي كما طلبت
+      orientation: 'A3 landscape',
+      // اضبط الهوامش: علوي/سفلي 12mm، جانبي 5mm (0.5cm)
+      margin: '12mm 5mm 12mm 5mm',
       fontScale: 1, // تثبيت مقياس الخط العام
       fontFamily: prn.fontFamily || '',
       headerTypography: prn.headerTypography || {},
       footerLeftImageUrl: prn.footer?.leftImageUrl || '',
       footerRightHtml: prn.footer?.rightHtml || '',
-      leftHeaderHtml: 'جميع الصفوف'
+      leftHeaderHtml: 'جميع الصفوف',
+      // وضع الطباعة كصورة لضمان تماثل صورة المعاينة مع المطبوع
+      rasterize: true,
+      rasterScale: 2
     });
   }
 
