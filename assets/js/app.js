@@ -2415,14 +2415,14 @@
   const CLASS_SIZE = parseInt(gSt.classSize, 10) || BASE_SIZE;
   const CLASS_BOLD = gSt.classBold ? 700 : 500;
   const HEAD_COLOR = gSt.headColor || BASE_COLOR;
-  const HEAD_SIZE = parseInt(gSt.headSize, 10) || (BASE_SIZE - 1);
+  const HEAD_SIZE = Math.max(10, parseInt(gSt.headSize, 10) || (BASE_SIZE - 1));
   const HEAD_BOLD = gSt.headBold ? 800 : 600;
   const SUBJ_COLOR = gSt.subjColor || BASE_COLOR;
-  const SUBJ_SIZE = parseInt(gSt.subjSize, 10) || (BASE_SIZE + 2);
-  const SUBJ_BOLD = gSt.subjBold ? 800 : 600;
+  const SUBJ_SIZE = 12; // مطلوب: حجم المادة 12px
+  const SUBJ_BOLD = 800; // مطلوب: المادة عريض
   const TEACH_COLOR = gSt.teachColor || '#374151';
-  const TEACH_SIZE = parseInt(gSt.teachSize, 10) || (BASE_SIZE - 1);
-  const TEACH_BOLD = gSt.teachBold ? 700 : 500;
+  const TEACH_SIZE = 10; // مطلوب: المعلم 10px
+  const TEACH_BOLD = 500; // مطلوب: بدون تعريض
   const TIME_COLOR = gSt.timeColor || '#6b7280';
   const TIME_SIZE = parseInt(gSt.timeSize, 10) || (BASE_SIZE - 2);
   const TIME_BOLD = gSt.timeBold ? 700 : 500;
@@ -2432,20 +2432,32 @@
   .global-tt thead th.day-head{ background:${C_HEADER_BG}; color:${DAY_COLOR}; font-weight:${HEAD_BOLD}; font-size:${HEAD_SIZE}px }
   /* عرض الأعمدة يُحدده colgroup؛ لا نعيد فرضه هنا حتى لا نتجاوز تفضيلات المستخدم */
   .global-tt thead th.p, .global-tt tbody td.slot{ }
-  .global-tt .class-col{ text-align:right; font-weight:${CLASS_BOLD}; background:${C_DAY_BG}; color:${CLASS_COLOR}; font-size:${CLASS_SIZE}px }
+  .global-tt .class-col{ text-align:right; font-weight:${CLASS_BOLD}; background:${C_DAY_BG}; color:${CLASS_COLOR}; font-size:${CLASS_SIZE}px; white-space:nowrap }
       .global-tt tr:nth-child(odd) .class-col{ background:${C_DAY_BG_ALT} }
   .global-tt td.sep, .global-tt th.p:first-child{ border-right-width:${Math.max(B_WIDTH,2)}px }
+      .global-tt td.slot{ padding-top:3px; padding-bottom:3px }
       .global-tt .p{ color:${HEAD_COLOR}; font-size:${HEAD_SIZE}px; font-weight:${HEAD_BOLD} }
-      .global-tt .g-cell{ line-height:1.35; color:${BASE_COLOR}; white-space:normal; overflow-wrap:anywhere; word-break:break-word }
-      .global-tt .g-subj, .global-tt .g-teach, .global-tt .g-time{ display:block }
+  .global-tt .g-cell{ line-height:1.4; color:${BASE_COLOR}; white-space:normal; overflow-wrap:normal; word-break:normal; display:flex; flex-direction:column; align-items:center; gap:2px }
+  .global-tt .g-subj, .global-tt .g-teach, .global-tt .g-time{ display:block; overflow-wrap:normal; word-break:normal }
       .global-tt .g-subj{ color:${SUBJ_COLOR}; font-weight:${SUBJ_BOLD}; font-size:${SUBJ_SIZE}px; margin-bottom:2px }
       .global-tt .g-teach{ color:${TEACH_COLOR}; font-weight:${TEACH_BOLD}; font-size:${TEACH_SIZE}px }
       .global-tt .g-time{ color:${TIME_COLOR}; font-weight:${TIME_BOLD}; font-size:${TIME_SIZE}px }
     `;
   // استخدم colgroup بنِسَب مئوية لضمان ملاءمة الجدول لعرض الصفحة
   const totalPeriodCols = days.length * slots.length;
-  const requested = CLASS_W + SLOT_W * totalPeriodCols;
-  const pctClass = Math.max(10, Math.min(40, (CLASS_W / requested) * 100));
+  // تقدير عرض نص الصف/الشعبة لتخصيص نسبة تكفي سطرًا واحدًا دون التفاف
+  const longestLabel = classes.reduce((m, cls) => {
+    const secs = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '' }];
+    secs.forEach(sec => {
+      const label = `${cls.name}${sec && sec.name ? ' — ' + sec.name : ''}`.trim();
+      m = Math.max(m, label.length);
+    });
+    return m;
+  }, 0);
+  // كل حرف ~ 8px كمتوسط مع الخط الحالي؛ حشو داخلي 2px وحدود ~2px
+  const estimatedPx = Math.max(CLASS_W, Math.min(420, longestLabel * 8 + 12));
+  const requested = estimatedPx + SLOT_W * totalPeriodCols;
+  const pctClass = Math.max(8, Math.min(35, (estimatedPx / requested) * 100));
   const pctSlot = (100 - pctClass) / totalPeriodCols;
   let colgroup = `<colgroup><col class="col-class" style="width:${pctClass}%">`;
   for (let i = 0; i < totalPeriodCols; i++) colgroup += `<col class="col-slot" style="width:${pctSlot}%">`;
@@ -2469,11 +2481,14 @@
     const anySide = !!(mTop || mRight || mBottom || mLeft);
     const mFinal = [mTop || base[0], mRight || base[1], mBottom || base[2], mLeft || base[3]];
     const marginStr = anySide ? mFinal.join(' ') : (prn.margin || '12mm');
+    // ثبّت إعدادات مخرجاتك المطلوبة: A3 landscape، مقاس الخطوط، ومنع التداخل
+    const desiredSubjSize = 12; const desiredSubjBold = true;
+    const desiredTeachSize = 10; const desiredTeachBold = false;
     UI.printDocument({
       contentHtml: html,
       docTitle: 'الجدول الأسبوعي (عرض عام)',
       school: Store.getDB().school,
-      orientation: 'landscape',
+      orientation: 'A3 landscape',
       margin: marginStr,
       fontScale: prn.fontScale || 1,
       fontFamily: prn.fontFamily || '',
@@ -2756,18 +2771,21 @@
       table.gprev{ width:100%; border-collapse:collapse; table-layout:fixed; color:${gs.textColor}; font-size:${gs.textSize}px }
   .gprev th, .gprev td{ border:${B}px solid ${gs.borderColor}; padding:2px; vertical-align:top; text-align:center }
       .gprev .day-head{ background:${gs.dayHeadBg}; color:${gs.dayColor}; font-weight:${gs.headBold?800:600}; font-size:${gs.headSize}px }
-      .gprev .class-col{ width:${gs.classColWidth}px; text-align:right; font-weight:${gs.classBold?700:500}; background:${gs.classBg}; color:${gs.classColor}; font-size:${gs.classSize}px }
+  .gprev .class-col{ text-align:right; font-weight:${gs.classBold?700:500}; background:${gs.classBg}; color:${gs.classColor}; font-size:${gs.classSize}px; white-space:nowrap }
       .gprev tr:nth-child(odd) .class-col{ background:${gs.classAltBg} }
-      .gprev .p{ width:${gs.slotColWidth}px; color:${gs.headColor}; font-size:${gs.headSize}px; font-weight:${gs.headBold?800:600} }
-      .gprev .g-cell{ line-height:1.35; white-space:normal; overflow-wrap:anywhere; word-break:break-word }
-      .gprev .g-subj, .gprev .g-teach, .gprev .g-time{ display:block }
+  .gprev .p{ color:${gs.headColor}; font-size:${gs.headSize}px; font-weight:${gs.headBold?800:600} }
+  .gprev .g-cell{ line-height:1.35; white-space:normal; overflow-wrap:normal; word-break:normal; display:flex; flex-direction:column; align-items:center; gap:2px }
+  .gprev .g-subj, .gprev .g-teach, .gprev .g-time{ display:block; overflow-wrap:normal; word-break:normal }
       .gprev .g-subj{ color:${gs.subjColor}; font-weight:${gs.subjBold?800:600}; font-size:${gs.subjSize}px; margin-bottom:2px }
       .gprev .g-teach{ ${gs.teachShow?'':'display:none;'} color:${gs.teachColor}; font-weight:${gs.teachBold?700:500}; font-size:${gs.teachSize}px }
       .gprev .g-time{ ${gs.timeShow?'':'display:none;'} color:${gs.timeColor}; font-weight:${gs.timeBold?700:500}; font-size:${gs.timeSize}px }
     `;
-    // colgroup for live preview too
-    let colgroupPrev = `<colgroup><col class="col-class" style="width:${gs.classColWidth}px">`;
-    for (let i = 0; i < 3; i++) colgroupPrev += `<col class="col-slot" style="width:${gs.slotColWidth}px">`;
+  // colgroup for live preview too (use percentages to mirror print fit)
+  const reqPrev = gs.classColWidth + gs.slotColWidth * 3;
+  const pctClassPrev = Math.max(2, Math.min(40, (gs.classColWidth / reqPrev) * 100));
+  const pctSlotPrev = (100 - pctClassPrev) / 3;
+  let colgroupPrev = `<colgroup><col class="col-class" style="width:${pctClassPrev}%">`;
+  for (let i = 0; i < 3; i++) colgroupPrev += `<col class="col-slot" style="width:${pctSlotPrev}%">`;
     colgroupPrev += `</colgroup>`;
     const html = `
       <style>${css}</style>

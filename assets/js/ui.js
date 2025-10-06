@@ -105,10 +105,11 @@
     const html = noFixedHeader
       ? `<main class="print-body no-fixed">${contentHtml}</main>`
       : `${headerHtml}<main class="print-body">${contentHtml}</main>${footerHtml}`;
-    const o = String(orientation||'portrait').toLowerCase();
-    // لا نفرض مقاس ورق محدد (A4)، بل نحدد الاتجاه فقط ليتكيّف مع ما تختاره من مربع الطباعة (A3/A4...)
-    const pageOrientation = /landscape/.test(o) ? 'landscape' : /portrait/.test(o) ? 'portrait' : 'auto';
-    const css = `@page{ size: ${pageOrientation}; margin: ${margin}; }
+    const o = String(orientation||'portrait');
+    // إن تم تمرير مقاس ورق صريح (مثل "A3" أو "A3 landscape") نستخدمه كما هو
+    const hasExplicitSize = /(A\d|Letter|Legal|Tabloid|Executive)/i.test(o);
+    const pageSize = hasExplicitSize ? o : (/landscape/i.test(o) ? 'landscape' : /portrait/i.test(o) ? 'portrait' : 'auto');
+    const css = `@page{ size: ${pageSize}; margin: ${margin}; }
       body{ font-size:${14*fontScale}px; ${fontFamily ? `font-family:${fontFamily}` : ''} }
       th{ font-weight:700 }
       .print-body.no-fixed{ padding: 12mm }`;
