@@ -2442,10 +2442,13 @@
       .global-tt .g-teach{ color:${TEACH_COLOR}; font-weight:${TEACH_BOLD}; font-size:${TEACH_SIZE}px }
       .global-tt .g-time{ color:${TIME_COLOR}; font-weight:${TIME_BOLD}; font-size:${TIME_SIZE}px }
     `;
-  // استخدم colgroup لفرض عرض الأعمدة (أكثر موثوقية من تعيين العرض على الخلايا فقط)
-  let colgroup = `<colgroup><col class="col-class" style="width:${CLASS_W}px">`;
+  // استخدم colgroup بنِسَب مئوية لضمان ملاءمة الجدول لعرض الصفحة
   const totalPeriodCols = days.length * slots.length;
-  for (let i = 0; i < totalPeriodCols; i++) colgroup += `<col class="col-slot" style="width:${SLOT_W}px">`;
+  const requested = CLASS_W + SLOT_W * totalPeriodCols;
+  const pctClass = Math.max(10, Math.min(40, (CLASS_W / requested) * 100));
+  const pctSlot = (100 - pctClass) / totalPeriodCols;
+  let colgroup = `<colgroup><col class="col-class" style="width:${pctClass}%">`;
+  for (let i = 0; i < totalPeriodCols; i++) colgroup += `<col class="col-slot" style="width:${pctSlot}%">`;
   colgroup += `</colgroup>`;
   const html = `<style>${css}</style><table class="global-tt">${colgroup}${thead}${tbody}</table>`;
     // Build per-side margins: if any side provided, merge with global margin defaults
