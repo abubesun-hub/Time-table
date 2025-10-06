@@ -766,9 +766,9 @@
             <label class="label" for="prnGlobTextColor">لون النص العام</label>
             <input id="prnGlobTextColor" class="input" type="color" value="#111827" />
           </div>
-          <div class="col" style="min-width:200px">
+          <div class="col" style="min-width:200px; opacity:.5">
             <label class="label" for="prnGlobTextSize">حجم النص العام (px)</label>
-            <input id="prnGlobTextSize" class="input" type="number" min="10" max="28" step="1" value="14" />
+            <input id="prnGlobTextSize" class="input" type="number" value="14" disabled />
           </div>
         </div>
 
@@ -778,21 +778,21 @@
             <label class="label" for="prnGlobDayColor">لون: أيام الأسبوع</label>
             <input id="prnGlobDayColor" class="input" type="color" value="#111827" />
             <label class="label" for="prnGlobDaySize">حجم (px): أيام الأسبوع</label>
-            <input id="prnGlobDaySize" class="input" type="number" min="10" max="28" step="1" value="14" />
+            <input id="prnGlobDaySize" class="input" type="number" value="14" disabled />
             <label class="label"><input id="prnGlobDayBold" type="checkbox" checked /> غامق (Bold)</label>
           </div>
           <div class="col" style="min-width:220px">
             <label class="label" for="prnGlobClassColor">لون: عمود الصف/الشعبة</label>
             <input id="prnGlobClassColor" class="input" type="color" value="#111827" />
             <label class="label" for="prnGlobClassSize">حجم (px): عمود الصف/الشعبة</label>
-            <input id="prnGlobClassSize" class="input" type="number" min="10" max="28" step="1" value="14" />
+            <input id="prnGlobClassSize" class="input" type="number" value="14" disabled />
             <label class="label"><input id="prnGlobClassBold" type="checkbox" checked /> غامق (Bold)</label>
           </div>
           <div class="col" style="min-width:220px">
             <label class="label" for="prnGlobHeadColor">لون: عناوين الحصص</label>
             <input id="prnGlobHeadColor" class="input" type="color" value="#111827" />
             <label class="label" for="prnGlobHeadSize">حجم (px): عناوين الحصص</label>
-            <input id="prnGlobHeadSize" class="input" type="number" min="10" max="28" step="1" value="13" />
+            <input id="prnGlobHeadSize" class="input" type="number" value="13" disabled />
             <label class="label"><input id="prnGlobHeadBold" type="checkbox" checked /> غامق (Bold)</label>
           </div>
         </div>
@@ -803,7 +803,7 @@
             <label class="label" for="prnGlobSubjColor">لون: المادة</label>
             <input id="prnGlobSubjColor" class="input" type="color" value="#111827" />
             <label class="label" for="prnGlobSubjSize">حجم (px): المادة</label>
-            <input id="prnGlobSubjSize" class="input" type="number" min="10" max="32" step="1" value="16" />
+            <input id="prnGlobSubjSize" class="input" type="number" value="12" disabled />
             <label class="label"><input id="prnGlobSubjBold" type="checkbox" checked /> غامق (Bold)</label>
           </div>
           <div class="col" style="min-width:220px">
@@ -811,7 +811,7 @@
             <label class="label" for="prnGlobTeachColor">لون: معلم المادة</label>
             <input id="prnGlobTeachColor" class="input" type="color" value="#374151" />
             <label class="label" for="prnGlobTeachSize">حجم (px): معلم المادة</label>
-            <input id="prnGlobTeachSize" class="input" type="number" min="10" max="28" step="1" value="13" />
+            <input id="prnGlobTeachSize" class="input" type="number" value="10" disabled />
             <label class="label"><input id="prnGlobTeachBold" type="checkbox" /> غامق (Bold)</label>
           </div>
           <div class="col" style="min-width:220px">
@@ -819,28 +819,28 @@
             <label class="label" for="prnGlobTimeColor">لون: التوقيت</label>
             <input id="prnGlobTimeColor" class="input" type="color" value="#6b7280" />
             <label class="label" for="prnGlobTimeSize">حجم (px): التوقيت</label>
-            <input id="prnGlobTimeSize" class="input" type="number" min="8" max="24" step="1" value="12" />
+            <input id="prnGlobTimeSize" class="input" type="number" value="12" disabled />
             <label class="label"><input id="prnGlobTimeBold" type="checkbox" /> غامق (Bold)</label>
           </div>
         </div>
 
-        <h5 class="sub-title" style="margin-top:8px">هوامش الصفحة (mm)</h5>
+  <h5 class="sub-title" style="margin-top:8px; opacity:.5">هوامش الصفحة (mm)</h5>
         <div class="row wrap" style="gap:12px">
           <div class="col" style="min-width:160px">
             <label class="label" for="prnGlobMarginTop">الهامش العلوي</label>
-            <input id="prnGlobMarginTop" class="input" type="text" placeholder="مثال: 12mm" />
+            <input id="prnGlobMarginTop" class="input" type="text" placeholder="مثال: 12mm" disabled />
           </div>
           <div class="col" style="min-width:160px">
             <label class="label" for="prnGlobMarginRight">الهامش الأيمن</label>
-            <input id="prnGlobMarginRight" class="input" type="text" placeholder="مثال: 12mm" />
+            <input id="prnGlobMarginRight" class="input" type="text" placeholder="مثال: 12mm" disabled />
           </div>
           <div class="col" style="min-width:160px">
             <label class="label" for="prnGlobMarginBottom">الهامش السفلي</label>
-            <input id="prnGlobMarginBottom" class="input" type="text" placeholder="مثال: 12mm" />
+            <input id="prnGlobMarginBottom" class="input" type="text" placeholder="مثال: 12mm" disabled />
           </div>
           <div class="col" style="min-width:160px">
             <label class="label" for="prnGlobMarginLeft">الهامش الأيسر</label>
-            <input id="prnGlobMarginLeft" class="input" type="text" placeholder="مثال: 12mm" />
+            <input id="prnGlobMarginLeft" class="input" type="text" placeholder="مثال: 12mm" disabled />
           </div>
         </div>
 
@@ -862,7 +862,7 @@
         <div class="row wrap" style="gap:12px">
           <div class="col" style="min-width:220px">
             <label class="label" for="prnGlobClassColWidth">عرض عمود الصف/الشعبة (px)</label>
-            <input id="prnGlobClassColWidth" class="input" type="number" min="60" max="400" step="5" value="170" />
+            <input id="prnGlobClassColWidth" class="input" type="number" value="170" disabled />
           </div>
           <div class="col" style="min-width:220px">
             <label class="label" for="prnGlobBorderColor">لون إطار الجدول العام</label>
@@ -870,11 +870,11 @@
           </div>
           <div class="col" style="min-width:220px">
             <label class="label" for="prnGlobBorderWidth">سمك إطار الجدول العام (px)</label>
-            <input id="prnGlobBorderWidth" class="input" type="number" min="1" max="4" step="1" value="1" />
+            <input id="prnGlobBorderWidth" class="input" type="number" value="1" disabled />
           </div>
           <div class="col" style="min-width:220px">
             <label class="label" for="prnGlobSlotColWidth">عرض عمود الدروس (px)</label>
-            <input id="prnGlobSlotColWidth" class="input" type="number" min="40" max="160" step="2" value="72" />
+            <input id="prnGlobSlotColWidth" class="input" type="number" value="72" disabled />
           </div>
         </div>
 

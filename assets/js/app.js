@@ -111,7 +111,7 @@
 
   // Data helpers
   function refreshStats() {
-    const db = Store.getDB();
+  const db = Store.getDB();
     qs('#stat-subjects').textContent = (db.subjectsCatalog || []).length;
     // total periods (school-wide) = sum of allocations per class multiplied by number of sections in that class
     const classes = db.classes || [];
@@ -2303,7 +2303,7 @@
     const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
     const slots = db.timetable?.slots || [];
     const classes = db.classes || [];
-    const prn = db.settings?.printing || {};
+  const prn = db.settings?.printing || {};
     const secSt = prn.sectionsStyle || {};
     // Prefer live (unsaved) UI values if available; fall back to saved settings
     const get = (id) => (qs(id)?.value || '').trim();
@@ -2419,10 +2419,10 @@
   const HEAD_BOLD = gSt.headBold ? 800 : 600;
   const SUBJ_COLOR = gSt.subjColor || BASE_COLOR;
   const SUBJ_SIZE = 12; // مطلوب: حجم المادة 12px
-  const SUBJ_BOLD = 800; // مطلوب: المادة عريض
+  const SUBJ_BOLD = gSt.subjBold ? 800 : 600; // إبقاء خيار التعريض
   const TEACH_COLOR = gSt.teachColor || '#374151';
   const TEACH_SIZE = 10; // مطلوب: المعلم 10px
-  const TEACH_BOLD = 500; // مطلوب: بدون تعريض
+  const TEACH_BOLD = gSt.teachBold ? 700 : 500; // إبقاء خيار التعريض
   const TIME_COLOR = gSt.timeColor || '#6b7280';
   const TIME_SIZE = parseInt(gSt.timeSize, 10) || (BASE_SIZE - 2);
   const TIME_BOLD = gSt.timeBold ? 700 : 500;
@@ -2488,9 +2488,9 @@
       contentHtml: html,
       docTitle: 'الجدول الأسبوعي (عرض عام)',
       school: Store.getDB().school,
-      orientation: 'A3 landscape',
-      margin: marginStr,
-      fontScale: prn.fontScale || 1,
+      orientation: 'A3 landscape', // إجبار A3
+      margin: '12mm', // هامش ثابت مناسب لـ A3
+      fontScale: 1, // تثبيت مقياس الخط العام
       fontFamily: prn.fontFamily || '',
       headerTypography: prn.headerTypography || {},
       footerLeftImageUrl: prn.footer?.leftImageUrl || '',
