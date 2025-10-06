@@ -482,7 +482,7 @@
     const db = Store.getDB();
     renderList(list, db.subjectsCatalog || [], (s, i) => {
       const item = document.createElement('div'); item.className = 'list-item';
-      const left = document.createElement('div'); left.innerHTML = `<div class="list-title">${s.name}</div>`;
+      const left = document.createElement('div'); left.innerHTML = `<div class="list-title">${s.name}${s.short?` <span class="muted" style="font-weight:500">(${s.short})</span>`:''}</div>`;
       const actions = document.createElement('div'); actions.className = 'item-actions';
       const up = document.createElement('button'); up.className = 'btn'; up.title = 'نقل للأعلى'; up.innerHTML = '<i class="bi bi-arrow-up"></i>';
       const down = document.createElement('button'); down.className = 'btn'; down.title = 'نقل للأسفل'; down.innerHTML = '<i class="bi bi-arrow-down"></i>';
@@ -544,16 +544,18 @@
   function openCatalogModal(s = null, index = -1) {
     const dlg = qs('#modal-catalog'); if (!dlg) return;
     qs('#catalogName').value = s?.name || '';
+    const shortEl = qs('#catalogShort'); if (shortEl) shortEl.value = s?.short || '';
     dlg.returnValue = 'cancel'; dlg.showModal();
     const cancelBtn = qs('#btnCancelCatalog'); if (cancelBtn) cancelBtn.onclick = () => dlg.close('cancel');
     const form = qs('#form-catalog');
     form.onsubmit = (e) => {
       e.preventDefault(); dlg.returnValue = 'default';
-      const name = qs('#catalogName').value.trim(); if (!name) { showToast('أدخل اسم المادة'); return; }
+  const name = qs('#catalogName').value.trim(); if (!name) { showToast('أدخل اسم المادة'); return; }
+  const short = (qs('#catalogShort')?.value || '').trim();
       const db = Store.getDB(); db.subjectsCatalog = db.subjectsCatalog || [];
       const dup = db.subjectsCatalog.some((x, ix) => ix !== index && (x.name || '').trim().toLowerCase() === name.toLowerCase());
       if (dup) { showToast('اسم المادة موجود مسبقًا'); return; }
-      const item = { name };
+  const item = { name, short };
       if (index >= 0) db.subjectsCatalog[index] = item; else db.subjectsCatalog.push(item);
       Store.setDB(db); renderCatalog(); populateAllocSubjectSelect(); renderAllocations(); refreshStats(); dlg.close('default');
     };
@@ -1808,7 +1810,8 @@
     const parts = String(val).split('•').map(s => s.trim());
     const subjName = parts[0] || '';
     const teacherName = parts[1] || '';
-    const subjIdx = (db.subjectsCatalog || []).findIndex(s => (s.name || '').trim() === subjName);
+    // طباعة الجدول العام قد تستخدم الاختصار؛ نحاول مطابقته على name أولًا ثم short
+    const subjIdx = (db.subjectsCatalog || []).findIndex(s => (s.name || '').trim() === subjName || (s.short || '').trim() === subjName);
     const teacherIdx = (db.teachers || []).findIndex(t => (t.name || '').trim() === teacherName);
     if (subjIdx < 0 || teacherIdx < 0) return null;
     return { subjIdx, teacherIdx };
@@ -2383,7 +2386,8 @@
               let subj = '', teach = '';
               const meta = getTeacherAndSubjectByCellValue(db, val);
               if (meta) {
-                subj = (db.subjectsCatalog?.[meta.subjIdx]?.name || '').trim();
+                const subjObj = db.subjectsCatalog?.[meta.subjIdx] || {};
+                subj = (subjObj.short || subjObj.name || '').trim();
                 const tFull = (db.teachers?.[meta.teacherIdx]?.name || '').trim();
                 teach = tFull.split(/\s+/)[0] || tFull;
               } else {
@@ -2426,8 +2430,9 @@
       table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed; color:${BASE_COLOR}; font-size:${BASE_SIZE}px }
   .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:6px; vertical-align:top; text-align:center }
   .global-tt thead th.day-head{ background:${C_HEADER_BG}; color:${DAY_COLOR}; font-weight:${HEAD_BOLD}; font-size:${HEAD_SIZE}px }
-  .global-tt thead th.p, .global-tt tbody td.slot{ width:${SLOT_W}px }
-  .global-tt .class-col{ width:${CLASS_W}px; text-align:right; font-weight:${CLASS_BOLD}; background:${C_DAY_BG}; color:${CLASS_COLOR}; font-size:${CLASS_SIZE}px }
+  /* عرض الأعمدة يُحدده colgroup؛ لا نعيد فرضه هنا حتى لا نتجاوز تفضيلات المستخدم */
+  .global-tt thead th.p, .global-tt tbody td.slot{ }
+  .global-tt .class-col{ text-align:right; font-weight:${CLASS_BOLD}; background:${C_DAY_BG}; color:${CLASS_COLOR}; font-size:${CLASS_SIZE}px }
       .global-tt tr:nth-child(odd) .class-col{ background:${C_DAY_BG_ALT} }
   .global-tt td.sep, .global-tt th.p:first-child{ border-right-width:${Math.max(B_WIDTH,2)}px }
       .global-tt .p{ color:${HEAD_COLOR}; font-size:${HEAD_SIZE}px; font-weight:${HEAD_BOLD} }
@@ -2437,7 +2442,12 @@
       .global-tt .g-teach{ color:${TEACH_COLOR}; font-weight:${TEACH_BOLD}; font-size:${TEACH_SIZE}px }
       .global-tt .g-time{ color:${TIME_COLOR}; font-weight:${TIME_BOLD}; font-size:${TIME_SIZE}px }
     `;
-    const html = `<style>${css}</style><table class="global-tt">${thead}${tbody}</table>`;
+  // استخدم colgroup لفرض عرض الأعمدة (أكثر موثوقية من تعيين العرض على الخلايا فقط)
+  let colgroup = `<colgroup><col class="col-class" style="width:${CLASS_W}px">`;
+  const totalPeriodCols = days.length * slots.length;
+  for (let i = 0; i < totalPeriodCols; i++) colgroup += `<col class="col-slot" style="width:${SLOT_W}px">`;
+  colgroup += `</colgroup>`;
+  const html = `<style>${css}</style><table class="global-tt">${colgroup}${thead}${tbody}</table>`;
     // Build per-side margins: if any side provided, merge with global margin defaults
   const mTop = (gSt.marginTop || '').trim();
   const mRight = (gSt.marginRight || '').trim();
@@ -2752,9 +2762,14 @@
       .gprev .g-teach{ ${gs.teachShow?'':'display:none;'} color:${gs.teachColor}; font-weight:${gs.teachBold?700:500}; font-size:${gs.teachSize}px }
       .gprev .g-time{ ${gs.timeShow?'':'display:none;'} color:${gs.timeColor}; font-weight:${gs.timeBold?700:500}; font-size:${gs.timeSize}px }
     `;
+    // colgroup for live preview too
+    let colgroupPrev = `<colgroup><col class="col-class" style="width:${gs.classColWidth}px">`;
+    for (let i = 0; i < 3; i++) colgroupPrev += `<col class="col-slot" style="width:${gs.slotColWidth}px">`;
+    colgroupPrev += `</colgroup>`;
     const html = `
       <style>${css}</style>
       <table class="gprev">
+        ${colgroupPrev}
         <thead>
           <tr><th class="class-col" rowspan="2">الصف / الشعبة</th><th class="day-head" colspan="3">الأحد</th></tr>
           <tr><th class="p">1</th><th class="p">2</th><th class="p">3</th></tr>
