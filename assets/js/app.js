@@ -2523,6 +2523,7 @@
     const slots = db.timetable?.slots || [];
     const classes = db.classes || [];
     const prn = db.settings?.printing || {};
+    const pd = prn.perDayStyle || {};
     // Gender display mapping (ذكور→ للبنين، إناث→ للبنات، مختلط→ المختلطة)
     const _rawGender = (db.school?.gender || '').toString();
     const _normGender = _rawGender.replace(/[\sـ]/g, '');
@@ -2540,21 +2541,21 @@
       .day-page{ page-break-after:always }
       .day-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid #d1d5db; padding:6px 0 }
       .day-header .sch{ text-align:center }
-      .day-header .sch .n{ font-weight:800 }
-      .day-header .sch .g{ color:#6b7280; font-size:0.95em }
+      .day-header .sch .n{ font-weight:${pd.schoolNameBold !== false ? 800 : 600}; font-size:${(pd.schoolNameSize||16)}px; color:${pd.schoolNameColor || '#111827'} }
+      .day-header .sch .g{ color:${pd.genderColor || '#6b7280'}; font-size:${(pd.genderSize||12)}px; font-weight:${pd.genderBold ? 700 : 400} }
       .day-header .ttl{ text-align:center; flex:1 }
-      .day-header .ttl .t{ font-weight:800; font-size:18px; letter-spacing:0; direction:rtl; unicode-bidi:isolate }
+      .day-header .ttl .t{ font-weight:${pd.titleBold !== false ? 800 : 600}; font-size:${(pd.titleSize||18)}px; color:${pd.titleColor || '#111827'}; letter-spacing:0; direction:rtl; unicode-bidi:isolate }
       .day-header .ttl .y{ color:#6b7280; font-size:0.95em }
       .day-header .l{ text-align:left }
-      .day-header .l .day{ font-weight:800 }
+      .day-header .l .day{ font-weight:${pd.dayNameBold !== false ? 800 : 600}; font-size:${(pd.dayNameSize||16)}px; color:${pd.dayNameColor || '#111827'} }
       table.day-tt{ width:100%; border-collapse:collapse; table-layout:fixed }
       table.day-tt th, table.day-tt td{ border:1px solid #d1d5db; padding:4px; text-align:center; vertical-align:top }
-      table.day-tt th.p{ background:#eef2ff; font-weight:800 }
-      table.day-tt td.class-col{ background:#f9fafb; font-weight:700; text-align:right; white-space:normal }
+      table.day-tt th.p{ background:#eef2ff; font-weight:${pd.lessonHeaderBold !== false ? 800 : 600}; color:${pd.lessonHeaderColor || '#111827'} }
+      table.day-tt td.class-col{ background:#f9fafb; font-weight:${pd.classColBold !== false ? 700 : 500}; text-align:right; white-space:normal; color:${pd.classColColor || '#111827'} }
       table.day-tt tr:nth-child(odd) td.class-col{ background:#f3f4f6 }
       .gcell{ line-height:1.45; white-space:normal; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; display:block }
-      .gcell .subj{ display:block; font-weight:800; font-size:12px; color:#111827; margin-bottom:2px; overflow-wrap:normal; word-break:normal; white-space:normal }
-      .gcell .teach{ display:block; font-size:10px; color:#374151 }
+      .gcell .subj{ display:block; font-weight:${pd.subjBold !== false ? 800 : 600}; font-size:${(pd.subjSize||12)}px; color:${pd.subjColor || '#111827'}; margin-bottom:2px; overflow-wrap:normal; word-break:normal; white-space:normal }
+      .gcell .teach{ display:block; font-size:${(pd.teachSize||10)}px; color:${pd.teachColor || '#374151'}; font-weight:${pd.teachBold ? 700 : 400} }
       .gcell .time{ display:block; font-size:11px; color:#6b7280 }
     `;
 
@@ -2656,7 +2657,7 @@
     if (t === 'auto') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', t);
     document.documentElement.dataset.density = db.settings.density;
-    // printing
+  // printing
     const prn = db.settings.printing || {};
     const or = prn.orientations || {};
     const setVal = (id, v, d='') => { const el = qs(id); if (el) el.value = v ?? d; };
@@ -2695,6 +2696,31 @@
   setVal('#prnSecTimeSize', sec.timeSize || 13, 13);
   setVal('#prnSecDayFontColor', sec.dayFontColor || '#111827', '#111827');
   setVal('#prnSecDayFontSize', sec.dayFontSize || 14, 14);
+  // per-day print style defaults
+  const pd = prn.perDayStyle || {};
+  const setChk = (id, v) => { const el = qs(id); if (el) el.checked = !!v; };
+  setVal('#perDayTitleColor', pd.titleColor || '#111827', '#111827');
+  setVal('#perDayTitleSize', pd.titleSize || 18, 18);
+  setChk('#perDayTitleBold', pd.titleBold !== false);
+  setVal('#perDayNameColor', pd.dayNameColor || '#111827', '#111827');
+  setVal('#perDayNameSize', pd.dayNameSize || 16, 16);
+  setChk('#perDayNameBold', pd.dayNameBold !== false);
+  setVal('#perDaySchoolNameSize', pd.schoolNameSize || 16, 16);
+  setVal('#perDaySchoolNameColor', pd.schoolNameColor || '#111827', '#111827');
+  setChk('#perDaySchoolNameBold', pd.schoolNameBold !== false);
+  setVal('#perDayGenderSize', pd.genderSize || 12, 12);
+  setVal('#perDayGenderColor', pd.genderColor || '#6b7280', '#6b7280');
+  setChk('#perDayGenderBold', !!pd.genderBold);
+  setChk('#perDayClassColBold', pd.classColBold !== false);
+  setVal('#perDayClassColColor', pd.classColColor || '#111827', '#111827');
+  setVal('#perDayLessonHeaderColor', pd.lessonHeaderColor || '#111827', '#111827');
+  setChk('#perDayLessonHeaderBold', pd.lessonHeaderBold !== false);
+  setVal('#perDaySubjColor', pd.subjColor || '#111827', '#111827');
+  setVal('#perDaySubjSize', pd.subjSize || 12, 12);
+  setChk('#perDaySubjBold', pd.subjBold !== false);
+  setVal('#perDayTeachColor', pd.teachColor || '#374151', '#374151');
+  setVal('#perDayTeachSize', pd.teachSize || 10, 10);
+  setChk('#perDayTeachBold', !!pd.teachBold);
   // teachers style
   const ts = prn.teachersStyle || {};
   setVal('#prnTeachHeaderBg', ts.headerBg || '#eef2ff', '#eef2ff');
@@ -2735,7 +2761,6 @@
   // headers
   setVal('#prnGlobDayColor', gs.dayColor || '#111827', '#111827');
   setVal('#prnGlobDaySize', gs.daySize || 14, 14);
-  const setChk = (id, v) => { const el = qs(id); if (el) el.checked = !!v; };
   setChkGlob('#prnGlobDayBold', gs.dayBold !== false); // default true
   setVal('#prnGlobClassColor', gs.classColor || '#111827', '#111827');
   setVal('#prnGlobClassSize', gs.classSize || 14, 14);
@@ -2943,7 +2968,7 @@
     prn.footer.leftImageUrl = qs('#prnFooterImage')?.value || '';
     prn.footer.rightHtml = qs('#prnFooterRight')?.value || '';
     // header typography save
-    prn.headerTypography = prn.headerTypography || {};
+  prn.headerTypography = prn.headerTypography || {};
     const num = (id, d) => { const v = parseInt(qs(id)?.value, 10); return isNaN(v) ? d : v; };
     prn.headerTypography.schoolName = {
       family: (qs('#htSchoolNameFamily')?.value || '').trim(),
@@ -2982,6 +3007,30 @@
   prn.sectionsStyle.dayFontColor = getColor('#prnSecDayFontColor', '#111827');
   prn.sectionsStyle.dayFontSize = num('#prnSecDayFontSize', 14);
     // global style save removed with global print feature
+  // per-day style save
+    prn.perDayStyle = prn.perDayStyle || {};
+    prn.perDayStyle.titleColor = getColor('#perDayTitleColor', '#111827');
+    prn.perDayStyle.titleSize = num('#perDayTitleSize', 18);
+    prn.perDayStyle.titleBold = !!qs('#perDayTitleBold')?.checked;
+    prn.perDayStyle.dayNameColor = getColor('#perDayNameColor', '#111827');
+    prn.perDayStyle.dayNameSize = num('#perDayNameSize', 16);
+    prn.perDayStyle.dayNameBold = !!qs('#perDayNameBold')?.checked;
+    prn.perDayStyle.schoolNameSize = num('#perDaySchoolNameSize', 16);
+    prn.perDayStyle.schoolNameColor = getColor('#perDaySchoolNameColor', '#111827');
+    prn.perDayStyle.schoolNameBold = !!qs('#perDaySchoolNameBold')?.checked;
+    prn.perDayStyle.genderSize = num('#perDayGenderSize', 12);
+    prn.perDayStyle.genderColor = getColor('#perDayGenderColor', '#6b7280');
+    prn.perDayStyle.genderBold = !!qs('#perDayGenderBold')?.checked;
+    prn.perDayStyle.classColBold = !!qs('#perDayClassColBold')?.checked;
+    prn.perDayStyle.classColColor = getColor('#perDayClassColColor', '#111827');
+    prn.perDayStyle.lessonHeaderColor = getColor('#perDayLessonHeaderColor', '#111827');
+    prn.perDayStyle.lessonHeaderBold = !!qs('#perDayLessonHeaderBold')?.checked;
+    prn.perDayStyle.subjColor = getColor('#perDaySubjColor', '#111827');
+    prn.perDayStyle.subjSize = num('#perDaySubjSize', 12);
+    prn.perDayStyle.subjBold = !!qs('#perDaySubjBold')?.checked;
+    prn.perDayStyle.teachColor = getColor('#perDayTeachColor', '#374151');
+    prn.perDayStyle.teachSize = num('#perDayTeachSize', 10);
+    prn.perDayStyle.teachBold = !!qs('#perDayTeachBold')?.checked;
   // teachers style save
     prn.teachersStyle = prn.teachersStyle || {};
   prn.teachersStyle.headerBg = getColor('#prnTeachHeaderBg', '#eef2ff');

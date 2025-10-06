@@ -888,6 +888,66 @@
           <button id="btnSaveSettings" class="btn primary"><i class="bi bi-save2"></i> حفظ</button>
           <button id="btnResetApp" class="btn danger"><i class="bi bi-recycle"></i> إعادة ضبط التطبيق</button>
         </div>
+
+        <h4 class="sub-title" style="margin-top:18px">تنسيق طباعة حسب اليوم</h4>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDayTitleColor">لون عنوان الصفحة</label>
+            <input id="perDayTitleColor" class="input" type="color" value="#111827" />
+            <label class="label" for="perDayTitleSize">حجم عنوان الصفحة (px)</label>
+            <input id="perDayTitleSize" class="input" type="number" min="10" max="36" step="1" value="18" />
+            <label class="label"><input id="perDayTitleBold" type="checkbox" checked /> عريض</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDayNameColor">لون اسم اليوم</label>
+            <input id="perDayNameColor" class="input" type="color" value="#111827" />
+            <label class="label" for="perDayNameSize">حجم اسم اليوم (px)</label>
+            <input id="perDayNameSize" class="input" type="number" min="10" max="28" step="1" value="16" />
+            <label class="label"><input id="perDayNameBold" type="checkbox" checked /> عريض</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDaySchoolNameSize">حجم اسم المدرسة (px)</label>
+            <input id="perDaySchoolNameSize" class="input" type="number" min="10" max="28" step="1" value="16" />
+            <label class="label" for="perDaySchoolNameColor">لون اسم المدرسة</label>
+            <input id="perDaySchoolNameColor" class="input" type="color" value="#111827" />
+            <label class="label"><input id="perDaySchoolNameBold" type="checkbox" checked /> عريض</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDayGenderSize">حجم جنس المدرسة (px)</label>
+            <input id="perDayGenderSize" class="input" type="number" min="10" max="22" step="1" value="12" />
+            <label class="label" for="perDayGenderColor">لون جنس المدرسة</label>
+            <input id="perDayGenderColor" class="input" type="color" value="#6b7280" />
+            <label class="label"><input id="perDayGenderBold" type="checkbox" /> عريض</label>
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px; margin-top:6px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDayClassColBold">تعريض عمود الصف/الشعبة</label>
+            <label class="label"><input id="perDayClassColBold" type="checkbox" checked /> عريض</label>
+            <label class="label" for="perDayClassColColor">لون عمود الصف/الشعبة</label>
+            <input id="perDayClassColColor" class="input" type="color" value="#111827" />
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDayLessonHeaderColor">لون عناوين الحصص</label>
+            <input id="perDayLessonHeaderColor" class="input" type="color" value="#111827" />
+            <label class="label" for="perDayLessonHeaderBold">تعريض عناوين الحصص</label>
+            <label class="label"><input id="perDayLessonHeaderBold" type="checkbox" checked /> عريض</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDaySubjColor">لون اسم المادة</label>
+            <input id="perDaySubjColor" class="input" type="color" value="#111827" />
+            <label class="label" for="perDaySubjSize">حجم اسم المادة (px)</label>
+            <input id="perDaySubjSize" class="input" type="number" min="10" max="24" step="1" value="12" />
+            <label class="label"><input id="perDaySubjBold" type="checkbox" checked /> عريض</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDayTeachColor">لون اسم المعلم</label>
+            <input id="perDayTeachColor" class="input" type="color" value="#374151" />
+            <label class="label" for="perDayTeachSize">حجم اسم المعلم (px)</label>
+            <input id="perDayTeachSize" class="input" type="number" min="8" max="20" step="1" value="10" />
+            <label class="label"><input id="perDayTeachBold" type="checkbox" /> عريض</label>
+          </div>
+        </div>
       </div>
     </section>
   </main>
