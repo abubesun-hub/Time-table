@@ -2523,6 +2523,16 @@
     const slots = db.timetable?.slots || [];
     const classes = db.classes || [];
     const prn = db.settings?.printing || {};
+    // Gender display mapping (ذكور→ للبنين، إناث→ للبنات، مختلط→ المختلطة)
+    const _rawGender = (db.school?.gender || '').toString();
+    const _normGender = _rawGender.replace(/[\sـ]/g, '');
+    let genderDisplay = '';
+    if (/(ذكور|للذكور|بنين)/.test(_normGender)) genderDisplay = 'للبنين';
+    else if (/(اناث|إناث|للاناث|للإناث|بنات)/.test(_normGender)) genderDisplay = 'للبنات';
+    else if (/(مختلط|مختلطة|مشترك)/.test(_normGender)) genderDisplay = 'المختلطة';
+    else genderDisplay = _rawGender;
+    // Arabic ordinals for lessons
+    const ordinal = (n) => ({1:'الأول',2:'الثاني',3:'الثالث',4:'الرابع',5:'الخامس',6:'السادس',7:'السابع',8:'الثامن',9:'التاسع',10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'})[n] || String(n);
 
     // Build one table per day
     let html = '';
@@ -2533,8 +2543,10 @@
       .day-header .sch .n{ font-weight:800 }
       .day-header .sch .g{ color:#6b7280; font-size:0.95em }
       .day-header .ttl{ text-align:center; flex:1 }
-      .day-header .ttl .t{ font-weight:800; font-size:18px }
+      .day-header .ttl .t{ font-weight:800; font-size:18px; letter-spacing:0; direction:rtl; unicode-bidi:isolate }
       .day-header .ttl .y{ color:#6b7280; font-size:0.95em }
+      .day-header .l{ text-align:left }
+      .day-header .l .day{ font-weight:800 }
       table.day-tt{ width:100%; border-collapse:collapse; table-layout:fixed }
       table.day-tt th, table.day-tt td{ border:1px solid #d1d5db; padding:4px; text-align:center; vertical-align:top }
       table.day-tt th.p{ background:#eef2ff; font-weight:800 }
@@ -2548,7 +2560,7 @@
 
     days.forEach(day => {
       let thead = '<thead><tr><th class="class-col">الصف / الشعبة</th>';
-      for (let i = 0; i < slots.length; i++) thead += `<th class="p">${i+1}</th>`;
+      for (let i = 0; i < slots.length; i++) thead += `<th class=\"p\">الدرس ${ordinal(i+1)}</th>`;
       thead += '</tr></thead>';
       let tbody = '<tbody>';
       classes.forEach((cls, ci) => {
@@ -2582,7 +2594,7 @@
         });
       });
       tbody += '</tbody>';
-      html += `<div class="day-page"><div class="day-header"><div class="sch"><div class="n">${db.school?.name || 'المدرسة'}</div><div class="g">${(db.school?.gender||'')}</div></div><div class="ttl"><div class="t">الجدول اليومي — ${day}</div>${db.school?.year?`<div class=\"y\">للعام الدراسي ${db.school.year}</div>`:''}</div><div class="l"></div></div><table class="day-tt">${thead}${tbody}</table></div>`;
+      html += `<div class=\"day-page\"><div class=\"day-header\"><div class=\"sch\"><div class=\"n\">${db.school?.name || 'المدرسة'}</div><div class=\"g\">${genderDisplay || ''}</div></div><div class=\"ttl\"><div class=\"t\">الجدول اليومي</div>${db.school?.year?`<div class=\\\"y\\\">للعام الدراسي ${db.school.year}</div>`:''}</div><div class=\"l\"><div class=\"day\">${day}</div></div></div><table class=\"day-tt\">${thead}${tbody}</table></div>`;
     });
 
     UI.printDocument({
