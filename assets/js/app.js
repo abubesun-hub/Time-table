@@ -413,6 +413,7 @@
         db2.times.workingDays[d] = toggle.checked; Store.setDB(db2);
         // إعادة عرض الجدول والإحصاءات مباشرةً
         renderTimetable();
+        try { initializeLessonAlerts(); } catch {}
       });
     });
   }
@@ -449,6 +450,7 @@
         const cur = db2.times.perDay[d] || { mode: 'صباحي', start: '08:00', periods: 6 };
         cur.start = start.value; cur.mode = mode.value; cur.periods = Math.max(1, Math.min(12, parseInt(periods.value, 10) || 6));
         db2.times.perDay[d] = cur; Store.setDB(db2);
+        try { initializeLessonAlerts(); } catch {}
       }));
     });
   }
@@ -492,12 +494,14 @@
     Store.setDB(db);
     renderBreaksEditor();
     showToast('تم حفظ الأوقات');
+    try { initializeLessonAlerts(); } catch {}
   });
 
   const btnResetTimes = qs('#btnResetTimes'); if (btnResetTimes) btnResetTimes.addEventListener('click', () => {
     if (!confirm('إعادة ضبط إعدادات الأوقات إلى القيم الافتراضية؟')) return;
     const db = Store.getDB(); db.times = undefined; // سيُعاد إنشاؤها عند العرض حسب القيم الافتراضية
     Store.setDB(db); renderDaysList(); renderTimesEditor(); renderBreaksEditor(); showToast('تمت إعادة الضبط');
+    try { initializeLessonAlerts(); } catch {}
   });
 
   // Catalog (subjects list used in allocations)
@@ -3008,6 +3012,70 @@
   setChkGlob('#prnTeachTimeBold', !!ts.timeBold);
   setVal('#prnTeachDayFontColor', ts.dayFontColor || '#111827', '#111827');
   setVal('#prnTeachDayFontSize', ts.dayFontSize || 14, 14);
+  // Alerts (bell) settings UI
+  try {
+    const alerts = db.settings.alerts || {};
+    const boolOr = (v, d) => (v == null ? d : !!v);
+    const vol = Math.max(0, Math.min(100, parseInt(alerts.volume, 10) || 70));
+    const setChk = (sel, v) => { const el = qs(sel); if (el) el.checked = !!v; };
+    const setVal2 = (sel, v) => { const el = qs(sel); if (el) el.value = String(v); };
+    setChk('#alertEnableStart', boolOr(alerts.enableStart, true));
+    setChk('#alertEnableEnd', boolOr(alerts.enableEnd, true));
+    setChk('#alertShowOverlay', boolOr(alerts.showOverlay, true));
+    setChk('#alertUseSystemNotif', boolOr(alerts.useSystemNotif, true));
+    setVal2('#alertVolume', vol);
+    // tone + duration
+    setVal2('#alertToneStart', alerts.toneStart || 'classic');
+    setVal2('#alertToneEnd', alerts.toneEnd || 'classic');
+    setVal2('#alertDurationSec', Math.max(1, Math.min(30, parseInt(alerts.durationSec, 10) || 10)));
+    // Button handlers (reset each call to avoid duplicates)
+    const volEl = qs('#alertVolume');
+    const curVol = () => { const v = parseInt(volEl?.value, 10); return isNaN(v) ? vol : Math.max(0, Math.min(100, v)); };
+    const curToneStart = () => (qs('#alertToneStart')?.value || 'classic');
+    const curToneEnd = () => (qs('#alertToneEnd')?.value || 'classic');
+    const curDurMs = () => { const s = parseInt(qs('#alertDurationSec')?.value, 10) || 10; return Math.max(1, Math.min(30, s)) * 1000; };
+    const tStart = qs('#btnTestStartBell'); if (tStart) tStart.onclick = () => {
+      try {
+        const cfg = Store.getDB()?.settings?.alerts || {};
+        const used = cfg.customStartSrc ? playCustomBell(cfg.customStartSrc, curVol(), curDurMs()) : false;
+        if (!used) playBell('start', curVol(), curDurMs(), curToneStart());
+      } catch {}
+      try { showCenterAlert('اختبار: جرس بداية الدرس'); } catch {}
+    };
+    const tEnd = qs('#btnTestEndBell'); if (tEnd) tEnd.onclick = () => {
+      try {
+        const cfg = Store.getDB()?.settings?.alerts || {};
+        const used = cfg.customEndSrc ? playCustomBell(cfg.customEndSrc, curVol(), curDurMs()) : false;
+        if (!used) playBell('end', curVol(), curDurMs(), curToneEnd());
+      } catch {}
+      try { showCenterAlert('اختبار: جرس نهاية الدرس'); } catch {}
+    };
+    const reqBtn = qs('#btnRequestNotifPerm'); if (reqBtn) reqBtn.onclick = () => {
+      try {
+        if (!('Notification' in window)) { showToast('المتصفح لا يدعم إشعارات النظام'); return; }
+        Notification.requestPermission().then((res) => {
+          try { localStorage.setItem('tt_notif_asked','1'); } catch {}
+          if (res === 'granted') showToast('تم السماح بإشعارات النظام');
+          else if (res === 'denied') showToast('تم رفض إذن الإشعارات');
+          else showToast('حالة الإذن: ' + res);
+        });
+      } catch {}
+    };
+    // Custom audio status and handlers
+    const startStatus = qs('#customStartStatus'); const endStatus = qs('#customEndStatus');
+    if (startStatus) startStatus.textContent = alerts.customStartSrc ? 'تم تعيين ملف مخصص' : 'لا يوجد ملف مخصص';
+    if (endStatus) endStatus.textContent = alerts.customEndSrc ? 'تم تعيين ملف مخصص' : 'لا يوجد ملف مخصص';
+    const clearStart = qs('#btnClearCustomStart'); if (clearStart) clearStart.onclick = () => { try { const db2 = Store.getDB(); db2.settings = db2.settings || {}; db2.settings.alerts = db2.settings.alerts || {}; db2.settings.alerts.customStartSrc = ''; Store.setDB(db2); if (startStatus) startStatus.textContent = 'لا يوجد ملف مخصص'; showToast('تم مسح ملف البداية'); } catch {} };
+    const clearEnd = qs('#btnClearCustomEnd'); if (clearEnd) clearEnd.onclick = () => { try { const db2 = Store.getDB(); db2.settings = db2.settings || {}; db2.settings.alerts = db2.settings.alerts || {}; db2.settings.alerts.customEndSrc = ''; Store.setDB(db2); if (endStatus) endStatus.textContent = 'لا يوجد ملف مخصص'; showToast('تم مسح ملف النهاية'); } catch {} };
+    const fileStart = qs('#alertCustomStartFile'); if (fileStart) fileStart.onchange = async (e) => {
+      const f = e.target.files?.[0]; if (!f) return;
+      try { const dataUrl = await fileToDataURL(f); const db2 = Store.getDB(); db2.settings = db2.settings || {}; db2.settings.alerts = db2.settings.alerts || {}; db2.settings.alerts.customStartSrc = dataUrl; Store.setDB(db2); if (startStatus) startStatus.textContent = 'تم تعيين ملف مخصص'; showToast('تم حفظ ملف جرس البداية'); } catch { showToast('تعذر قراءة الملف'); }
+    };
+    const fileEnd = qs('#alertCustomEndFile'); if (fileEnd) fileEnd.onchange = async (e) => {
+      const f = e.target.files?.[0]; if (!f) return;
+      try { const dataUrl = await fileToDataURL(f); const db2 = Store.getDB(); db2.settings = db2.settings || {}; db2.settings.alerts = db2.settings.alerts || {}; db2.settings.alerts.customEndSrc = dataUrl; Store.setDB(db2); if (endStatus) endStatus.textContent = 'تم تعيين ملف مخصص'; showToast('تم حفظ ملف جرس النهاية'); } catch { showToast('تعذر قراءة الملف'); }
+    };
+  } catch {}
   // global timetable style (detailed)
   const gs = prn.globalStyle || {};
   // page margins and backgrounds/borders
@@ -3355,6 +3423,18 @@
   prn.globalStyle.timeColor = getColor('#prnGlobTimeColor', '#6b7280');
   prn.globalStyle.timeSize = num('#prnGlobTimeSize', 12);
   prn.globalStyle.timeBold = !!qs('#prnGlobTimeBold')?.checked;
+  // Alerts (bell) settings save
+  const bool = (sel, d) => { const el = qs(sel); return el ? !!el.checked : d; };
+  const numVal = (sel, d) => { const v = parseInt(qs(sel)?.value, 10); return isNaN(v) ? d : Math.max(0, Math.min(100, v)); };
+  db.settings.alerts = db.settings.alerts || {};
+  db.settings.alerts.enableStart = bool('#alertEnableStart', true);
+  db.settings.alerts.enableEnd = bool('#alertEnableEnd', true);
+  db.settings.alerts.showOverlay = bool('#alertShowOverlay', true);
+  db.settings.alerts.useSystemNotif = bool('#alertUseSystemNotif', true);
+  db.settings.alerts.volume = numVal('#alertVolume', 70);
+  db.settings.alerts.toneStart = (qs('#alertToneStart')?.value || 'classic');
+  db.settings.alerts.toneEnd = (qs('#alertToneEnd')?.value || 'classic');
+  db.settings.alerts.durationSec = (() => { const s = parseInt(qs('#alertDurationSec')?.value, 10) || 10; return Math.max(1, Math.min(30, s)); })();
   Store.setDB(db);
   // Reload settings UI; guard against potential errors to ensure the save feedback still shows
   try { loadSettings(); } catch (e) { try { console.warn('loadSettings failed after save', e); } catch(_) {} }
@@ -3362,14 +3442,253 @@
     renderHeaderPreview();
     renderTeacherPrintPreview();
     try { if (typeof renderGlobalPrintPreview === 'function') renderGlobalPrintPreview(); } catch {}
+    try { initializeLessonAlerts(); } catch {}
     showToast('تم حفظ الإعدادات');
   });
+
+  // Utility: file -> data URL
+  async function fileToDataURL(file) {
+    return await new Promise((resolve, reject) => {
+      try {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = (e) => reject(e);
+        r.readAsDataURL(file);
+      } catch (e) { reject(e); }
+    });
+  }
 
   qs('#btnResetApp').addEventListener('click', () => {
     if (!confirm('سيتم حذف كل البيانات المحلية وإعادة ضبط التطبيق. هل أنت متأكد؟')) return;
     localStorage.clear();
     location.reload();
   });
+
+  // ===== تنبيهات بداية/نهاية الدروس =====
+  const Alerts = { timerId: null, midnightId: null, events: [], hideId: null };
+  const arabicOrd = (n) => ({1:'الأول',2:'الثاني',3:'الثالث',4:'الرابع',5:'الخامس',6:'السادس',7:'السابع',8:'الثامن',9:'التاسع',10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'})[n] || String(n);
+  const dayNameByDow = (dow) => ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][dow] || '';
+
+  function getTodaySchoolDayName(db) {
+    const today = new Date();
+    const name = dayNameByDow(today.getDay());
+    const days = db.timetable?.days || [];
+    if (!days.includes(name)) return null;
+    const working = (db.times?.workingDays?.[name]) !== false;
+    return working ? name : null;
+  }
+
+  function computeDayLessons(db, dayName) {
+    const per = db?.times?.perDay?.[dayName];
+    if (!per) return [];
+    const startStr = per.start || '08:00';
+    const [h, m] = String(startStr).split(':').map(x=>parseInt(x,10)||0);
+    const base = new Date(); base.setHours(h, m, 0, 0);
+    const L = getLessonMinutes(db);
+    const cnt = Math.max(1, parseInt(per.periods, 10) || (db.times?.global?.defaultPeriods || 6));
+    const arr = [];
+    let curMs = base.getTime();
+    for (let i=0;i<cnt;i++){
+      const st = new Date(curMs);
+      const en = new Date(curMs + L*60000);
+      arr.push({ i, start: st, end: en });
+      const gap = getBreakAfter(db, i) || 0; // بعد الدرس i (0-based)
+      curMs = en.getTime() + gap*60000;
+    }
+    return arr;
+  }
+
+  function buildLessonEvents(db) {
+    const day = getTodaySchoolDayName(db);
+    if (!day) return [];
+    const lessons = computeDayLessons(db, day);
+    const now = Date.now();
+    const evs = [];
+    lessons.forEach(({i,start,end})=>{
+      if (start.getTime() > now) evs.push({ time: start, kind: 'start', i });
+      if (end.getTime() > now) evs.push({ time: end, kind: 'end', i });
+    });
+    evs.sort((a,b)=>a.time - b.time);
+    return evs;
+  }
+
+  function ensureNotificationPermissionOnce() {
+    try {
+      if (!('Notification' in window)) return;
+      const asked = localStorage.getItem('tt_notif_asked') === '1';
+      if (!asked && Notification.permission === 'default') {
+        Notification.requestPermission().finally(()=>{
+          try { localStorage.setItem('tt_notif_asked','1'); } catch {}
+        });
+      }
+    } catch {}
+  }
+
+  function showCenterAlert(message) {
+    let ov = document.getElementById('lesson-alert-overlay');
+    if (!ov) {
+      ov = document.createElement('div'); ov.id = 'lesson-alert-overlay'; ov.className = 'overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-live','assertive');
+      const card = document.createElement('div'); card.className = 'overlay-card neo-surface'; card.style.maxWidth = '520px';
+      card.innerHTML = '<div class="overlay-header"><span class="bi bi-bell-fill"></span><h2>تنبيه الدرس</h2></div><div id="lessonAlertMsg" style="font-size:18px; font-weight:700"></div><div class="overlay-footer"><small class="muted">يمكنك إغلاق التنبيه بالنقر في أي مكان</small></div>';
+      ov.appendChild(card);
+      ov.addEventListener('click', () => hideCenterAlert());
+      document.body.appendChild(ov);
+    }
+    const msgEl = document.getElementById('lessonAlertMsg'); if (msgEl) msgEl.textContent = message;
+    ov.classList.remove('hidden'); ov.setAttribute('aria-hidden','false');
+    clearTimeout(Alerts.hideId); Alerts.hideId = setTimeout(() => hideCenterAlert(), 6000);
+  }
+  function hideCenterAlert() {
+    const ov = document.getElementById('lesson-alert-overlay'); if (!ov) return;
+    ov.classList.add('hidden'); ov.setAttribute('aria-hidden','true');
+  }
+
+  // Simple bell via WebAudio (two short chimes). Fallback is no-op if AudioContext unsupported.
+  function playBell(kind = 'start', volumePct = 70, durationMs = 1000, tone = 'classic') {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      const ctx = new AC();
+      const vol = Math.max(0, Math.min(1, (parseInt(volumePct, 10) || 70) / 100));
+      const master = ctx.createGain(); master.gain.value = vol; master.connect(ctx.destination);
+      const now = ctx.currentTime + 0.01;
+      const endAt = now + Math.max(0.2, (parseInt(durationMs, 10) || 1000) / 1000);
+      // helper to schedule one blip
+      const mk = (absTime, freq, dur = 0.18, type = 'sine') => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = type; o.frequency.setValueAtTime(freq, absTime);
+        g.gain.setValueAtTime(0.0001, absTime);
+        g.gain.linearRampToValueAtTime(1.0, absTime + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, Math.min(absTime + dur, endAt));
+        o.connect(g); g.connect(master); o.start(absTime); o.stop(Math.min(absTime + dur + 0.02, endAt + 0.02));
+      };
+      // Build pattern based on tone and kind
+      const isStart = kind === 'start';
+      const total = endAt - now;
+      const scheduleClassic = () => {
+        // repeating pairs of chimes every ~400ms
+        let t = now;
+        while (t < endAt - 0.3) {
+          mk(t, isStart ? 1200 : 800, 0.18);
+          mk(t + 0.22, isStart ? 1400 : 650, 0.18);
+          t += 0.8;
+        }
+      };
+      const scheduleLong = () => {
+        // slower longer rings
+        const base = isStart ? 900 : 700;
+        const second = isStart ? 1200 : 600;
+        let t = now;
+        while (t < endAt - 0.5) {
+          mk(t, base, 0.35, 'triangle');
+          mk(t + 0.40, second, 0.30, 'triangle');
+          t += 1.1;
+        }
+      };
+      const schedulePulses = () => {
+        // short pulses at 4Hz then 2Hz
+        const freq1 = isStart ? 1100 : 700;
+        const dur = 0.10;
+        let t = now;
+        // first half faster
+        while (t < now + total * 0.5) { mk(t, freq1, dur, 'square'); t += 0.25; }
+        // second half slower
+        while (t < endAt - 0.1) { mk(t, freq1 - 100, dur, 'square'); t += 0.5; }
+      };
+      const scheduleContinuous = () => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(isStart ? 500 : 400, now);
+        // slight tremolo
+        const lfo = ctx.createOscillator(); const lfoGain = ctx.createGain();
+        lfo.frequency.value = 5; lfoGain.gain.value = 0.2; lfo.connect(lfoGain); lfoGain.connect(g.gain);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.linearRampToValueAtTime(0.9, now + 0.15);
+        g.gain.linearRampToValueAtTime(0.5, endAt - 0.1);
+        g.gain.linearRampToValueAtTime(0.0001, endAt);
+        o.connect(g); g.connect(master); o.start(now); lfo.start(now); o.stop(endAt + 0.02); lfo.stop(endAt + 0.02);
+      };
+      switch (tone) {
+        case 'long': scheduleLong(); break;
+        case 'pulses': schedulePulses(); break;
+        case 'continuous': scheduleContinuous(); break;
+        default: scheduleClassic(); break;
+      }
+      setTimeout(() => { try { ctx.close(); } catch {} }, Math.ceil((endAt - now) * 1000) + 100);
+    } catch {}
+  }
+
+  // Custom audio (data URL) playback
+  function playCustomBell(src, volumePct = 70, durationMs = 10000) {
+    try {
+      if (!src) return false;
+      const a = new Audio(); a.src = src; a.loop = true; a.volume = Math.max(0, Math.min(1, (parseInt(volumePct, 10) || 70) / 100));
+      const stop = () => { try { a.pause(); a.currentTime = 0; } catch {} };
+      a.play().catch(()=>{});
+      setTimeout(stop, Math.max(200, parseInt(durationMs, 10) || 10000));
+      return true;
+    } catch { return false; }
+  }
+
+  function fireLessonEvent(ev) {
+    const db = Store.getDB();
+    const cfg = db.settings?.alerts || {};
+    const enableStart = cfg.enableStart !== false;
+    const enableEnd = cfg.enableEnd !== false;
+    // Skip based on toggles
+    if (ev.kind === 'start' && !enableStart) return;
+    if (ev.kind === 'end' && !enableEnd) return;
+
+    const label = arabicOrd(ev.i + 1);
+    const msg = ev.kind === 'start' ? `بدأ الدرس ${label}` : `انتهى الدرس ${label}`;
+    try { showToast(msg); } catch {}
+  // Play custom audio if provided; otherwise synth bell respecting tone/duration
+  const vol = Math.max(0, Math.min(100, parseInt(cfg.volume, 10) || 70));
+  const durMs = Math.max(1000, Math.min(30000, (parseInt(cfg.durationSec, 10) || 10) * 1000));
+  const tone = ev.kind === 'start' ? (cfg.toneStart || 'classic') : (cfg.toneEnd || 'classic');
+  const customSrc = ev.kind === 'start' ? (cfg.customStartSrc || '') : (cfg.customEndSrc || '');
+  const usedCustom = customSrc ? playCustomBell(customSrc, vol, durMs) : false;
+  if (!usedCustom) { try { playBell(ev.kind, vol, durMs, tone); } catch {} }
+    // Overlay if enabled
+    if (cfg.showOverlay !== false) { try { showCenterAlert(msg); } catch {} }
+    // System notification only if enabled and in background
+    try {
+      const wantNotif = cfg.useSystemNotif !== false;
+      if (wantNotif && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+        const icon = db?.school?.logo || undefined;
+        new Notification(msg, { icon });
+      }
+    } catch {}
+  }
+
+  function scheduleNextEvent() {
+    clearTimeout(Alerts.timerId); Alerts.timerId = null;
+    const now = Date.now();
+    const next = Alerts.events.find(e => e.time.getTime() >= now);
+    if (!next) return;
+    const due = Math.max(0, next.time.getTime() - now);
+    Alerts.timerId = setTimeout(() => {
+      fireLessonEvent(next);
+      Alerts.events = Alerts.events.filter(e => e !== next);
+      scheduleNextEvent();
+    }, due);
+  }
+
+  function scheduleMidnightRebuild() {
+    clearTimeout(Alerts.midnightId); Alerts.midnightId = null;
+    const now = new Date();
+    const midnight = new Date(now); midnight.setHours(24,0,0,0);
+    Alerts.midnightId = setTimeout(() => { initializeLessonAlerts(); }, midnight.getTime() - now.getTime());
+  }
+
+  function initializeLessonAlerts() {
+    const db = Store.getDB();
+    const day = getTodaySchoolDayName(db);
+    if (!day) { Alerts.events = []; clearTimeout(Alerts.timerId); scheduleMidnightRebuild(); return; }
+    Alerts.events = buildLessonEvents(db);
+    scheduleNextEvent();
+    scheduleMidnightRebuild();
+    ensureNotificationPermissionOnce();
+  }
 
   // Hydrate all views
   function hydrate() {
@@ -3458,6 +3777,7 @@
   await updateActivationUI();
   await ensureAdminSetup();
   await updateAccountUI();
+  try { initializeLessonAlerts(); } catch {}
 
   // Hook fit/zoom controls if present
   const fitToggle = qs('#ttFitToggle'); if (fitToggle) fitToggle.addEventListener('change', () => renderTimetable());

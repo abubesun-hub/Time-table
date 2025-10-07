@@ -944,6 +944,80 @@
           </div>
         </div>
 
+        <h3 class="sub-title" style="margin-top:16px">تنبيهات الجرس</h3>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:240px">
+            <label class="label"><input id="alertEnableStart" type="checkbox" checked /> تشغيل الجرس عند بداية الدرس</label>
+            <label class="label"><input id="alertEnableEnd" type="checkbox" checked /> تشغيل الجرس عند نهاية الدرس</label>
+            <label class="label"><input id="alertShowOverlay" type="checkbox" checked /> إظهار نافذة وسط الشاشة</label>
+            <label class="label"><input id="alertUseSystemNotif" type="checkbox" checked /> إشعار النظام عندما تكون النافذة في الخلفية</label>
+          </div>
+          <div class="col" style="min-width:240px">
+            <label class="label" for="alertVolume">شدة صوت الجرس</label>
+            <input id="alertVolume" class="input" type="range" min="0" max="100" value="70" />
+            <small class="muted">اضبط مستوى الصوت المناسب لك</small>
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px; margin-top:8px">
+          <div class="col" style="min-width:200px">
+            <button id="btnTestStartBell" class="btn"><i class="bi bi-bell"></i> اختبار جرس بداية</button>
+          </div>
+          <div class="col" style="min-width:200px">
+            <button id="btnTestEndBell" class="btn"><i class="bi bi-bell"></i> اختبار جرس نهاية</button>
+          </div>
+          <div class="col" style="min-width:260px">
+            <button id="btnRequestNotifPerm" class="btn"><i class="bi bi-bell-fill"></i> طلب إذن إشعارات النظام</button>
+            <small class="muted" style="display:block;margin-top:6px">يُستخدم الإشعار عندما تكون النافذة في الخلفية</small>
+          </div>
+        </div>
+
+        <div class="row wrap" style="gap:12px; margin-top:8px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="alertToneStart">نغمة بداية الدرس</label>
+            <select id="alertToneStart" class="input">
+              <option value="classic">جرس كلاسيكي</option>
+              <option value="long">جرس طويل</option>
+              <option value="pulses">رنات متقطعة</option>
+              <option value="continuous">طنين مستمر</option>
+            </select>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="alertToneEnd">نغمة نهاية الدرس</label>
+            <select id="alertToneEnd" class="input">
+              <option value="classic">جرس كلاسيكي</option>
+              <option value="long">جرس طويل</option>
+              <option value="pulses">رنات متقطعة</option>
+              <option value="continuous">طنين مستمر</option>
+            </select>
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="alertDurationSec">مدة الرنين (ثوانٍ)</label>
+            <input id="alertDurationSec" class="input" type="number" min="1" max="30" step="1" value="10" />
+            <small class="muted">الافتراضي 10 ثوانٍ</small>
+          </div>
+        </div>
+
+        <div class="row wrap" style="gap:12px; margin-top:8px">
+          <div class="col" style="min-width:280px">
+            <label class="label" for="alertCustomStartFile">جرس مخصص لبداية الدرس (MP3)</label>
+            <input id="alertCustomStartFile" class="input" type="file" accept="audio/*" />
+            <div class="row" style="align-items:center; gap:8px; margin-top:6px">
+              <small id="customStartStatus" class="muted">لا يوجد ملف مخصص</small>
+              <button id="btnClearCustomStart" type="button" class="btn ghost small">مسح</button>
+            </div>
+            <small class="muted">يُفضل ملف قصير ≤ 1MB</small>
+          </div>
+          <div class="col" style="min-width:280px">
+            <label class="label" for="alertCustomEndFile">جرس مخصص لنهاية الدرس (MP3)</label>
+            <input id="alertCustomEndFile" class="input" type="file" accept="audio/*" />
+            <div class="row" style="align-items:center; gap:8px; margin-top:6px">
+              <small id="customEndStatus" class="muted">لا يوجد ملف مخصص</small>
+              <button id="btnClearCustomEnd" type="button" class="btn ghost small">مسح</button>
+            </div>
+            <small class="muted">يُفضل ملف قصير ≤ 1MB</small>
+          </div>
+        </div>
+
         <div class="row gap-8" style="margin-top:8px">
           <button id="btnSaveSettings" class="btn primary"><i class="bi bi-save2"></i> حفظ</button>
           <button id="btnResetApp" class="btn danger"><i class="bi bi-recycle"></i> إعادة ضبط التطبيق</button>
