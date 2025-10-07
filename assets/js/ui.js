@@ -95,8 +95,18 @@
           const root = w.document.body;
           // انتظر دورة رسم لضمان اكتمال التهيئة
           await new Promise(r => setTimeout(r, 50));
+          // اضبط مقياس التحويل ديناميكيًا حسب نسبة تكبير الصفحة (A4/A3/A2...)
+          const contentW = root.scrollWidth || w.document.documentElement.scrollWidth || w.innerWidth;
+          const contentH = root.scrollHeight || w.document.documentElement.scrollHeight || w.innerHeight;
+          const availW = w.innerWidth || contentW;
+          const availH = w.innerHeight || contentH;
+          // إن كانت الصفحة أكبر من المحتوى فسيتم تكبير الصورة لاحقًا، لذا زد scale للحفاظ على الدقة
+          const upW = availW / Math.max(1, contentW);
+          const upH = availH / Math.max(1, contentH);
+          const up = Math.max(1, Math.min(upW, upH));
+          const effScale = Math.min(3, Math.max(rasterScale || 2, (rasterScale || 2) * up));
           const canvas = await w.html2canvas(root, {
-            scale: rasterScale,
+            scale: effScale,
             useCORS: true,
             allowTaint: true,
             backgroundColor: '#ffffff',
@@ -104,7 +114,8 @@
             windowHeight: root.scrollHeight
           });
           const dataURL = canvas.toDataURL('image/png');
-          w.document.body.innerHTML = `<img src="${dataURL}" style="width:100%;height:auto;display:block">`;
+          // ضع الصورة داخل حاوية تملأ الارتفاع المتاح للصفحة لتكبيرها تلقائيًا دون قص
+          w.document.body.innerHTML = `<div style="width:100%;height:100vh;display:block"><img src="${dataURL}" style="width:100%;height:100%;display:block;object-fit:contain"></div>`;
           setTimeout(() => w.print(), 200);
         } catch (e) {
           // فشل التحويل (غالبًا بسبب CORS للصور) → عُد للطباعة العادية
@@ -117,7 +128,7 @@
     }
   }
 
-  function printDocument({ contentHtml, docTitle, school, orientation = 'portrait', margin = '12mm', fontScale = 1, footerLeftImageUrl = '', footerRightHtml = '', fontFamily = '' , leftHeaderHtml = '', headerTypography = {}, noFixedHeader = false, rasterize = false, rasterScale = 2 }) {
+  function printDocument({ contentHtml, docTitle, school, orientation = 'portrait', margin = '12mm', fontScale = 1, footerLeftImageUrl = '', footerRightHtml = '', fontFamily = '' , leftHeaderHtml = '', headerTypography = {}, noFixedHeader = false, rasterize = false, rasterScale = 2, afterWrite }) {
     const dateStr = new Date().toLocaleString('ar-EG');
     const logoHtml = school?.logo ? `<img class="logo" src="${school.logo}" alt="logo">` : '';
     // حقل الجنس يُعرَض بصيغ: ذكور→ للبنين، إناث→ للبنات، مختلط→ المختلطة
@@ -165,7 +176,7 @@
       body{ font-size:${14*fontScale}px; ${fontFamily ? `font-family:${fontFamily}` : ''} }
       th{ font-weight:700 }
       .print-body.no-fixed{ padding: 12mm }`;
-    printHtml(html, { title: docTitle || 'طباعة', css, rasterize, rasterScale });
+    printHtml(html, { title: docTitle || 'طباعة', css, rasterize, rasterScale, afterWrite });
   }
 
   global.UI = { qs, qsa, routeTo, showToast, renderList, printHtml, printDocument };

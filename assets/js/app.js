@@ -2493,8 +2493,8 @@
       contentHtml: html,
       docTitle: 'الجدول الأسبوعي (عرض عام)',
       school: Store.getDB().school,
-      // إجبار A3 أفقي كما طلبت
-      orientation: 'A3 landscape',
+  // اجعل المقاس يعتمد على اختيار المتصفح للطابعة (A4/A3/A2...) مع تثبيت الاتجاه أفقي فقط
+  orientation: 'landscape',
       // اضبط الهوامش: علوي/سفلي 12mm، جانبي 5mm (0.5cm)
       margin: '12mm 5mm 12mm 5mm',
       fontScale: 1, // تثبيت مقياس الخط العام
@@ -2503,15 +2503,150 @@
       footerLeftImageUrl: prn.footer?.leftImageUrl || '',
       footerRightHtml: prn.footer?.rightHtml || '',
       leftHeaderHtml: 'جميع الصفوف',
-      // وضع الطباعة كصورة لضمان تماثل صورة المعاينة مع المطبوع
+      // إعادة التفعيل: التحويل لصورة يضمن عدم تداخل الخلايا في الطباعة ويكبرها عبر object-fit
       rasterize: true,
       rasterScale: 2
+    });
+  }
+
+  // Global timetable as content (multi-page by days)
+  function previewGlobalContent() {
+    const db = Store.getDB();
+    const grid = db.timetable?.grid || {};
+    const allDays = db.timetable?.days || [];
+    const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
+    const slots = db.timetable?.slots || [];
+    const classes = db.classes || [];
+    const prn = db.settings?.printing || {};
+    const saved = prn.globalStyle || {};
+    const gSt = {
+      textColor: saved.textColor || '#111827',
+      classBg: saved.classBg || '#f9fafb',
+      classAltBg: saved.classAltBg || '#f3f4f6',
+      dayHeadBg: saved.dayHeadBg || '#eef2ff',
+      borderColor: saved.borderColor || '#d1d5db',
+      borderWidth: (typeof saved.borderWidth==='number'?saved.borderWidth:parseInt(saved.borderWidth,10)) || 1,
+      classColWidth: (typeof saved.classColWidth==='number'?saved.classColWidth:parseInt(saved.classColWidth,10)) || 170,
+      slotColWidth: (typeof saved.slotColWidth==='number'?saved.slotColWidth:parseInt(saved.slotColWidth,10)) || 72,
+      subjColor: saved.subjColor || '#111827', subjBold: (saved.subjBold !== false),
+      teachShow: (saved.teachShow !== false), teachColor: saved.teachColor || '#374151', teachSize: (typeof saved.teachSize==='number'?saved.teachSize:10) || 10,
+      timeShow: !!saved.timeShow, timeColor: saved.timeColor || '#6b7280', timeSize: (typeof saved.timeSize==='number'?saved.timeSize:11) || 11,
+      headColor: saved.headColor || '#111827', headSize: (typeof saved.headSize==='number'?saved.headSize:13) || 13, headBold: (saved.headBold !== false)
+    };
+    const C_BORDER = gSt.borderColor;
+    const B_WIDTH = Math.max(1, parseInt(gSt.borderWidth, 10) || 1);
+    const CLASS_W = Math.max(60, parseInt(gSt.classColWidth, 10) || 170);
+    const SLOT_W = Math.max(40, parseInt(gSt.slotColWidth, 10) || 72);
+
+    // CSS tuned for paged content (no raster)
+    const css = `
+      .gpg{ page-break-after:always; }
+      table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed; color:${gSt.textColor}; font-size:14px }
+      .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:3px; vertical-align:top; text-align:center; box-sizing:border-box }
+      .global-tt thead th.day-head{ background:${gSt.dayHeadBg}; font-weight:${gSt.headBold?800:600}; font-size:${gSt.headSize}px }
+      .global-tt .class-col{ text-align:right; background:${gSt.classBg}; font-weight:700 }
+      .global-tt tr:nth-child(odd) .class-col{ background:${gSt.classAltBg} }
+      .g-cell{ line-height:1.45; display:block }
+      .g-subj{ color:${gSt.subjColor}; font-weight:${gSt.subjBold?800:600}; font-size:12px; margin-bottom:2px }
+      .g-teach{ color:${gSt.teachColor}; font-size:${gSt.teachSize}px }
+      .g-time{ color:${gSt.timeColor}; font-size:${gSt.timeSize}px }
+    `;
+
+    // Layout strategy: compute how many day columns fit per page width.
+    // We'll assume printable width ~ 100% of content area and use slot width as a guide.
+  const approxContentPx = 1100; // conservative content width; browser will scale fonts if needed
+  const remain = Math.max(200, approxContentPx - CLASS_W);
+  const perDayWidth = SLOT_W * Math.max(1, slots.length);
+  // اطبع على الأقل 3 أيام في الصفحة الواحدة كما طلبت
+  const maxDaysPerPage = Math.max(3, Math.floor(remain / perDayWidth));
+
+    let big = `<style>${css}</style>`;
+    for (let start = 0; start < days.length; start += maxDaysPerPage) {
+      const chunkDays = days.slice(start, start + maxDaysPerPage);
+      // build header
+      let thead = `<thead><tr><th class="class-col" rowspan="2" style="width:${CLASS_W}px">الصف / الشعبة</th>`;
+      chunkDays.forEach(d => thead += `<th class="day-head" colspan="${slots.length}">${d}</th>`);
+      thead += `</tr><tr>`;
+      chunkDays.forEach(() => { for (let i=1;i<=slots.length;i++) thead += `<th class="p">${i}</th>`; });
+      thead += `</tr></thead>`;
+
+      // body
+      let tbody = '<tbody>';
+      classes.forEach((cls, ci) => {
+        const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
+        sections.forEach((sec, si) => {
+          tbody += `<tr>`;
+          const label = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`;
+          tbody += `<td class="class-col">${label}</td>`;
+          chunkDays.forEach((day) => {
+            for (let s = 0; s < slots.length; s++) {
+              const key = `${ci}:${si}|${day}|${slots[s]}`;
+              const legacy = `${ci}:${si}|${day}|${s+1}`;
+              const val = grid[key] ?? grid[legacy] ?? '';
+              if (!val) { tbody += `<td class="slot">—</td>`; }
+              else {
+                let subj = '', teach = '';
+                const meta = getTeacherAndSubjectByCellValue(db, val);
+                if (meta) {
+                  const subjObj = db.subjectsCatalog?.[meta.subjIdx] || {};
+                  subj = (subjObj.short || subjObj.name || '').trim();
+                  const tFull = (db.teachers?.[meta.teacherIdx]?.name || '').trim();
+                  teach = tFull.split(/\s+/)[0] || tFull;
+                } else {
+                  const parts = String(val).split('•');
+                  subj = (parts[0]||'').trim(); teach = (parts[1]||'').trim();
+                }
+                const teachHtml = (gSt.teachShow !== false && teach) ? `<div class="g-teach">${teach}</div>` : '';
+                const timeHtml = gSt.timeShow ? `<div class="g-time">${calcSlotTimeRange(db, day, s)}</div>` : '';
+                tbody += `<td class="slot filled"><div class="g-cell"><div class="g-subj">${subj||val}</div>${teachHtml}${timeHtml}</div></td>`;
+              }
+            }
+          });
+          tbody += `</tr>`;
+        });
+      });
+      tbody += '</tbody>';
+
+      // colgroup for this page
+      let colgroup = `<colgroup><col class="col-class" style="width:${CLASS_W}px">`;
+      const totalCols = chunkDays.length * slots.length;
+      const colW = Math.max(40, Math.floor((approxContentPx - CLASS_W) / Math.max(1, totalCols)));
+      for (let i=0;i<totalCols;i++) colgroup += `<col style="width:${colW}px">`;
+      colgroup += `</colgroup>`;
+
+      big += `<div class="gpg"><table class="global-tt">${colgroup}${thead}${tbody}</table></div>`;
+    }
+
+    UI.printDocument({
+      contentHtml: big,
+      docTitle: 'الجدول الأسبوعي (محتوى متعدد الصفحات)',
+      school: Store.getDB().school,
+      orientation: 'landscape',
+      margin: prn.margin || '12mm 5mm 12mm 5mm',
+      fontScale: prn.fontScale || 1,
+      fontFamily: prn.fontFamily || '',
+      headerTypography: prn.headerTypography || {},
+      footerLeftImageUrl: prn.footer?.leftImageUrl || '',
+      footerRightHtml: prn.footer?.rightHtml || '',
+      // محتوى حي بدون تحويل لصورة: لمنع التمويه، مع تقسيم حسب الأيام
+      rasterize: false,
+      afterWrite: (w) => {
+        try {
+          const head = w.document.querySelector('header.print-header');
+          const headerH = head ? head.offsetHeight : 0;
+          const extra = Math.max(8, headerH + 6);
+          // أضف مسافة علوية للصفحات التالية حتى لا تتداخل مع الرأس المكرر
+          const pages = w.document.querySelectorAll('.gpg');
+          pages.forEach((pg, i) => { if (i > 0) pg.style.marginTop = extra + 'px'; });
+        } catch {}
+      }
     });
   }
 
   const btnPreviewBySections = qs('#btnPreviewBySections'); if (btnPreviewBySections) btnPreviewBySections.addEventListener('click', previewBySections);
   const btnPreviewTeachers = qs('#btnPreviewTeachers'); if (btnPreviewTeachers) btnPreviewTeachers.addEventListener('click', previewTeachers);
   const btnPreviewGlobal = qs('#btnPreviewGlobal'); if (btnPreviewGlobal) btnPreviewGlobal.addEventListener('click', previewGlobal);
+  const btnPreviewGlobalContent = qs('#btnPreviewGlobalContent'); if (btnPreviewGlobalContent) btnPreviewGlobalContent.addEventListener('click', previewGlobalContent);
   const btnPreviewByDay = qs('#btnPreviewByDay'); if (btnPreviewByDay) btnPreviewByDay.addEventListener('click', previewByDay);
 
   // Per-day timetable preview (one page per working day)
