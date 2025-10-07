@@ -2631,7 +2631,7 @@
       contentHtml: big,
       docTitle: 'الجدول الأسبوعي (محتوى متعدد الصفحات)',
       school: Store.getDB().school,
-      orientation: 'landscape',
+      orientation: 'A3 landscape',
       // طلبت تقليل الهامش العلوي إلى 0.5cm (5mm)
       margin: '5mm 5mm 12mm 5mm',
       fontScale: prn.fontScale || 1,
