@@ -131,6 +131,32 @@ body {
 .btn-ac4 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color:#fff; }
 .btn-ac5 { background: linear-gradient(135deg, #fb7185, #ef4444); color:#fff; }
 
+/* Dashboard header row with clock */
+.dash-header { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-top: 0; }
+.dash-header .section-title { margin: 16px 4px; }
+
+/* Elegant live clock */
+.clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: -8px -8px 16px var(--shadow-light), 8px 8px 16px var(--shadow-dark);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  letter-spacing: 0.5px;
+  font-weight: 800;
+  font-size: 24px;
+  color: var(--fg);
+  margin-top: -6px; /* رفع بسيط للأعلى */
+}
+/* Keep the clock compact on mobile */
+@media (max-width: 600px) {
+  .clock { font-size: 18px; padding: 6px 10px; margin-top: -4px; }
+}
+
 
 .pad-16 { padding: 16px; }
 .gap-8 { gap: 8px; }

@@ -98,6 +98,8 @@
   window.addEventListener('hashchange', () => { 
     routeTo(location.hash); 
     renderTeacherSidebar(); 
+    // Update clock visibility on route changes
+    try { updateClockVisibility(); } catch {}
     if (location.hash === '#/settings') {
       try { if (typeof renderGlobalPrintPreview === 'function') renderGlobalPrintPreview(); } catch {}
     }
@@ -130,6 +132,28 @@
     qs('#stat-invoices').textContent = db.invoices.length;
     renderTeacherStatsTable();
   }
+
+  // ===== Live Clock (dashboard only) =====
+  function formatClock(d) {
+    const pad = (n) => n < 10 ? '0' + n : '' + n;
+    let h24 = d.getHours(); const m = d.getMinutes(); const s = d.getSeconds();
+    const isPM = h24 >= 12; let h12 = h24 % 12; if (h12 === 0) h12 = 12;
+    const ampm = isPM ? 'م' : 'ص';
+    return `${pad(h12)}:${pad(m)}:${pad(s)} ${ampm}`;
+  }
+  function updateClockOnce() {
+    const el = qs('#liveClock'); if (!el) return;
+    el.textContent = formatClock(new Date());
+  }
+  function updateClockVisibility() {
+    const el = qs('#liveClock'); if (!el) return;
+    const onDash = (location.hash || '#/dashboard') === '#/dashboard';
+    el.style.display = onDash ? 'inline-flex' : 'none';
+  }
+  // Start ticking
+  setInterval(updateClockOnce, 1000);
+  // Initial update and visibility after DOM is ready
+  setTimeout(() => { try { updateClockOnce(); updateClockVisibility(); } catch {} }, 0);
 
   // Build teacher stats across assignments
   function computeTeacherStats() {
