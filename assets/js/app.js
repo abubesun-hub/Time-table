@@ -2519,19 +2519,20 @@
     const classes = db.classes || [];
     const prn = db.settings?.printing || {};
     const saved = prn.globalStyle || {};
+    const toNum = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : d; };
     const gSt = {
       textColor: saved.textColor || '#111827',
       classBg: saved.classBg || '#f9fafb',
       classAltBg: saved.classAltBg || '#f3f4f6',
       dayHeadBg: saved.dayHeadBg || '#eef2ff',
       borderColor: saved.borderColor || '#d1d5db',
-      borderWidth: (typeof saved.borderWidth==='number'?saved.borderWidth:parseInt(saved.borderWidth,10)) || 1,
-      classColWidth: (typeof saved.classColWidth==='number'?saved.classColWidth:parseInt(saved.classColWidth,10)) || 170,
-      slotColWidth: (typeof saved.slotColWidth==='number'?saved.slotColWidth:parseInt(saved.slotColWidth,10)) || 72,
-      subjColor: saved.subjColor || '#111827', subjBold: (saved.subjBold !== false),
-      teachShow: (saved.teachShow !== false), teachColor: saved.teachColor || '#374151', teachSize: (typeof saved.teachSize==='number'?saved.teachSize:10) || 10,
-      timeShow: !!saved.timeShow, timeColor: saved.timeColor || '#6b7280', timeSize: (typeof saved.timeSize==='number'?saved.timeSize:11) || 11,
-      headColor: saved.headColor || '#111827', headSize: (typeof saved.headSize==='number'?saved.headSize:13) || 13, headBold: (saved.headBold !== false)
+      borderWidth: toNum(saved.borderWidth, 1),
+      classColWidth: toNum(saved.classColWidth, 170),
+      slotColWidth: toNum(saved.slotColWidth, 72),
+      subjColor: saved.subjColor || '#111827', subjBold: (saved.subjBold !== false), subjSize: toNum(saved.subjSize, 14),
+      teachShow: (saved.teachShow !== false), teachColor: saved.teachColor || '#374151', teachSize: toNum(saved.teachSize, 14), teachBold: !!saved.teachBold,
+      timeShow: !!saved.timeShow, timeColor: saved.timeColor || '#6b7280', timeSize: toNum(saved.timeSize, 11),
+      headColor: saved.headColor || '#111827', headSize: toNum(saved.headSize, 13), headBold: (saved.headBold !== false)
     };
     const C_BORDER = gSt.borderColor;
     const B_WIDTH = Math.max(1, parseInt(gSt.borderWidth, 10) || 1);
@@ -2551,11 +2552,11 @@
       .global-tt thead th.day-head{ background:${gSt.dayHeadBg}; font-weight:${gSt.headBold?800:600}; font-size:${gSt.headSize}px }
       .global-tt .class-col{ text-align:right; background:${gSt.classBg}; font-weight:700 }
       .global-tt tr:nth-child(odd) .class-col{ background:${gSt.classAltBg} }
-  .g-cell{ line-height:1.5; display:block; padding-inline:2px }
-  /* امنع كسر الكلمة الواحدة؛ اللف يكون عند المسافات فقط، وتعطيل الواصلة */
-  .g-subj{ color:${gSt.subjColor}; font-weight:${gSt.subjBold?800:600}; font-size:12px; margin-bottom:2px; overflow-wrap:normal; word-break:normal; white-space:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
-  .g-teach{ color:${gSt.teachColor}; font-size:${gSt.teachSize}px; overflow-wrap:normal; word-break:normal; white-space:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
-  .g-time{ color:${gSt.timeColor}; font-size:${gSt.timeSize}px; overflow-wrap:normal; word-break:normal; white-space:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
+  .g-cell{ line-height:1.35; display:block; padding-inline:2px }
+  /* اللف عند المسافات فقط وعدم كسر الكلمات العربية؛ لا قصّ ولا قطع */
+  .g-subj{ color:${gSt.subjColor}; font-weight:${gSt.subjBold?800:700}; font-size:${gSt.subjSize}px; margin-bottom:2px; overflow:visible; text-overflow:clip; display:block; overflow-wrap:normal; word-break:normal; white-space:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
+  .g-teach{ color:${gSt.teachColor}; font-weight:${gSt.teachBold?700:400}; font-size:${gSt.teachSize}px; overflow:visible; text-overflow:clip; white-space:nowrap; overflow-wrap:normal; word-break:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
+  .g-time{ color:${gSt.timeColor}; font-size:${gSt.timeSize}px; overflow:visible; text-overflow:clip; white-space:nowrap; overflow-wrap:normal; word-break:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
     `;
 
     // Layout strategy: compute how many day columns fit per page width.
@@ -2643,11 +2644,68 @@
       afterWrite: (w) => {
         try {
           const head = w.document.querySelector('header.print-header');
+          const foot = w.document.querySelector('footer.print-footer');
           const headerH = head ? head.offsetHeight : 0;
-          const extra = Math.max(8, headerH + 6);
-          // أضف مسافة داخلية للصفحات التالية (padding-top) لأن المتصفحات قد تتجاهل margin-top عند بداية الصفحة
+          const footerH = foot ? foot.offsetHeight : 0;
+          const padTop = Math.max(8, headerH + 6);
+          const padBot = Math.max(8, footerH + 6);
+          // أضف مسافة داخلية لكل صفحة لحجز مساحة للرأس/التذييل
           const pages = w.document.querySelectorAll('.gpg');
-          pages.forEach((pg, i) => { if (i > 0) pg.style.paddingTop = extra + 'px'; });
+          pages.forEach((pg) => { pg.style.paddingTop = padTop + 'px'; pg.style.paddingBottom = padBot + 'px'; });
+
+          // وظيفة تصغير الخط لتناسب مساحة الخلية دون قصّ
+          const fitText = (el, opts = {}) => {
+            const min = opts.min || 9; // أصغر حجم مسموح
+            const maxLines = opts.maxLines || 2; // للمادة، اسم المعلم سطر واحد
+            const preserveBold = !!opts.bold;
+            if (!el) return;
+            // طبّق التفاف طبيعي وعدم كسر الكلمات
+            el.style.whiteSpace = 'normal';
+            el.style.wordBreak = 'normal';
+            el.style.overflowWrap = 'normal';
+            el.style.hyphens = 'none';
+            // ابدأ من الحجم الحالي وانقص تدريجيًا حتى ينضبط الارتفاع داخل الخلية
+            const getFont = () => parseFloat(w.getComputedStyle(el).fontSize) || 14;
+            let size = Math.round(getFont());
+            const box = el.closest('.g-cell');
+            const slotTd = el.closest('td');
+            const host = box || slotTd || el.parentElement;
+            if (!host) return;
+            const hostH = host.clientHeight || host.offsetHeight;
+            // اسمح بهامش داخلي صغير
+            const safe = Math.max(2, Math.floor(hostH * 0.04));
+            // تقدير عدد الأسطر عبر ارتفاع السطر
+            const lineH = parseFloat(w.getComputedStyle(el).lineHeight) || (size * 1.25);
+            const linesAllowed = opts.linesAllowed || maxLines;
+            // جرّب تقليل الحجم حتى يتحقق الشرطان: لا يتجاوز عدد الأسطر المسموح ولا يفيض عن الحاوية
+            const measure = () => {
+              const r = el.getBoundingClientRect();
+              const usedH = r.height;
+              const lines = Math.ceil(usedH / Math.max(1, lineH));
+              return { usedH, lines };
+            };
+            let guard = 0;
+            let m = measure();
+            while (guard < 40 && (m.lines > linesAllowed || (hostH && m.usedH > hostH - safe)) && size > min) {
+              guard++;
+              size -= 1;
+              el.style.fontSize = size + 'px';
+              // تخفيف الوزن إن لم يُطلب التعريض الصارم
+              if (!preserveBold && size <= 12) el.style.fontWeight = '600';
+              m = measure();
+            }
+          };
+
+          // طبّق على كل الخلايا: المادة سطران كحد أقصى، المعلم سطر واحد
+          const applyFitAll = () => {
+            const subjNodes = w.document.querySelectorAll('.g-cell .g-subj');
+            subjNodes.forEach(n => fitText(n, { min: 10, maxLines: 2, bold: true }));
+            const teachNodes = w.document.querySelectorAll('.g-cell .g-teach');
+            teachNodes.forEach(n => fitText(n, { min: 9, maxLines: 1, bold: false }));
+          };
+          // نفّذ بعد رسم الصفحة والصور، ثم مرة أخرى بعد التحجيم
+          w.addEventListener('load', () => setTimeout(applyFitAll, 30));
+          setTimeout(() => { applyFitAll(); }, 50);
 
           // كبّر كل جدول داخل الصفحة لملء الارتفاع المتاح بين الرأس والتذييل
           const main = w.document.querySelector('main.print-body');
@@ -2661,24 +2719,18 @@
               const isSmallPage = avail < 900; // تقريب: A4 landscape غالبًا تحت هذا الارتفاع
               let scale;
               if (isSmallPage) {
-                // على A4: اسمح بتصغير بسيط فقط إن لزم لتفادي تعدد صفحات غير مرغوب
-                scale = Math.min(1, Math.max(0.90, (avail - safety) / h));
-                // قلّل الحشوة والارتفاع لكل صفحات A4 لخفض ارتفاع الصفوف
+                // على A4: تقليص خفيف فقط مع تقليل الحشوات، مع الحفاظ على 14px المنصوص عليها قدر الإمكان
+                scale = Math.min(1, Math.max(0.92, (avail - safety) / h));
                 const sA4 = w.document.createElement('style');
                 sA4.textContent = `
-                  table.global-tt{ font-size:12.5px }
                   table.global-tt th, table.global-tt td{ padding:2px 4px !important }
-                  table.global-tt .g-subj{ font-size:10.5px; line-height:1.35 }
-                  table.global-tt .g-teach{ font-size:9.5px }
-                  table.global-tt .g-time{ font-size:9.5px }
+                  table.global-tt .g-cell{ line-height:1.30 }
+                  table.global-tt .g-teach, table.global-tt .g-time{ white-space:nowrap }
                 `;
                 if (w.document.head) w.document.head.appendChild(sA4);
                 // تعزيز إضافي للصفحة الأولى لمنع أي تداخل محتمل
                 const style = w.document.createElement('style');
-                style.textContent = `
-                  .gpg:first-child table.global-tt .g-cell{ overflow:hidden }
-                  .gpg:first-child table.global-tt .g-subj{ font-size:10.2px; line-height:1.32 }
-                `;
+                style.textContent = `.gpg:first-child table.global-tt .g-cell{ overflow:visible }`;
                 if (w.document.head) w.document.head.appendChild(style);
               } else {
                 // A3+ : كبّر فقط عند وجود فراغ ملحوظ
@@ -2689,6 +2741,8 @@
                 wrap.style.transform = `scale(${scale})`;
                 wrap.style.width = `calc(100% / ${scale})`;
               }
+              // بعد أي تغيير قياس، أعد ملائمة النصوص
+              applyFitAll();
             });
           }, 30);
         } catch {}
