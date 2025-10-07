@@ -52,7 +52,8 @@
       header.print-header{ top: 0; padding: 10mm 5mm 4mm; border-bottom: 1px solid #ddd; }
       footer.print-footer{ bottom: 0; padding: 6mm 5mm 8mm; border-top: 1px solid #ddd; display:flex; align-items:center; justify-content:space-between; gap:12px }
       /* زيدت المسافة العلوية لتفادي تداخل رأس الصفحة مع المحتوى، خاصة مع العنوان والسنة الدراسية */
-      main.print-body{ padding: 46mm 5mm 24mm; }
+  /* زِد الحافة اليمنى قليلاً لتفادي قص عمود اليمين عند التكبير من اليمين */
+  main.print-body{ padding: 46mm 7mm 24mm 5mm; }
       table{ width:100%; border-collapse:collapse }
       td,th{ border:1px solid #ccc; padding:6px }
       .muted{ color:#6b7280 }

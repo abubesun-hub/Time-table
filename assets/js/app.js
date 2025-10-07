@@ -2540,16 +2540,22 @@
 
     // CSS tuned for paged content (no raster)
     const css = `
-      .gpg{ page-break-after:always; }
-      table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed; color:${gSt.textColor}; font-size:14px }
-      .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:3px; vertical-align:top; text-align:center; box-sizing:border-box }
+  .gpg{ page-break-after:always; overflow: visible; box-sizing:border-box; break-inside: avoid }
+  .gpg:last-child{ page-break-after:auto }
+  /* اربط التكبير بحافة اليمين لأن الصفحة RTL حتى لا يُقص عمود الصف/الأحد */
+  .gpg .fit-wrap{ transform-origin: top right; width:100%; display:block }
+  /* قاعدة أصغر قليلاً لتلائم A4 بشكل أفضل دون تأثير كبير على A3 */
+  table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed; color:${gSt.textColor}; font-size:13px }
+      /* زيادة طفيفة في الحشوة لتفادي قصّ آخر حرف مع التكبير */
+  .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:4px 6px; vertical-align:top; text-align:center; box-sizing:border-box; overflow: visible }
       .global-tt thead th.day-head{ background:${gSt.dayHeadBg}; font-weight:${gSt.headBold?800:600}; font-size:${gSt.headSize}px }
       .global-tt .class-col{ text-align:right; background:${gSt.classBg}; font-weight:700 }
       .global-tt tr:nth-child(odd) .class-col{ background:${gSt.classAltBg} }
-      .g-cell{ line-height:1.45; display:block }
-      .g-subj{ color:${gSt.subjColor}; font-weight:${gSt.subjBold?800:600}; font-size:12px; margin-bottom:2px }
-      .g-teach{ color:${gSt.teachColor}; font-size:${gSt.teachSize}px }
-      .g-time{ color:${gSt.timeColor}; font-size:${gSt.timeSize}px }
+  .g-cell{ line-height:1.5; display:block; padding-inline:2px }
+  /* امنع كسر الكلمة الواحدة؛ اللف يكون عند المسافات فقط، وتعطيل الواصلة */
+  .g-subj{ color:${gSt.subjColor}; font-weight:${gSt.subjBold?800:600}; font-size:12px; margin-bottom:2px; overflow-wrap:normal; word-break:normal; white-space:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
+  .g-teach{ color:${gSt.teachColor}; font-size:${gSt.teachSize}px; overflow-wrap:normal; word-break:normal; white-space:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
+  .g-time{ color:${gSt.timeColor}; font-size:${gSt.timeSize}px; overflow-wrap:normal; word-break:normal; white-space:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
     `;
 
     // Layout strategy: compute how many day columns fit per page width.
@@ -2617,7 +2623,7 @@
   for (let i=0;i<totalCols;i++) colgroup += `<col style="width:${pctSlot}%">`;
   colgroup += `</colgroup>`;
 
-      big += `<div class="gpg"><table class="global-tt">${colgroup}${thead}${tbody}</table></div>`;
+  big += `<div class="gpg"><div class="fit-wrap"><table class="global-tt">${colgroup}${thead}${tbody}</table></div></div>`;
     }
 
     UI.printDocument({
@@ -2625,7 +2631,8 @@
       docTitle: 'الجدول الأسبوعي (محتوى متعدد الصفحات)',
       school: Store.getDB().school,
       orientation: 'landscape',
-      margin: prn.margin || '12mm 5mm 12mm 5mm',
+      // طلبت تقليل الهامش العلوي إلى 0.5cm (5mm)
+      margin: '5mm 5mm 12mm 5mm',
       fontScale: prn.fontScale || 1,
       fontFamily: prn.fontFamily || '',
       headerTypography: prn.headerTypography || {},
@@ -2638,9 +2645,52 @@
           const head = w.document.querySelector('header.print-header');
           const headerH = head ? head.offsetHeight : 0;
           const extra = Math.max(8, headerH + 6);
-          // أضف مسافة علوية للصفحات التالية حتى لا تتداخل مع الرأس المكرر
+          // أضف مسافة داخلية للصفحات التالية (padding-top) لأن المتصفحات قد تتجاهل margin-top عند بداية الصفحة
           const pages = w.document.querySelectorAll('.gpg');
-          pages.forEach((pg, i) => { if (i > 0) pg.style.marginTop = extra + 'px'; });
+          pages.forEach((pg, i) => { if (i > 0) pg.style.paddingTop = extra + 'px'; });
+
+          // كبّر كل جدول داخل الصفحة لملء الارتفاع المتاح بين الرأس والتذييل
+          const main = w.document.querySelector('main.print-body');
+          const avail = main ? main.getBoundingClientRect().height : (w.innerHeight || 0);
+          const safety = 10; // بكسلات أمان
+          setTimeout(() => {
+            pages.forEach(pg => {
+              const wrap = pg.querySelector('.fit-wrap'); if (!wrap) return;
+              const rect = wrap.getBoundingClientRect();
+              const h = rect.height || 0; if (!h || !avail) return;
+              const isSmallPage = avail < 900; // تقريب: A4 landscape غالبًا تحت هذا الارتفاع
+              let scale;
+              if (isSmallPage) {
+                // على A4: اسمح بتصغير بسيط فقط إن لزم لتفادي تعدد صفحات غير مرغوب
+                scale = Math.min(1, Math.max(0.90, (avail - safety) / h));
+                // قلّل الحشوة والارتفاع لكل صفحات A4 لخفض ارتفاع الصفوف
+                const sA4 = w.document.createElement('style');
+                sA4.textContent = `
+                  table.global-tt{ font-size:12.5px }
+                  table.global-tt th, table.global-tt td{ padding:2px 4px !important }
+                  table.global-tt .g-subj{ font-size:10.5px; line-height:1.35 }
+                  table.global-tt .g-teach{ font-size:9.5px }
+                  table.global-tt .g-time{ font-size:9.5px }
+                `;
+                if (w.document.head) w.document.head.appendChild(sA4);
+                // تعزيز إضافي للصفحة الأولى لمنع أي تداخل محتمل
+                const style = w.document.createElement('style');
+                style.textContent = `
+                  .gpg:first-child table.global-tt .g-cell{ overflow:hidden }
+                  .gpg:first-child table.global-tt .g-subj{ font-size:10.2px; line-height:1.32 }
+                `;
+                if (w.document.head) w.document.head.appendChild(style);
+              } else {
+                // A3+ : كبّر فقط عند وجود فراغ ملحوظ
+                const grow = (avail - safety) / h;
+                scale = (grow < 1.1) ? 1 : Math.min(1.35, grow);
+              }
+              if (Math.abs(scale - 1) > 0.02) {
+                wrap.style.transform = `scale(${scale})`;
+                wrap.style.width = `calc(100% / ${scale})`;
+              }
+            });
+          }, 30);
         } catch {}
       }
     });
