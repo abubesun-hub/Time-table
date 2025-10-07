@@ -2563,8 +2563,8 @@
     let big = `<style>${css}</style>`;
     for (let start = 0; start < days.length; start += maxDaysPerPage) {
       const chunkDays = days.slice(start, start + maxDaysPerPage);
-      // build header
-      let thead = `<thead><tr><th class="class-col" rowspan="2" style="width:${CLASS_W}px">الصف / الشعبة</th>`;
+  // build header (اترك عرض العمود للـ colgroup)
+  let thead = `<thead><tr><th class="class-col" rowspan="2">الصف / الشعبة</th>`;
       chunkDays.forEach(d => thead += `<th class="day-head" colspan="${slots.length}">${d}</th>`);
       thead += `</tr><tr>`;
       chunkDays.forEach(() => { for (let i=1;i<=slots.length;i++) thead += `<th class="p">${i}</th>`; });
@@ -2607,12 +2607,15 @@
       });
       tbody += '</tbody>';
 
-      // colgroup for this page
-      let colgroup = `<colgroup><col class="col-class" style="width:${CLASS_W}px">`;
-      const totalCols = chunkDays.length * slots.length;
-      const colW = Math.max(40, Math.floor((approxContentPx - CLASS_W) / Math.max(1, totalCols)));
-      for (let i=0;i<totalCols;i++) colgroup += `<col style="width:${colW}px">`;
-      colgroup += `</colgroup>`;
+  // colgroup for this page (percentage-based to always fill the width)
+  let colgroup = `<colgroup>`;
+  const totalCols = chunkDays.length * slots.length;
+  const denom = CLASS_W + totalCols * SLOT_W;
+  const pctClass = Math.max(8, Math.min(22, (CLASS_W / denom) * 100));
+  const pctSlot = (100 - pctClass) / Math.max(1, totalCols);
+  colgroup += `<col class="col-class" style="width:${pctClass}%">`;
+  for (let i=0;i<totalCols;i++) colgroup += `<col style="width:${pctSlot}%">`;
+  colgroup += `</colgroup>`;
 
       big += `<div class="gpg"><table class="global-tt">${colgroup}${thead}${tbody}</table></div>`;
     }
