@@ -150,11 +150,12 @@ body {
   font-weight: 800;
   font-size: 24px;
   color: var(--fg);
-  margin-top: -6px; /* رفع بسيط للأعلى */
+  margin-top: -24px; /* رفع أكثر للأعلى */
+  align-self: flex-start; /* محاذاة لأعلى صف العنوان */
 }
 /* Keep the clock compact on mobile */
 @media (max-width: 600px) {
-  .clock { font-size: 18px; padding: 6px 10px; margin-top: -4px; }
+  .clock { font-size: 18px; padding: 6px 10px; margin-top: -12px; }
 }
 
 
