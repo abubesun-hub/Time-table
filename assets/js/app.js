@@ -2956,6 +2956,7 @@
   });
 
   qs('#btnExport').addEventListener('click', () => Store.exportData());
+  const btnExportPkg = qs('#btnExportPkg'); if (btnExportPkg) btnExportPkg.addEventListener('click', () => Store.exportPackage());
   qs('#fileImport').addEventListener('change', async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
     try { await Store.importData(file); showToast('تم الاستيراد'); hydrate(); }

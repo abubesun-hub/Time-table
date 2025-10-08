@@ -151,26 +151,42 @@
     setTimeout(scheduleAutoBackup, 5 * 60 * 1000); // تحقق كل 5 دقائق
   }
 
-  // Import/Export
+  // Import/Export (portable package)
+  function formatStamp(d=new Date()){
+    const p=n=>n<10?'0'+n:''+n; return d.getFullYear()+''+p(d.getMonth()+1)+''+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes());
+  }
+
   function exportData() {
+    // Legacy JSON export kept for backward compatibility
     const db = getDB();
     const json = JSON.stringify(db, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'school-timetable-export.json';
-    a.click();
+    a.href = url; a.download = 'school-timetable-export.json'; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportPackage() {
+    // New portable package (does not include license/device bindings)
+    const db = getDB();
+    const pack = { kind: 'school-timetable-package', version: 1, exportedAt: nowIso(), db };
+    const json = JSON.stringify(pack);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `school-timetable-${formatStamp()}.stt`;
+    a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   async function importData(file) {
     const text = await file.text();
     const data = JSON.parse(text);
-    // Basic validation
-    if (!data || !data.meta || !data.settings) throw new Error('bad-file');
-    setDB(data);
-    return data;
+    // Accept both raw DB JSON and packaged format
+    let db; if (data && data.kind === 'school-timetable-package' && data.db) db = data.db; else db = data;
+    if (!db || !db.meta || !db.settings) throw new Error('bad-file');
+    setDB(db);
+    return db;
   }
 
   global.Store = {
@@ -178,6 +194,6 @@
     getLicenseBlob, setLicenseBlob, removeLicense,
     getDeviceId,
     listBackups, createBackup, restoreBackup, scheduleAutoBackup,
-    exportData, importData,
+    exportData, exportPackage, importData,
   };
 })(window);
