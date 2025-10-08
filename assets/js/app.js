@@ -26,35 +26,45 @@
   function refreshPriorityCards() {
     const db = Store.getDB();
     const step = computeSetupStep(db);
+    const done = step >= 7;
     // decorate badges and lock state
     qsa('.cards-grid .card[data-step]').forEach(card => {
-      // ensure badge element
-      let badge = card.querySelector('.step-badge');
       const n = parseInt(card.getAttribute('data-step'), 10) || 0;
-      if (!badge) { badge = document.createElement('div'); badge.className = 'step-badge'; card.appendChild(badge); }
-      badge.textContent = n;
-      // lock all cards with data-step greater than current required step
-      const req = step;
-      const locked = n > req;
-      card.classList.toggle('locked', locked);
-      // pulse attention on the current required card only
-      card.classList.toggle('required-pulse', n === req);
-      // lock hint icon
+      let badge = card.querySelector('.step-badge');
       let hint = card.querySelector('.lock-hint');
-      if (locked) {
-        if (!hint) { hint = document.createElement('div'); hint.className = 'lock-hint bi bi-lock-fill'; card.appendChild(hint); }
-        const reason = {
-          1: 'ابدأ بمعلومات المدرسة أولاً',
-          2: 'أضف معلماً واحداً على الأقل',
-          3: 'أضف صفاً/شُعبة أولاً',
-          4: 'أضف مادة واحدة على الأقل',
-          5: 'حدّد الحصص الأسبوعية لكل مادة/صف',
-          6: 'قم بتعيين المعلمين للمواد'
-        }[n] || 'هذه الخطوة تعتمد على خطوات سابقة';
-        card.title = reason;
-      } else {
+
+      if (done) {
+        // تمّ إكمال الإعداد: أخفِ الشارات والأقفال كلياً
+        if (badge) badge.remove();
         if (hint) hint.remove();
+        card.classList.remove('locked', 'required-pulse');
         card.removeAttribute('title');
+      } else {
+        // ensure badge element
+        if (!badge) { badge = document.createElement('div'); badge.className = 'step-badge'; card.appendChild(badge); }
+        badge.textContent = n;
+        // lock all cards with data-step greater than current required step
+        const req = step;
+        const locked = n > req;
+        card.classList.toggle('locked', locked);
+        // pulse attention on the current required card only
+        card.classList.toggle('required-pulse', n === req);
+        // lock hint icon
+        if (locked) {
+          if (!hint) { hint = document.createElement('div'); hint.className = 'lock-hint bi bi-lock-fill'; card.appendChild(hint); }
+          const reason = {
+            1: 'ابدأ بمعلومات المدرسة أولاً',
+            2: 'أضف معلماً واحداً على الأقل',
+            3: 'أضف صفاً/شُعبة أولاً',
+            4: 'أضف مادة واحدة على الأقل',
+            5: 'حدّد الحصص الأسبوعية لكل مادة/صف',
+            6: 'قم بتعيين المعلمين للمواد'
+          }[n] || 'هذه الخطوة تعتمد على خطوات سابقة';
+          card.title = reason;
+        } else {
+          if (hint) hint.remove();
+          card.removeAttribute('title');
+        }
       }
       // guard clicks
       if (!card.__wizardBound) {
