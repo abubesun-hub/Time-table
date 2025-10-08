@@ -2,6 +2,74 @@
 (async function () {
   'use strict';
   const { qs, qsa, routeTo, showToast, renderList, printHtml } = UI;
+  
+  // ===== Setup Wizard (priority gating) =====
+  function computeSetupStep(db) {
+    // 1) School & times complete? Considered done if school.name set (non-empty)
+    if (!db.school?.name) return 1;
+    // 2) Teachers >= 1
+    if ((db.teachers || []).length < 1) return 2;
+    // 3) Classes >= 1
+    if ((db.classes || []).length < 1) return 3;
+    // 4) Catalog subjects >= 1
+    if ((db.subjectsCatalog || []).length < 1) return 4;
+    // 5) Allocations not empty
+    const hasAlloc = Object.values(db.allocations || {}).some(m => Object.keys(m || {}).length > 0);
+    if (!hasAlloc) return 5;
+    // 6) Assignments not empty
+    const hasAssign = Object.values(db.assignments || {}).some(subjMap => Object.keys(subjMap || {}).length > 0);
+    if (!hasAssign) return 6;
+    // Done → next is timetable usage
+    return 7;
+  }
+
+  function refreshPriorityCards() {
+    const db = Store.getDB();
+    const step = computeSetupStep(db);
+    // decorate badges and lock state
+    qsa('.cards-grid .card[data-step]').forEach(card => {
+      // ensure badge element
+      let badge = card.querySelector('.step-badge');
+      const n = parseInt(card.getAttribute('data-step'), 10) || 0;
+      if (!badge) { badge = document.createElement('div'); badge.className = 'step-badge'; card.appendChild(badge); }
+      badge.textContent = n;
+      // lock all cards with data-step greater than current required step
+      const req = step;
+      const locked = n > req;
+      card.classList.toggle('locked', locked);
+      // pulse attention on the current required card only
+      card.classList.toggle('required-pulse', n === req);
+      // lock hint icon
+      let hint = card.querySelector('.lock-hint');
+      if (locked) {
+        if (!hint) { hint = document.createElement('div'); hint.className = 'lock-hint bi bi-lock-fill'; card.appendChild(hint); }
+        const reason = {
+          1: 'ابدأ بمعلومات المدرسة أولاً',
+          2: 'أضف معلماً واحداً على الأقل',
+          3: 'أضف صفاً/شُعبة أولاً',
+          4: 'أضف مادة واحدة على الأقل',
+          5: 'حدّد الحصص الأسبوعية لكل مادة/صف',
+          6: 'قم بتعيين المعلمين للمواد'
+        }[n] || 'هذه الخطوة تعتمد على خطوات سابقة';
+        card.title = reason;
+      } else {
+        if (hint) hint.remove();
+        card.removeAttribute('title');
+      }
+      // guard clicks
+      if (!card.__wizardBound) {
+        card.__wizardBound = true;
+        card.addEventListener('click', (e) => {
+          const nowStep = computeSetupStep(Store.getDB());
+          const myStep = parseInt(card.getAttribute('data-step'), 10) || 0;
+          if (myStep > nowStep) {
+            e.preventDefault();
+            showToast(card.title || 'أكمل الخطوات السابقة أولاً');
+          }
+        }, true);
+      }
+    });
+  }
 
   // Activation
   const deviceId = Store.getDeviceId();
@@ -131,6 +199,7 @@
     qs('#stat-teachers').textContent = db.teachers.length;
     qs('#stat-invoices').textContent = db.invoices.length;
     renderTeacherStatsTable();
+    try { refreshPriorityCards(); } catch {}
   }
 
   // ===== Live Clock (dashboard only) =====
@@ -433,6 +502,7 @@
     };
     Store.setDB(db);
     showToast('تم حفظ بيانات المدرسة');
+    try { refreshPriorityCards(); } catch {}
   });
   qs('#btnSchoolClear').addEventListener('click', () => {
     if (!confirm('مسح بيانات المدرسة؟')) return;
@@ -541,6 +611,7 @@
     renderBreaksEditor();
     showToast('تم حفظ الأوقات');
     try { initializeLessonAlerts(); } catch {}
+    try { refreshPriorityCards(); } catch {}
   });
 
   const btnResetTimes = qs('#btnResetTimes'); if (btnResetTimes) btnResetTimes.addEventListener('click', () => {
@@ -548,6 +619,7 @@
     const db = Store.getDB(); db.times = undefined; // سيُعاد إنشاؤها عند العرض حسب القيم الافتراضية
     Store.setDB(db); renderDaysList(); renderTimesEditor(); renderBreaksEditor(); showToast('تمت إعادة الضبط');
     try { initializeLessonAlerts(); } catch {}
+    try { refreshPriorityCards(); } catch {}
   });
 
   // Catalog (subjects list used in allocations)
@@ -584,6 +656,7 @@
         populateAllocSubjectSelect();
         renderAllocations();
         refreshStats();
+        try { refreshPriorityCards(); } catch {}
       });
       actions.append(up, down, edit, del); item.append(left, actions); return item;
     });
@@ -631,7 +704,7 @@
       if (dup) { showToast('اسم المادة موجود مسبقًا'); return; }
   const item = { name, short };
       if (index >= 0) db.subjectsCatalog[index] = item; else db.subjectsCatalog.push(item);
-      Store.setDB(db); renderCatalog(); populateAllocSubjectSelect(); renderAllocations(); refreshStats(); dlg.close('default');
+      Store.setDB(db); renderCatalog(); populateAllocSubjectSelect(); renderAllocations(); refreshStats(); try { refreshPriorityCards(); } catch {} ; dlg.close('default');
     };
   }
   const addCatalogBtn = qs('#btnAddCatalogSubject'); if (addCatalogBtn) addCatalogBtn.addEventListener('click', () => openCatalogModal());
@@ -692,6 +765,7 @@
     updateAssignRemaining(true);
     renderTeacherSidebar();
     renderTimetable();
+    try { refreshPriorityCards(); } catch {}
   });
 
   // Assign lessons to teachers per class/section/subject
@@ -964,6 +1038,7 @@
     db.assignments[csKey][subjIdx][tIdx] = count;
     Store.setDB(db);
   renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); updateAssignRemaining(); renderTeacherSidebar();
+    try { refreshPriorityCards(); } catch {}
     showToast('تم حفظ التخصيص للمعلم');
   }
 
@@ -1062,6 +1137,7 @@
     Store.setDB(db);
   normalizeAssignmentsUniquePerSubject();
   renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); renderTeacherSidebar();
+    try { refreshPriorityCards(); } catch {}
     closeAssignEditBar();
     showToast('تم حفظ التعديل');
   }
@@ -1094,7 +1170,7 @@
         // قبل الحذف: نظّف/أعد ترقيم التخصيصات المرتبطة بالصفوف
         dropClassAndRemapAssignments(i);
         db.classes.splice(i, 1);
-        Store.setDB(db); renderClasses(); refreshStats();
+        Store.setDB(db); renderClasses(); refreshStats(); try { refreshPriorityCards(); } catch {}
       });
       addSection.addEventListener('click', () => openSectionModal(i));
       actions.append(addSection, edit, del);
@@ -1118,7 +1194,7 @@
         // عالج التخصيصات: إسقاط الشعبة المعنية وإعادة ترقيم ما بعدها
         if (secIndex >= 0) dropSectionAndRemapAssignments(i, secIndex);
         cls.sections = (cls.sections || []).filter(s => s.name !== name);
-        Store.setDB(db2); renderClasses();
+        Store.setDB(db2); renderClasses(); try { refreshPriorityCards(); } catch {}
       }));
       return item;
     });
@@ -1141,7 +1217,7 @@
       const db = Store.getDB();
       const item = { name, students };
       if (index >= 0) db.classes[index] = item; else db.classes.push(item);
-      Store.setDB(db); renderClasses(); refreshStats(); dlg.close('default');
+      Store.setDB(db); renderClasses(); refreshStats(); try { refreshPriorityCards(); } catch {} ; dlg.close('default');
     };
   }
   qs('#btnAddClass').addEventListener('click', () => openClassModal());
@@ -1181,7 +1257,7 @@
       const item = { name, students };
       if (!Number.isNaN(teacherId)) item.teacherId = teacherId;
       if (sectionIndex >= 0) cls.sections[sectionIndex] = item; else cls.sections.push(item);
-      Store.setDB(db); renderClasses(); dlg.close('default');
+      Store.setDB(db); renderClasses(); try { refreshPriorityCards(); } catch {} ; dlg.close('default');
     };
   }
 
@@ -1209,7 +1285,7 @@
           if (db.school.principalId === i) db.school.principalId = undefined;
           else if (db.school.principalId > i) db.school.principalId = db.school.principalId - 1;
         }
-        Store.setDB(db); renderTeachers(); refreshStats();
+  Store.setDB(db); renderTeachers(); refreshStats(); try { refreshPriorityCards(); } catch {}
         // إعادة تحميل نموذج المدرسة لضمان تزامن قائمة المدير
         loadSchoolForm();
       });
@@ -1307,7 +1383,7 @@
       const db = Store.getDB();
       const item = { name, phone: qs('#teacherPhone').value.trim(), email: qs('#teacherEmail').value.trim() };
       if (index >= 0) db.teachers[index] = item; else db.teachers.push(item);
-      Store.setDB(db); renderTeachers(); refreshStats(); dlg.close('default');
+      Store.setDB(db); renderTeachers(); refreshStats(); try { refreshPriorityCards(); } catch {} ; dlg.close('default');
     };
   }
   qs('#btnAddTeacher').addEventListener('click', () => openTeacherModal());
@@ -3890,6 +3966,7 @@
     renderTimetable();
     renderBackups();
     loadSettings();
+    try { refreshPriorityCards(); } catch {}
   }
 
   // Initialize
