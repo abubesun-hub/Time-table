@@ -2975,6 +2975,19 @@
     });
   })();
 
+  // Dashboard: Open card
+  (function(){
+    const openCard = qs('#cardOpen'); const fileEl = qs('#openFromDashboard');
+    if (!openCard || !fileEl) return;
+    openCard.addEventListener('click', (e) => { e.preventDefault(); fileEl.click(); });
+    fileEl.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0]; if (!file) return;
+      try { await Store.importData(file); showToast('تم فتح الملف بنجاح'); hydrate(); }
+      catch { showToast('فشل فتح الملف. تأكد من أنه STT صحيح.'); }
+      finally { e.target.value=''; }
+    });
+  })();
+
   // Settings
   function loadSettings() {
     const db = Store.getDB();
