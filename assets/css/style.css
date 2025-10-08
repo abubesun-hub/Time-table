@@ -111,6 +111,16 @@ body {
 .card.locked:hover { transform: none; }
 .card .lock-hint { position: absolute; inset-inline-end: 10px; top: 10px; font-size: 16px; opacity: .9; }
 
+/* Done badge (green check) shown when setup completed */
+.card .done-badge {
+  position: absolute; inset-inline-end: 10px; top: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 999px;
+  background: linear-gradient(180deg, #34d399, #10b981); color: #fff;
+  font-weight: 900; font-size: 14px;
+  box-shadow: 0 2px 6px rgba(16,185,129,.45);
+}
+
 /* Stats */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--gap); }
 .stat { display: flex; gap: 12px; align-items: center; padding: 16px; }

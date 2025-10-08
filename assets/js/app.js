@@ -34,12 +34,16 @@
       let hint = card.querySelector('.lock-hint');
 
       if (done) {
-        // تمّ إكمال الإعداد: أخفِ الشارات والأقفال كلياً
-        if (badge) badge.remove();
-        if (hint) hint.remove();
-        card.classList.remove('locked', 'required-pulse');
-        card.removeAttribute('title');
-      } else {
+          // تمّ إكمال الإعداد: أخفِ الشارات الرقمية وأعرض شارة ✓ خضراء
+          if (badge) badge.remove();
+          if (hint) hint.remove();
+          let doneEl = card.querySelector('.done-badge');
+          if (!doneEl) { doneEl = document.createElement('div'); doneEl.className = 'done-badge'; doneEl.textContent = '✓'; card.appendChild(doneEl); }
+          card.classList.remove('locked', 'required-pulse');
+          card.removeAttribute('title');
+        } else {
+          // إزالة شارة الإكمال إن وُجدت
+          const doneEl = card.querySelector('.done-badge'); if (doneEl) doneEl.remove();
         // ensure badge element
         if (!badge) { badge = document.createElement('div'); badge.className = 'step-badge'; card.appendChild(badge); }
         badge.textContent = n;
