@@ -1169,6 +1169,27 @@
   <!-- Toasts -->
   <div id="toasts" class="toasts" aria-live="polite" aria-atomic="true"></div>
 
+  <!-- Assistant (Guide) UI -->
+  <div id="assistant-fab" class="assistant-fab" title="المرشد">
+    <i class="bi bi-robot"></i>
+  </div>
+  <div id="assistant-panel" class="assistant-panel hidden" role="dialog" aria-label="مرشد الجدول">
+    <div class="assistant-header">
+      <div class="assistant-title"><i class="bi bi-robot"></i><span>مرشد الجدول</span></div>
+      <div class="assistant-controls">
+        <button id="assistant-voice" class="assistant-btn" title="تشغيل/إيقاف الصوت"><i class="bi bi-volume-up"></i></button>
+        <button id="assistant-mic" class="assistant-btn" title="تحدث"><i class="bi bi-mic"></i></button>
+        <button id="assistant-close" class="assistant-btn" title="إغلاق"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>
+    <div id="assistant-suggest" class="assistant-suggest"></div>
+    <div id="assistant-body" class="assistant-body" aria-live="polite"></div>
+    <div class="assistant-input">
+      <input id="assistant-input" class="input" placeholder="اسألني: ما الخطوة التالية؟ كيف أطبع؟ أين أضيف المعلمين؟" />
+      <button id="assistant-send" class="btn"><i class="bi bi-send"></i></button>
+    </div>
+  </div>
+
   <!-- Login Overlay -->
   <div id="login-overlay" class="overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="loginTitle">
     <div class="overlay-card neo-surface">
@@ -1233,6 +1254,7 @@
   <script src="./assets/js/crypto.js"></script>
   <script src="./assets/js/storage.js"></script>
   <script src="./assets/js/ui.js"></script>
+  <script src="./assets/js/assistant.js"></script>
   <script src="./assets/js/app.js"></script>
 </body>
 </html>
