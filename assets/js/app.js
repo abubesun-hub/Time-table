@@ -2988,6 +2988,57 @@
     });
   })();
 
+  // Dashboard: New (reset data) card
+  (function(){
+    const newCard = qs('#cardNew');
+    if (!newCard) return;
+    newCard.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!confirm('سيتم تصفير جميع البيانات الحالية والبدء من جديد. لن يتأثر التفعيل أو النسخ الاحتياطية. متابعة؟')) return;
+      try {
+        const old = Store.getDB();
+        const iso = new Date().toISOString();
+        // حافظ على المستخدمين والإعدادات فقط؛ صفر بقية البيانات
+        const fresh = {
+          meta: { createdAt: iso, updatedAt: iso, version: 1 },
+          auth: old.auth || { users: [], currentUser: null },
+          school: { name: '', address: '', phone: '', email: '', logo: '', year: '', shiftType: 'صباحي', gender: 'مختلط', principalId: undefined },
+          subjectsCatalog: [],
+          allocations: {},
+          assignments: {},
+          subjects: [],
+          classes: [],
+          teachers: [],
+          timetable: { days: ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'], slots: ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة'], grid: {} },
+          times: {
+            workingDays: { 'السبت': true, 'الأحد': true, 'الاثنين': true, 'الثلاثاء': true, 'الأربعاء': true, 'الخميس': false },
+            global: { lessonMinutes: 40, breakMinutes: 10, defaultPeriods: 6 },
+            breaks: [5,10,5,10,5],
+            perDay: {
+              'السبت':   { mode: 'صباحي', start: '08:00', periods: 6 },
+              'الأحد':   { mode: 'صباحي', start: '08:00', periods: 6 },
+              'الاثنين': { mode: 'صباحي', start: '08:00', periods: 6 },
+              'الثلاثاء':{ mode: 'صباحي', start: '08:00', periods: 6 },
+              'الأربعاء':{ mode: 'صباحي', start: '08:00', periods: 6 },
+              'الخميس':  { mode: 'صباحي', start: '08:00', periods: 6 }
+            }
+          },
+          invoices: [],
+          settings: old.settings || {}
+        };
+        Store.setDB(fresh);
+        // أعِد بناء الواجهات بدون إعادة تحميل كاملة
+        routeTo('#/dashboard');
+        hydrate();
+        showToast('تم البدء من جديد');
+      } catch {
+        // في حال حدوث مشكلة غير متوقعة، fallback لإعادة التهيئة الشاملة مع الحفاظ على الرخصة خارج هذا المفتاح
+        try { localStorage.removeItem('school-timetable:data:v1'); } catch {}
+        location.reload();
+      }
+    });
+  })();
+
   // Settings
   function loadSettings() {
     const db = Store.getDB();
