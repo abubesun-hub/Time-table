@@ -61,6 +61,7 @@
   }
 
   const state = { voiceOn: true, micActive: false };
+  const ONBOARD_KEY = 'school-timetable:assistant-onboarded:v1';
 
   // DOM
   function el(id){ return document.getElementById(id); }
@@ -95,6 +96,7 @@
     p.classList.toggle('hidden', !want);
     if (want) setTimeout(scrollToEnd, 0);
   }
+  function openPanel(){ togglePanel(true); }
   function scrollToEnd(){ const b = el('assistant-body'); if (b) b.scrollTop = b.scrollHeight; }
   function addMsg(text, who='bot') {
     const b = el('assistant-body'); if (!b) return;
@@ -184,12 +186,45 @@
     window.addEventListener('hashchange', () => setTimeout(updateSuggestions, 0));
   }
 
+  function isOverlayShown(id){
+    const ov = document.getElementById(id);
+    return !!(ov && !ov.classList.contains('hidden'));
+  }
+  function shouldRunOnboarding(){
+    if (localStorage.getItem(ONBOARD_KEY)) return false;
+    // لا تفتح الجولة إذا كانت نوافذ التفعيل/الدخول/إعداد المشرف ظاهرة
+    if (isOverlayShown('activation-overlay')) return false;
+    if (isOverlayShown('login-overlay')) return false;
+    if (isOverlayShown('setup-overlay')) return false;
+    return true;
+  }
+  function runOnboarding(){
+    try {
+      const db = Store.getDB();
+      const step = computeSetupStepLocal(db);
+      const nextText = stepToText(step);
+      openPanel();
+      const body = el('assistant-body'); if (body) body.__welcomed = true; // تجنّب رسالة الترحيب التلقائية الثانية
+      addMsg('مرحبًا! أنا مرشدك الإلكتروني لمساعدتك في إعداد الجدول.', 'bot');
+      setTimeout(() => addMsg('أرشدك حسب الأولوية خطوة بخطوة، ويمكنني التنقّل بك مباشرة.', 'bot'), 700);
+      setTimeout(() => addMsg('الخطوة التالية الآن: ' + nextText, 'bot'), 1400);
+      setTimeout(() => {
+        // اعرض اقتراح الانتقال للخطوة التالية بشكل بارز
+        updateSuggestions();
+        speak('الخطوة التالية الآن');
+      }, 2000);
+      localStorage.setItem(ONBOARD_KEY, '1');
+    } catch {}
+  }
+
   function init() {
     if (!ensureDOM()) return;
     bindEvents();
     updateSuggestions();
     // Refresh guide status periodically (low overhead)
     setInterval(updateSuggestions, 4000);
+    // Onboarding tour on first run
+    setTimeout(() => { if (shouldRunOnboarding()) runOnboarding(); }, 700);
   }
 
   // Wait for DOM
