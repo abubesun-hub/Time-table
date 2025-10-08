@@ -2964,6 +2964,17 @@
     e.target.value = '';
   });
 
+  // Dashboard: Save As card
+  (function(){
+    const card = qs('#cardSaveAs'); if (!card) return;
+    card.addEventListener('click', () => {
+      const def = `school-timetable-${new Date().toISOString().slice(0,16).replace(/[:T]/g,'')}.stt`;
+      const name = prompt('اسم ملف الحفظ (سيتم الحفظ بصيغة STT):', def);
+      if (name === null) return;
+      try { Store.saveAsPackage(name); showToast('تم الحفظ كملف STT'); } catch { showToast('تعذر إنشاء الملف'); }
+    });
+  })();
+
   // Settings
   function loadSettings() {
     const db = Store.getDB();

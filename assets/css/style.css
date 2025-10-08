@@ -391,5 +391,6 @@ body {
 .card-ac7 { background: linear-gradient(135deg, #f472b6, #ec4899); color: #fff; }
 .card-ac8 { background: linear-gradient(135deg, #a3e635, #84cc16); color: #fff; }
 .card-ac9 { background: linear-gradient(135deg, #94a3b8, #64748b); color: #fff; }
+.card-ac10 { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; }
 .card-ac1 .card-desc, .card-ac2 .card-desc, .card-ac3 .card-desc, .card-ac4 .card-desc,
-.card-ac5 .card-desc, .card-ac6 .card-desc, .card-ac7 .card-desc, .card-ac8 .card-desc, .card-ac9 .card-desc { color: #f8fafc; opacity: 0.9; }
+.card-ac5 .card-desc, .card-ac6 .card-desc, .card-ac7 .card-desc, .card-ac8 .card-desc, .card-ac9 .card-desc, .card-ac10 .card-desc { color: #f8fafc; opacity: 0.9; }

@@ -179,6 +179,16 @@
     a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  function saveAsPackage(filename) {
+    const safe = (s) => (s || '').replace(/[\\/:*?"<>|]/g, '-').trim() || `school-timetable-${formatStamp()}.stt`;
+    const db = getDB();
+    const pack = { kind: 'school-timetable-package', version: 1, exportedAt: nowIso(), db };
+    const blob = new Blob([JSON.stringify(pack)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = safe(filename);
+    a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   async function importData(file) {
     const text = await file.text();
     const data = JSON.parse(text);
@@ -194,6 +204,6 @@
     getLicenseBlob, setLicenseBlob, removeLicense,
     getDeviceId,
     listBackups, createBackup, restoreBackup, scheduleAutoBackup,
-    exportData, exportPackage, importData,
+    exportData, exportPackage, saveAsPackage, importData,
   };
 })(window);
