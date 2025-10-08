@@ -315,7 +315,7 @@ body {
 /* Assistant (Guide) */
 .assistant-fab {
   position: fixed;
-  inset-inline-start: 18px;
+  inset-inline-end: 18px;
   bottom: 18px;
   width: 56px;
   height: 56px;
@@ -331,7 +331,7 @@ body {
 .assistant-fab:hover { transform: translateY(-2px); }
 .assistant-panel {
   position: fixed;
-  inset-inline-start: 18px;
+  inset-inline-end: 18px;
   bottom: 86px;
   width: min(360px, 94vw);
   max-height: 72vh;
