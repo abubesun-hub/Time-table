@@ -144,16 +144,62 @@
   function updateClockOnce() {
     const el = qs('#liveClock'); if (!el) return;
     el.textContent = formatClock(new Date());
+    try { updateCountdownOnce(); } catch {}
   }
   function updateClockVisibility() {
     const el = qs('#liveClock'); if (!el) return;
     const onDash = (location.hash || '#/dashboard') === '#/dashboard';
     el.style.display = onDash ? 'inline-flex' : 'none';
+    const cd = qs('#lessonCountdown'); if (cd) cd.style.display = onDash ? 'inline-flex' : 'none';
   }
   // Start ticking
   setInterval(updateClockOnce, 1000);
   // Initial update and visibility after DOM is ready
   setTimeout(() => { try { updateClockOnce(); updateClockVisibility(); } catch {} }, 0);
+
+  // ===== Countdown next to clock =====
+  function two(n){ return n<10? '0'+n: ''+n; }
+  function fmtHMS(ms){
+    const t = Math.max(0, Math.floor(ms/1000));
+    const h = Math.floor(t/3600); const m = Math.floor((t%3600)/60); const s = t%60;
+    return (h>0? h+':':'') + two(m) + ':' + two(s);
+  }
+  function getCurrentAndNextInterval(){
+    const db = Store.getDB();
+    const day = (function(){
+      try { return getTodaySchoolDayName(db); } catch { return null; }
+    })();
+    if (!day) return null;
+    let lessons = [];
+    try { lessons = computeDayLessons(db, day); } catch { lessons = []; }
+    if (!lessons.length) return null;
+    const now = Date.now();
+    // find current lesson (start <= now < end)
+    for (const L of lessons){ if (L.start.getTime() <= now && now < L.end.getTime()) return {mode:'toEnd', idx:L.i, end:L.end}; }
+    // otherwise next start
+    const upcoming = lessons.find(L => L.start.getTime() > now);
+    if (upcoming) return {mode:'toStart', idx:upcoming.i, start:upcoming.start};
+    // day finished
+    return {mode:'done'};
+  }
+  function updateCountdownOnce(){
+    const el = qs('#lessonCountdown'); if (!el) return;
+    const info = getCurrentAndNextInterval();
+    if (!info){ el.textContent = '—'; return; }
+    const now = Date.now();
+    if (info.mode === 'toEnd'){
+      const remain = Math.max(0, info.end.getTime() - now);
+      el.textContent = `انتهاء الدرس ${fmtHMS(remain)}`;
+      el.setAttribute('title', 'الوقت المتبقي لنهاية الدرس الحالي');
+    } else if (info.mode === 'toStart'){
+      const remain = Math.max(0, info.start.getTime() - now);
+      el.textContent = `بداية الدرس ${fmtHMS(remain)}`;
+      el.setAttribute('title', 'الوقت المتبقي لبداية الدرس التالي');
+    } else {
+      el.textContent = 'انتهى الدوام';
+      el.setAttribute('title', 'لا توجد دروس قادمة اليوم');
+    }
+  }
 
   // Build teacher stats across assignments
   function computeTeacherStats() {

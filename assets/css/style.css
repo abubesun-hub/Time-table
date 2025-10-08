@@ -153,9 +153,23 @@ body {
   margin-top: -24px; /* رفع أكثر للأعلى */
   align-self: flex-start; /* محاذاة لأعلى صف العنوان */
 }
+/* Countdown badge next to clock */
+.clock.countdown {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f5132;
+  background: linear-gradient(180deg, #d1fae5, #bbf7d0);
+  box-shadow: -8px -8px 16px var(--shadow-light), 8px 8px 16px var(--shadow-dark);
+  direction: ltr;
+}
+/* Dark theme adjust */
+@media (prefers-color-scheme: dark) {
+  .clock.countdown { color:#bbf7d0; background: linear-gradient(180deg, #064e3b, #065f46); }
+}
 /* Keep the clock compact on mobile */
 @media (max-width: 600px) {
   .clock { font-size: 18px; padding: 6px 10px; margin-top: -12px; }
+  .clock.countdown { font-size: 14px; }
 }
 
 
