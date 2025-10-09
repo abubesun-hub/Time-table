@@ -319,6 +319,16 @@
   }
   function getCurrentAndNextInterval(){
     const db = Store.getDB();
+    const today = new Date();
+    const todayName = dayNameByDow(today.getDay());
+    const days = db.timetable?.days || [];
+    const working = (db.times?.workingDays?.[todayName]) !== false;
+    
+    // Check if today is a holiday (not in school days or marked as non-working)
+    if (!days.includes(todayName) || !working) {
+      return {mode:'holiday'};
+    }
+    
     const day = (function(){
       try { return getTodaySchoolDayName(db); } catch { return null; }
     })();
@@ -351,8 +361,12 @@
       el.setAttribute('title', 'لا يوجد جدول دراسي لليوم أو لا توجد أوقات محددة للحصص');
       return; 
     }
+    
     const now = Date.now();
-    if (info.mode === 'toEnd'){
+    if (info.mode === 'holiday'){
+      el.textContent = 'اليوم إجازة';
+      el.setAttribute('title', 'اليوم الحالي ليس من أيام الدراسة المحددة');
+    } else if (info.mode === 'toEnd'){
       const remain = Math.max(0, info.end.getTime() - now);
       el.textContent = `انتهاء الدرس ${fmtHMS(remain)}`;
       el.setAttribute('title', 'الوقت المتبقي لنهاية الدرس الحالي');
