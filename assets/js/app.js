@@ -406,9 +406,6 @@
     const loginOverlay = UI.qs('#login-overlay');
     if (loggedIn) loginOverlay.classList.add('hidden');
     else loginOverlay.classList.remove('hidden');
-    
-    // Debug log to help track login state
-    console.log('User login state:', user ? `Logged in as: ${user}` : 'Not logged in');
   }
 
   async function login(user, pass) {
@@ -3929,8 +3926,6 @@
   if (normalized) { showToast('تم توحيد التخصيص: معلم واحد لكل مادة في كل شعبة'); }
   // تحديث الشريط الجانبي للمعلمين في هذا الوقت أيضًا
   renderTeacherSidebar();
-    // Update account UI to show current user
-    updateAccountUI();
     // populate class/section selectors
     const db = Store.getDB();
     const classSel = qs('#ttClassSelect');
@@ -3995,8 +3990,6 @@
   await updateActivationUI();
   await ensureAdminSetup();
   await updateAccountUI();
-  // Ensure UI reflects current user state after initialization
-  setTimeout(updateAccountUI, 100);
   try { initializeLessonAlerts(); } catch {}
 
   // Hook fit/zoom controls if present
