@@ -338,7 +338,19 @@
   function updateCountdownOnce(){
     const el = qs('#lessonCountdown'); if (!el) return;
     const info = getCurrentAndNextInterval();
-    if (!info){ el.textContent = '—'; return; }
+    
+    // Debug information for troubleshooting
+    console.log('Countdown Debug:', {
+      info: info,
+      currentTime: new Date().toLocaleString(),
+      hasInfo: !!info
+    });
+    
+    if (!info){ 
+      el.textContent = 'لا توجد حصص اليوم'; 
+      el.setAttribute('title', 'لا يوجد جدول دراسي لليوم أو لا توجد أوقات محددة للحصص');
+      return; 
+    }
     const now = Date.now();
     if (info.mode === 'toEnd'){
       const remain = Math.max(0, info.end.getTime() - now);
