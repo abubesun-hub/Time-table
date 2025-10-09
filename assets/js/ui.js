@@ -16,6 +16,8 @@
     // widen container for timetable view
     const app = qs('#app');
     if (app) app.classList.toggle('wide', target === '#/timetable');
+    // scroll to top when switching views
+    window.scrollTo(0, 0);
   }
 
   function showToast(msg, type = 'info', timeout = 3000) {
