@@ -25,6 +25,10 @@
   /* Fix link colors in dark mode */
   a, .info-row a { color: #60a5fa !important; }
   .info-row a:hover { color: #93c5fd !important; }
+  /* Improve button contrast in dark mode */
+  .btn { background: linear-gradient(180deg, #374151, #1f2937) !important; color: #e5e7eb !important; border: 1px solid #4b5563; }
+  .btn.primary { background: linear-gradient(180deg, #3b82f6, #1d4ed8) !important; color: #ffffff !important; border: 1px solid #2563eb; }
+  .btn:hover { transform: translateY(-1px); }
 }
 
 /* Explicit theme overrides via data-theme attribute (overrides media query) */
@@ -61,6 +65,19 @@
 }
 [data-theme="dark"] .info-row a:hover {
   color: #93c5fd !important;
+}
+[data-theme="dark"] .btn {
+  background: linear-gradient(180deg, #374151, #1f2937) !important;
+  color: #e5e7eb !important;
+  border: 1px solid #4b5563;
+}
+[data-theme="dark"] .btn.primary {
+  background: linear-gradient(180deg, #3b82f6, #1d4ed8) !important;
+  color: #ffffff !important;
+  border: 1px solid #2563eb;
+}
+[data-theme="dark"] .btn:hover {
+  transform: translateY(-1px);
 }
 
 html, body { height: 100%; }
