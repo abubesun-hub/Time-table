@@ -159,7 +159,10 @@
   function exportData() {
     // Legacy JSON export kept for backward compatibility
     const db = getDB();
-    const json = JSON.stringify(db, null, 2);
+    // Remove sensitive authentication data before export
+    const exportDB = { ...db };
+    delete exportDB.auth;
+    const json = JSON.stringify(exportDB, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -168,9 +171,12 @@
   }
 
   function exportPackage() {
-    // New portable package (does not include license/device bindings)
+    // New portable package (does not include license/device bindings or user auth)
     const db = getDB();
-    const pack = { kind: 'school-timetable-package', version: 1, exportedAt: nowIso(), db };
+    // Remove sensitive authentication data before export
+    const exportDB = { ...db };
+    delete exportDB.auth;
+    const pack = { kind: 'school-timetable-package', version: 1, exportedAt: nowIso(), db: exportDB };
     const json = JSON.stringify(pack);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -182,7 +188,10 @@
   function saveAsPackage(filename) {
     const safe = (s) => (s || '').replace(/[\\/:*?"<>|]/g, '-').trim() || `school-timetable-${formatStamp()}.stt`;
     const db = getDB();
-    const pack = { kind: 'school-timetable-package', version: 1, exportedAt: nowIso(), db };
+    // Remove sensitive authentication data before export
+    const exportDB = { ...db };
+    delete exportDB.auth;
+    const pack = { kind: 'school-timetable-package', version: 1, exportedAt: nowIso(), db: exportDB };
     const blob = new Blob([JSON.stringify(pack)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = safe(filename);
@@ -195,6 +204,14 @@
     // Accept both raw DB JSON and packaged format
     let db; if (data && data.kind === 'school-timetable-package' && data.db) db = data.db; else db = data;
     if (!db || !db.meta || !db.settings) throw new Error('bad-file');
+    
+    // Preserve current user authentication data
+    const currentDB = getDB();
+    if (currentDB && currentDB.auth) {
+      // Keep current user authentication while importing other data
+      db.auth = currentDB.auth;
+    }
+    
     setDB(db);
     return db;
   }

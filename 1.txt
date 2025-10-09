@@ -1,12 +1,34 @@
-الان الصفحة  الرئيسية - الجدول الاسبوعي - معيانة قبل الطباعة 
-عند اختيار المستخدم الجدول الحسب الشعب 
-فيجب يظهر كل شعبة بجدول خاص بها 
-يحتوي على عنوان في المنتصف" الجدول الاسبوعي الدراسي 
-الجانب الايمن يحتوي على الصف :
-الشعبة:
-الجانب الايسر 
-للعام الدراسي يكون متغير من قبل المعلومات التي ادخلت مسبقا في المدرسة 
-يتكون من عمود رئسي جانبي يحتوي على ايام الاسبوع واعمدة الحصص للكل يوم كما في الصورة المرفقة 
-اسفل الجدول على اليسار 
-يضهر منطقة توقيع فيها مدير المدرسة 
-وتحتها اسم المدرسة 
+Perfect! Now I have a complete understanding of your project. This is a School Timetable Management System (نظام إدارة الجدول المدرسي) written in Arabic with the following features:
+
+School information management
+Teacher management
+Class and section management
+Subject allocation
+Weekly timetable creation
+Invoice system
+Print preview functionality
+Backup and restore
+Instructions to Upload Your Project to a New Repository
+Here are the detailed steps to upload your project to a different repository:
+
+Method 1: Using GitHub Website (Easiest)
+Create a new repository on GitHub:
+
+Go to github.com and log into your account
+Click the "+" button in the top right → "New repository"
+Choose a repository name (e.g., school-timetable-v2, جدول-مدرسي-جديد)
+Choose if it should be public or private
+Don't initialize with README since you already have content
+Click "Create repository"
+Upload your project files:
+
+On the new empty repository page, click "uploading an existing file"
+Select all your project files except the .git folder:
+index.html
+license-admin-generator.html
+1.txt
+school-timetable-export (1).json
+assets folder (with all contents)
+docs folder (with all contents)
+Write a commit message like "Initial upload of school timetable system"
+Click "Commit changes"
