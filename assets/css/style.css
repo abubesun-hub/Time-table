@@ -20,6 +20,8 @@
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   :root { --bg: #0f172a; --fg: #e5e7eb; --muted: #9ca3af; --surface: #0b1223; --shadow-light: rgba(255,255,255,0.06); --shadow-dark: rgba(0,0,0,0.9); --day-sep-color: rgba(248, 250, 252, 0.55); /* slate-50 @55% */ }
+  /* Ensure numbers are readable in dark mode */
+  .stat-value, .clock, .count, .tcell, input[type="number"], .input { color: #e5e7eb !important; }
 }
 
 /* Explicit theme overrides via data-theme attribute (overrides media query) */
@@ -40,6 +42,7 @@
   --shadow-light: rgba(255,255,255,0.06);
   --shadow-dark: rgba(0,0,0,0.9);
   --day-sep-color: rgba(248, 250, 252, 0.55);
+  /* Ensure all text elements use the light color in dark theme */
 }
 
 html, body { height: 100%; }
