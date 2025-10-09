@@ -4229,6 +4229,31 @@
   } else {
     routeTo(initialRoute);
   }
+  // Welcome splash: show only on hard reloads / first open, not on navigation
+  try {
+    const splashShownKey = 'jadwaly.splash.shown';
+    const shownAt = sessionStorage.getItem(splashShownKey);
+    const welcome = qs('#welcome-overlay');
+    const startBtn = qs('#welcome-start');
+    const canShow = !!welcome && !shownAt; // show once per tab session
+    if (canShow) {
+      welcome.classList.remove('hidden');
+      welcome.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('modal-open');
+      // focus button for a11y
+      setTimeout(()=>{ try { startBtn?.focus(); } catch {} }, 30);
+      const closeSplash = () => {
+        welcome.classList.add('hidden');
+        welcome.setAttribute('aria-hidden', 'true');
+        sessionStorage.setItem(splashShownKey, String(Date.now()));
+        document.body.classList.remove('modal-open');
+      };
+      startBtn?.addEventListener('click', closeSplash);
+      // disable closing by clicking outside to force pressing Start
+      // Block keyboard Escape as well
+      welcome.addEventListener('keydown', (e) => { if (e.key === 'Escape') e.preventDefault(); });
+    }
+  } catch {}
   await hydrate();
   Store.scheduleAutoBackup();
   await updateActivationUI();
