@@ -66,6 +66,7 @@
       <button class="nav-btn" data-route="#/backup"><i class="bi bi-cloud-arrow-up"></i><span>نسخ احتياطي</span></button>
       <button class="nav-btn" data-route="#/activation"><i class="bi bi-key"></i><span>التفعيل</span></button>
       <button class="nav-btn" data-route="#/settings"><i class="bi bi-gear"></i><span>الإعدادات</span></button>
+      <button class="nav-btn" data-route="#/about"><i class="bi bi-info-circle"></i><span>حول</span></button>
     </nav>
     <div class="account">
       <span class="bi bi-person-circle"></span>
@@ -186,6 +187,12 @@
           <div class="card-icon"><i class="bi bi-save2"></i></div>
           <div class="card-title">حفظ باسم</div>
           <div class="card-desc">احفظ العمل كملف STT لفتحه على جهاز آخر.</div>
+        </a>
+        <!-- About App card -->
+        <a class="card neo-surface" data-route-link="#/about">
+          <div class="card-icon"><i class="bi bi-info-circle"></i></div>
+          <div class="card-title">معلومات عن البرنامج</div>
+          <div class="card-desc">تعرف على “جدولي” وبيانات التواصل وروابط الشبكات الاجتماعية.</div>
         </a>
       </div>
 
@@ -1050,6 +1057,72 @@
           <button id="btnSaveSettings" class="btn primary"><i class="bi bi-save2"></i> حفظ</button>
           <button id="btnResetApp" class="btn danger"><i class="bi bi-recycle"></i> إعادة ضبط التطبيق</button>
         </div>
+      </div>
+    </section>
+    <!-- About App -->
+    <section id="view-about" class="view">
+      <h2 class="section-title">حول جدولي</h2>
+
+      <!-- Hero -->
+      <div class="about-hero">
+        <div class="about-hero-inner">
+          <div class="about-hero-brand">
+            <img src="./Jadwaly.png" alt="شعار جدولي" class="about-hero-logo" />
+            <div class="about-hero-titles">
+              <div class="title-ar">جدولي</div>
+              <div class="title-en">Jadwaly</div>
+              <div class="tagline">نظام إدارة الجداول المدرسية — يعمل دون اتصال وبواجهة عربية</div>
+            </div>
+          </div>
+          <div class="about-hero-actions">
+            <a class="btn primary" href="mailto:itechanbar@gmail.com"><i class="bi bi-envelope"></i> راسلنا</a>
+            <a class="btn" href="tel:07905880479"><i class="bi bi-telephone"></i> اتصل الآن</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panels -->
+      <div class="about-panels">
+        <div class="panel glass">
+          <div class="panel-title"><i class="bi bi-person-lines-fill"></i> بيانات التواصل</div>
+          <div class="info">
+            <div class="info-row"><i class="bi bi-envelope"></i><a href="mailto:itechanbar@gmail.com">itechanbar@gmail.com</a></div>
+            <div class="info-row"><i class="bi bi-telephone"></i><a href="tel:07905880479">07905880479</a> — <a href="tel:07817823680">07817823680</a></div>
+            <div class="info-row"><i class="bi bi-geo-alt"></i><span>العراق — الأنبار — الرمادي</span></div>
+          </div>
+        </div>
+        <div class="panel glass">
+          <div class="panel-title"><i class="bi bi-app-indicator"></i> عن التطبيق</div>
+          <ul class="bullets">
+            <li><span class="chip">جدولي</span> / <span class="chip">Jadwaly</span></li>
+            <li>تصنيف: تنظيم وإدارة الجداول المدرسية</li>
+            <li>لغة الواجهة: العربية (RTL)</li>
+            <li>وضع العمل: دون اتصال + حفظ/استيراد/تصدير</li>
+            <li>التفعيل: رخصة مرتبطة بمعرّف الجهاز</li>
+          </ul>
+        </div>
+        <div class="panel glass">
+          <div class="panel-title"><i class="bi bi-c-circle"></i> الحقوق والملكية</div>
+          <div class="muted">جميع الحقوق محفوظة لـ <b>جدولي</b></div>
+          <div class="muted" style="margin-top:4px">برمجة: <b>أحمد حسين علي</b></div>
+          <div class="small muted" style="margin-top:8px">تريد إضافة موقع إلكتروني أو سيرة مختصرة أو شعار إضافي؟ أخبرني لأضيفها بتنسيق أنيق.</div>
+        </div>
+      </div>
+
+      <!-- Social -->
+      <div class="panel glass" style="margin-top:14px">
+        <div class="panel-title" style="margin-bottom:10px"><i class="bi bi-share"></i> الشبكات الاجتماعية</div>
+        <div class="socials modern">
+          <a class="social-btn" href="#" target="_blank" rel="noopener" data-social="facebook" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+          <a class="social-btn" href="#" target="_blank" rel="noopener" data-social="instagram" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+          <a class="social-btn" href="#" target="_blank" rel="noopener" data-social="x" aria-label="X / Twitter"><i class="bi bi-twitter-x"></i></a>
+          <a class="social-btn" href="#" target="_blank" rel="noopener" data-social="youtube" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+          <a class="social-btn" href="#" target="_blank" rel="noopener" data-social="telegram" aria-label="Telegram"><i class="bi bi-telegram"></i></a>
+          <a class="social-btn" href="#" target="_blank" rel="noopener" data-social="tiktok" aria-label="TikTok"><i class="bi bi-tiktok"></i></a>
+          <a class="social-btn" href="#" target="_blank" rel="noopener" data-social="linkedin" aria-label="LinkedIn"><i class="bi bi-linkedin"></i></a>
+          <a class="social-btn" href="#" target="_blank" rel="noopener" data-social="whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+        </div>
+        <div class="muted small" style="margin-top:8px">زوّدني بروابط الحسابات، وسأربط كل أيقونة بالوجهة الصحيحة.</div>
       </div>
     </section>
   </main>

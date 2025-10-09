@@ -138,7 +138,7 @@
     // lock views if not activated
     qsa('.nav-btn').forEach(btn => {
       const route = btn.dataset.route;
-      const allowed = ['#/activation'];
+      const allowed = ['#/activation', '#/about'];
       btn.disabled = !ok && !allowed.includes(route);
     });
     if (!ok) routeTo('#/activation');
@@ -400,7 +400,7 @@
     const loggedIn = !!user;
     qsa('.nav-btn').forEach(btn => {
       const route = btn.dataset.route;
-      const allowed = ['#/activation', '#/settings'];
+      const allowed = ['#/activation', '#/settings', '#/about'];
       btn.disabled = !loggedIn && !allowed.includes(route);
     });
     const loginOverlay = UI.qs('#login-overlay');
