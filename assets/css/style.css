@@ -94,8 +94,9 @@ body {
   position: absolute; inset: 0;
   backdrop-filter: blur(4px);
   pointer-events: none;
+  z-index: 0;
 }
-.about-hero-inner { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.about-hero-inner { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .about-hero-brand { display:flex; align-items:center; gap: 12px; }
 .about-hero-logo { width: 72px; height: 72px; object-fit: contain; background:#fff; border-radius: 16px; padding: 8px; box-shadow: -8px -8px 16px var(--shadow-light), 8px 8px 16px var(--shadow-dark); }
 .about-hero-titles .title-ar { font-size: 26px; font-weight: 900; letter-spacing: .2px; }
