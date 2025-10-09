@@ -22,6 +22,9 @@
   :root { --bg: #0f172a; --fg: #e5e7eb; --muted: #9ca3af; --surface: #0b1223; --shadow-light: rgba(255,255,255,0.06); --shadow-dark: rgba(0,0,0,0.9); --day-sep-color: rgba(248, 250, 252, 0.55); /* slate-50 @55% */ }
   /* Ensure numbers are readable in dark mode */
   .stat-value, .clock, .count, .tcell, input[type="number"], .input { color: #e5e7eb !important; }
+  /* Fix link colors in dark mode */
+  a, .info-row a { color: #60a5fa !important; }
+  .info-row a:hover { color: #93c5fd !important; }
 }
 
 /* Explicit theme overrides via data-theme attribute (overrides media query) */
@@ -43,6 +46,21 @@
   --shadow-dark: rgba(0,0,0,0.9);
   --day-sep-color: rgba(248, 250, 252, 0.55);
   /* Ensure all text elements use the light color in dark theme */
+}
+[data-theme="dark"] .stat-value,
+[data-theme="dark"] .clock,
+[data-theme="dark"] .count,
+[data-theme="dark"] .tcell,
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] .input {
+  color: #e5e7eb !important;
+}
+[data-theme="dark"] a,
+[data-theme="dark"] .info-row a {
+  color: #60a5fa !important;
+}
+[data-theme="dark"] .info-row a:hover {
+  color: #93c5fd !important;
 }
 
 html, body { height: 100%; }
