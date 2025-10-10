@@ -45,6 +45,16 @@
       <div class="overlay-footer">
         <small class="muted">الخصوصية: يتم حفظ الرخصة محلياً على هذا الجهاز فقط.</small>
       </div>
+      <!-- Contact info for activation help -->
+      <div class="activation-contact">
+        <img src="./Jadwaly.png" alt="شعار" />
+        <div class="rows">
+          <a href="mailto:itechanbar@gmail.com" class="contact-link"><i class="bi bi-envelope"></i> itechanbar@gmail.com</a>
+          <a href="tel:07905880479" class="contact-link"><i class="bi bi-telephone"></i> 07905880479</a>
+          <a href="tel:07817823680" class="contact-link"><i class="bi bi-telephone"></i> 07817823680</a>
+          <a href="https://wa.me/9647905880479" target="_blank" rel="noopener" class="contact-link"><i class="bi bi-whatsapp"></i> تواصل واتساب</a>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -585,12 +595,16 @@
     <section id="view-activation" class="view">
       <h2 class="section-title">إدارة التفعيل</h2>
       <div class="neo-surface pad-16">
-        <p class="muted">الحالة: <span id="licenseStatus">غير مُفعّل</span></p>
+          <p class="muted">الحالة: <span id="licenseStatus">غير مُفعّل</span></p>
+          <div id="licenseActivatedMsg" class="info-banner hidden"></div>
         <div class="row gap-8">
           <button id="btnShowActivation" class="btn primary"><i class="bi bi-key"></i> إدخال رخصة جديدة</button>
           <button id="btnRemoveActivation" class="btn danger"><i class="bi bi-x-circle"></i> إلغاء التفعيل</button>
         </div>
-        <pre id="licenseInfo" class="mono small"></pre>
+          <pre id="licenseInfo" class="mono small"></pre>
+          <div id="expiryNote" class="expiry-note hidden">
+            <div class="label"><i class="bi bi-exclamation-triangle"></i> ملاحظة: ينتهي التفعيل خلال <span id="expiryCountdown">—</span></div>
+          </div>
       </div>
     </section>
 

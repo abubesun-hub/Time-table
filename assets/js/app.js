@@ -132,9 +132,51 @@
     overlay.setAttribute('aria-hidden', ok ? 'true' : 'false');
     const status = qs('#licenseStatus');
     const infoPre = qs('#licenseInfo');
+    const msgBanner = qs('#licenseActivatedMsg');
+    const expiryNote = qs('#expiryNote');
+    const expiryCountdown = qs('#expiryCountdown');
     const info = await getLicenseInfo();
     status.textContent = ok ? 'مُفعّل' : 'غير مُفعّل';
-    infoPre.textContent = info ? JSON.stringify({ ...info, deviceId: '***' }, null, 2) : '';
+    // Privacy: لا نعرض تفاصيل الرخصة افتراضيًا
+    if (infoPre) {
+      infoPre.textContent = '';
+      infoPre.style.display = 'none';
+    }
+    // Show a friendly activation message instead of raw license
+    if (ok && info?.expiresAt) {
+      try {
+        const dt = new Date(info.expiresAt);
+        if (msgBanner) {
+          msgBanner.textContent = `تم التفعيل حتى ${dt.toLocaleString('ar-EG')}`;
+          msgBanner.classList.remove('hidden');
+        }
+      } catch { if (msgBanner) msgBanner.classList.add('hidden'); }
+    } else {
+      if (msgBanner) msgBanner.classList.add('hidden');
+    }
+    // Handle expiry countdown visibility and alert
+    stopExpiryCountdown();
+    if (ok && info?.expiresAt && info.expiresAt > Date.now()) {
+      const msLeft = info.expiresAt - Date.now();
+      const TEN_HOURS = 10 * 60 * 60 * 1000;
+      const alertKey = `jadwaly.expiryAlertShown.${info.expiresAt}`;
+      const shown = localStorage.getItem(alertKey) === '1';
+      if (msLeft <= TEN_HOURS) {
+        // Show persistent note with live countdown
+        if (expiryNote) expiryNote.classList.remove('hidden');
+        if (expiryCountdown) startExpiryCountdown(info.expiresAt, expiryCountdown);
+        // One-time pre-expiry alert
+        if (!shown) {
+          try { showExpiryAlert(info, () => localStorage.setItem(alertKey, '1')); } catch {}
+        }
+      } else {
+        // Hide note until we're within 10 hours
+        if (expiryNote) expiryNote.classList.add('hidden');
+      }
+    } else {
+      // Not activated or already expired
+      if (expiryNote) expiryNote.classList.add('hidden');
+    }
     // lock views if not activated
     qsa('.nav-btn').forEach(btn => {
       const route = btn.dataset.route;
@@ -149,6 +191,76 @@
         routeTo('#/activation');
       }
     }
+  }
+
+  // ===== Activation: expiry helpers =====
+  let expiryTimerId = null;
+  function stopExpiryCountdown() { if (expiryTimerId) { clearInterval(expiryTimerId); expiryTimerId = null; } }
+  function formatRemainArabic(ms) {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    const two = (n) => (n < 10 ? '0' + n : '' + n);
+    if (d > 0) return `${d} يوم ${h} ساعة`;
+    return `${two(h)}:${two(m)}:${two(sec)}`;
+  }
+  function startExpiryCountdown(expiresAt, targetEl) {
+    if (!targetEl) return;
+    const tick = () => {
+      const left = Math.max(0, expiresAt - Date.now());
+      targetEl.textContent = formatRemainArabic(left);
+      if (left <= 0) {
+        stopExpiryCountdown();
+        // Force UI refresh to lock app
+        updateActivationUI();
+        updateAccountUI();
+      }
+    };
+    tick();
+    stopExpiryCountdown();
+    expiryTimerId = setInterval(tick, 1000);
+  }
+  function showExpiryAlert(info, onDismiss = () => {}) {
+    const id = 'expiry-alert-overlay';
+    let ov = document.getElementById(id);
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = id;
+      ov.className = 'overlay';
+      ov.setAttribute('role', 'dialog');
+      const card = document.createElement('div'); card.className = 'overlay-card neo-surface expiry-alert';
+      const dt = new Date(info.expiresAt);
+      card.innerHTML = `
+        <div class="alert-brand">
+          <img src="./Jadwaly.png" alt="شعار جدولي" />
+          <div class="alert-title">سينتهي التفعيل قريبًا</div>
+          <div class="alert-desc">ينتهي التفعيل بتاريخ ${dt.toLocaleString('ar-EG')} — ننصحك بالتواصل للتجديد الآن.</div>
+        </div>
+        <div class="activation-contact" style="justify-content:center; margin-top:10px">
+          <img src="./Jadwaly.png" alt="" />
+          <div class="rows">
+            <a href="mailto:itechanbar@gmail.com" class="contact-link"><i class="bi bi-envelope"></i> itechanbar@gmail.com</a>
+            <a href="tel:07905880479" class="contact-link"><i class="bi bi-telephone"></i> 07905880479</a>
+            <a href="tel:07817823680" class="contact-link"><i class="bi bi-telephone"></i> 07817823680</a>
+            <a href="https://wa.me/9647905880479" target="_blank" rel="noopener" class="contact-link"><i class="bi bi-whatsapp"></i> تواصل واتساب</a>
+          </div>
+        </div>
+        <div class="alert-actions">
+          <button class="btn ghost" id="expDismiss">تخطي</button>
+          <a class="btn primary" id="expWhatsApp" href="https://wa.me/9647905880479" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> التواصل عبر واتساب</a>
+        </div>`;
+      ov.appendChild(card);
+      document.body.appendChild(ov);
+    }
+    const close = () => { ov.classList.add('hidden'); ov.setAttribute('aria-hidden','true'); document.body.classList.remove('modal-open'); try { onDismiss(); } catch {} };
+    ov.classList.remove('hidden'); ov.setAttribute('aria-hidden','false');
+    document.body.classList.add('modal-open');
+    // Wire actions once per show
+    const dis = ov.querySelector('#expDismiss'); if (dis) dis.onclick = close;
+    const wa = ov.querySelector('#expWhatsApp'); if (wa) wa.addEventListener('click', () => { try { onDismiss(); } catch {} });
+    // Clicking outside should not close automatically; keep focused experience
   }
 
   qs('#activateBtn').addEventListener('click', async () => {
