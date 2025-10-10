@@ -1,0 +1,56 @@
+{
+  "name": "time-table",
+  "version": "1.0.0",
+  "description": "School timetable desktop app",
+  "main": "main.js",
+  "author": "abubesun-hub",
+  "license": "UNLICENSED",
+  "private": true,
+  "productName": "Jadwaly",
+  "scripts": {
+    "postinstall": "electron-builder install-app-deps",
+    "start": "cross-env NODE_ENV=development electron .",
+    "dev": "cross-env ELECTRON_START_URL=http://localhost:5173 electron .",
+    "build": "electron-builder --win --x64",
+    "pack": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.abubesun.jadwaly",
+    "productName": "Jadwaly",
+    "files": [
+      "**/*",
+      "!docs/**",
+      "!**/*.map"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Jadwaly"
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.3.0",
+    "electron-builder": "^24.13.3",
+    "cross-env": "^7.0.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
