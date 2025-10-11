@@ -42,7 +42,16 @@
   }
 
   function printHtml(html, opts = {}) {
-    const { title = 'طباعة', css = '', afterWrite, rasterize = false, rasterScale = 2 } = opts;
+    const { title = 'طباعة', css = '', afterWrite, rasterize = false, rasterScale = 2, preferExternalPreview = true } = opts;
+    // If running inside Electron packaged app, prefer opening in external browser for preview and printer selection
+    if (preferExternalPreview && window.native && typeof window.native.openInBrowser === 'function' && !/https?:/i.test(location.protocol)) {
+      const baseCss = `@page { size: auto; margin: 12mm 5mm 12mm 5mm; } *{ box-sizing: border-box } body{ font-family: Tajawal, Segoe UI, Arial; direction: rtl; padding:0; margin:0; color:#111827 } header.print-header, footer.print-footer{ position:fixed; inset-inline:0 } header.print-header{ top:0; padding:10mm 5mm 4mm; border-bottom:1px solid #ddd } footer.print-footer{ bottom:0; padding:6mm 5mm 8mm; border-top:1px solid #ddd; display:flex; align-items:center; justify-content:space-between; gap:12px } main.print-body{ padding:46mm 7mm 24mm 5mm } table{ width:100%; border-collapse:collapse } td,th{ border:1px solid #ccc; padding:6px } .muted{ color:#6b7280 } img.logo{ height:52px }`;
+      const doc = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><style>${baseCss}${css}</style><script>window.addEventListener('load',()=>{setTimeout(()=>{try{window.print();}catch(e){}},150)});</script></head><body>${html}</body></html>`;
+      window.native.openInBrowser({ html: doc, fileNameBase: 'Jadwaly', title })
+        .then((res) => { if (!res || res.ok === false) console.error('openInBrowser failed', res && res.error); })
+        .catch((e) => console.error('openInBrowser error', e));
+      return;
+    }
     const w = window.open('', '_blank');
     const baseCss = `
       /* اجعل الهوامش الجانبية 5mm افتراضيًا مع إبقاء العلوية/السفلية 12mm */
