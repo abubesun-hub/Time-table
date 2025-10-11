@@ -14,6 +14,7 @@ function createWindow() {
     height: 800,
     backgroundColor: '#121418',
     show: true,
+    icon: path.join(__dirname, 'build', 'Jadwaly.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
