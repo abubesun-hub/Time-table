@@ -2917,7 +2917,8 @@
     UI.printDocument({
       contentHtml: html,
       docTitle: 'الجدول الأسبوعي (عرض عام)',
-      school: Store.getDB().school,
+      // احذف الشعار وضع عبارة الحقوق بدلًا عنه في خانة اليسار
+      school: { ...Store.getDB().school, logo: '' },
   // اجعل المقاس يعتمد على اختيار المتصفح للطابعة (A4/A3/A2...) مع تثبيت الاتجاه أفقي فقط
   orientation: 'landscape',
       // اضبط الهوامش: علوي/سفلي 12mm، جانبي 5mm (0.5cm)
@@ -2927,7 +2928,7 @@
       headerTypography: prn.headerTypography || {},
       footerLeftImageUrl: prn.footer?.leftImageUrl || '',
       footerRightHtml: prn.footer?.rightHtml || '',
-      leftHeaderHtml: 'جميع الصفوف',
+  leftHeaderHtml: '<div>جميع الصفوف</div><div class="muted" style="font-size:12px">جميع الحقوق محفوظة لـ جدولي</div>',
       // إعادة التفعيل: التحويل لصورة يضمن عدم تداخل الخلايا في الطباعة ويكبرها عبر object-fit
       rasterize: true,
       rasterScale: 2
@@ -3055,13 +3056,15 @@
     UI.printDocument({
       contentHtml: big,
       docTitle: 'الجدول الأسبوعي (محتوى متعدد الصفحات)',
-      school: Store.getDB().school,
+      // استبدال شعار المدرسة بعبارة الحقوق في خانة اليسار
+      school: { ...Store.getDB().school, logo: '' },
       orientation: 'A3 landscape',
       // طلبت تقليل الهامش العلوي إلى 0.5cm (5mm)
       margin: '5mm 5mm 12mm 5mm',
       fontScale: prn.fontScale || 1,
       fontFamily: prn.fontFamily || '',
-      headerTypography: prn.headerTypography || {},
+  headerTypography: prn.headerTypography || {},
+  leftHeaderHtml: '<div>جميع الصفوف</div><div class="muted" style="font-size:12px">جميع الحقوق محفوظة لـ جدولي</div>',
       footerLeftImageUrl: prn.footer?.leftImageUrl || '',
       footerRightHtml: prn.footer?.rightHtml || '',
       // محتوى حي بدون تحويل لصورة: لمنع التمويه، مع تقسيم حسب الأيام
