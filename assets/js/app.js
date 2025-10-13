@@ -2511,6 +2511,7 @@
               </div>
               <div style="text-align:left">
                 <div style="font-weight:800; ${ht.left?.family ? `font-family:${ht.left.family};` : ''} font-size:${(ht.left?.size??16)}px">${leftTitle}</div>
+                <div class="muted" style="font-size:12px; white-space:nowrap">جميع الحقوق محفوظة لـ جدولي</div>
               </div>
             </div>`;
         // جدول الشعبة (يمتد ليملأ الصفحة)
@@ -2640,6 +2641,7 @@
           </div>
           <div class="l">
             <div class="teacher-name">${t.name}</div>
+            <div class="rights">جميع الحقوق محفوظة لـ جدولي</div>
           </div>
         </div>
         <table class="teach-table" style="margin-top:8px">
@@ -2692,6 +2694,7 @@
       .page-header .ttl .y{ color:#6b7280; font-size:0.95em }
       .page-header .l{ text-align:left }
       .page-header .teacher-name{ font-weight:800 }
+  .page-header .rights{ color:#6b7280; font-size:12px; margin-top:2px }
       .teach-table{ width:100%; border-collapse:collapse }
       .teach-table th, .teach-table td{ border:1px solid ${C_BORDER}; padding:8px }
       .teach-table thead th{ background:${C_HEADER_BG}; color:${C_HEADER_TX}; font-weight:800 }
