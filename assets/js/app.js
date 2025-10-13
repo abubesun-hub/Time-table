@@ -2892,7 +2892,7 @@
   let colgroup = `<colgroup><col class="col-class" style="width:${pctClass}%">`;
   for (let i = 0; i < totalPeriodCols; i++) colgroup += `<col class="col-slot" style="width:${pctSlot}%">`;
   colgroup += `</colgroup>`;
-  const html = `<style>${css}</style><table class="global-tt">${colgroup}${thead}${tbody}</table>`;
+  const html = `<style>${css}</style><div class="global-wrap"><table class="global-tt">${colgroup}${thead}${tbody}</table><div class="global-footer">جميع الحقوق محفوظة لـ "جدولي" — برمجة: احمد حسين علي</div></div>`;
     // Build per-side margins: if any side provided, merge with global margin defaults
   const mTop = (gSt.marginTop || '').trim();
   const mRight = (gSt.marginRight || '').trim();
