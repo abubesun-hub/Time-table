@@ -3265,7 +3265,7 @@
         });
       });
       tbody += '</tbody>';
-      html += `<div class=\"day-page\"><div class=\"day-header\"><div class=\"sch\"><div class=\"n\">${db.school?.name || 'المدرسة'}</div><div class=\"g\">${genderDisplay || ''}</div></div><div class=\"ttl\"><div class=\"t\">الجدول اليومي</div>${db.school?.year?`<div class=\\\"y\\\">للعام الدراسي ${db.school.year}</div>`:''}</div><div class=\"l\"><div class=\"day\">${day}</div></div></div><table class=\"day-tt\">${thead}${tbody}</table></div>`;
+  html += `<div class=\"day-page\"><div class=\"day-header\"><div class=\"sch\"><div class=\"n\">${db.school?.name || 'المدرسة'}</div><div class=\"g\">${genderDisplay || ''}</div></div><div class=\"ttl\"><div class=\"t\">الجدول اليومي</div>${db.school?.year?`<div class=\\\"y\\\">للعام الدراسي ${db.school.year}</div>`:''}</div><div class=\"l\"><div class=\"day\">${day}</div><div class=\"rights\" style=\"color:#6b7280;font-size:12px\">جميع الحقوق محفوظة لـ جدولي</div></div></div><table class=\"day-tt\">${thead}${tbody}</table></div>`;
     });
 
     UI.printDocument({
