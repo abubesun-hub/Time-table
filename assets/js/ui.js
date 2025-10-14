@@ -45,8 +45,53 @@
     const { title = 'طباعة', css = '', afterWrite, rasterize = false, rasterScale = 2, preferExternalPreview = true } = opts;
     // If running inside Electron packaged app, prefer opening in external browser for preview and printer selection
     if (preferExternalPreview && window.native && typeof window.native.openInBrowser === 'function' && !/https?:/i.test(location.protocol)) {
-      const baseCss = `@page { size: auto; margin: 12mm 5mm 12mm 5mm; } *{ box-sizing: border-box } body{ font-family: Tajawal, Segoe UI, Arial; direction: rtl; padding:0; margin:0; color:#111827 } header.print-header, footer.print-footer{ position:fixed; inset-inline:0 } header.print-header{ top:0; padding:10mm 5mm 4mm; border-bottom:1px solid #ddd } footer.print-footer{ bottom:0; padding:6mm 5mm 8mm; border-top:1px solid #ddd; display:flex; align-items:center; justify-content:space-between; gap:12px } main.print-body{ padding:46mm 7mm 24mm 5mm } table{ width:100%; border-collapse:collapse } td,th{ border:1px solid #ccc; padding:6px } .muted{ color:#6b7280 } img.logo{ height:52px }`;
-      const doc = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><style>${baseCss}${css}</style><script>window.addEventListener('load',()=>{setTimeout(()=>{try{window.print();}catch(e){}},150)});</script></head><body>${html}</body></html>`;
+      const baseCss = `@page { size: auto; margin: 5mm; } *{ box-sizing: border-box } body{ font-family: Tajawal, Segoe UI, Arial; direction: rtl; padding:0; margin:0; color:#111827 } header.print-header, footer.print-footer{ position:fixed; inset-inline:0 } header.print-header{ top:0; padding:10mm 5mm 4mm; border-bottom:1px solid #ddd } footer.print-footer{ bottom:0; padding:6mm 5mm 8mm; border-top:1px solid #ddd; display:flex; align-items:center; justify-content:space-between; gap:12px } main.print-body{ padding: 0 5mm } table{ width:100%; border-collapse:collapse } td,th{ border:1px solid #ccc; padding:6px } .muted{ color:#6b7280 } img.logo{ height:52px }`;
+        const doc = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><style>${baseCss}${css}</style><style id="dynPageMargins"></style><script>(function(){
+          var PX_PER_MM = 96/25.4; // ~3.78
+          var printed = false;
+          function setPageMargins(){
+            try{
+              var head = document.querySelector('header.print-header');
+              var foot = document.querySelector('footer.print-footer');
+              var topMm = 5, botMm = 5;
+              if (head) topMm = Math.max(5, Math.ceil(head.offsetHeight / PX_PER_MM) + 12);
+              if (foot) botMm = Math.max(5, Math.ceil(foot.offsetHeight / PX_PER_MM) + 12);
+              var tag = document.getElementById('dynPageMargins');
+              if (tag) tag.textContent = '@page { size: auto; margin: ' + topMm + 'mm 5mm ' + botMm + 'mm 5mm; }';
+              // Also pad the content container for the first page rendering
+              var main = document.querySelector('main.print-body');
+              if (main) {
+                var topPx = head ? (head.offsetHeight + 8) : 0;
+                var botPx = foot ? (foot.offsetHeight + 8) : 0;
+                main.style.paddingTop = topPx + 'px';
+                main.style.paddingBottom = botPx + 'px';
+              }
+            }catch(e){}
+          }
+          function schedulePrint(){
+            if (printed) return;
+            var prevH = -1, prevF = -1, stable = 0, tries = 0;
+            (function loop(){
+              try{
+                var head = document.querySelector('header.print-header');
+                var foot = document.querySelector('footer.print-footer');
+                var h = head ? head.offsetHeight : 0;
+                var f = foot ? foot.offsetHeight : 0;
+                setPageMargins();
+                if (Math.abs(h - prevH) < 1 && Math.abs(f - prevF) < 1) stable++; else stable = 0;
+                prevH = h; prevF = f; tries++;
+                if (stable >= 2 || tries > 20) { printed = true; try{ window.print(); }catch(e){} return; }
+              }catch(e){}
+              setTimeout(loop, 60);
+            })();
+          }
+          window.addEventListener('load', function(){
+            setPageMargins();
+            schedulePrint();
+          });
+          window.addEventListener('resize', function(){ if (!printed) { setPageMargins(); } });
+          (Array.from(document.images||[])||[]).forEach(function(img){ if(!img.complete) img.addEventListener('load', function(){ if (!printed) { setPageMargins(); } }, { once:true }); });
+        })();</script></head><body>${html}</body></html>`;
       window.native.openInBrowser({ html: doc, fileNameBase: 'Jadwaly', title })
         .then((res) => { if (!res || res.ok === false) console.error('openInBrowser failed', res && res.error); })
         .catch((e) => console.error('openInBrowser error', e));
@@ -54,17 +99,16 @@
     }
     const w = window.open('', '_blank');
     const baseCss = `
-      /* اجعل الهوامش الجانبية 5mm افتراضيًا مع إبقاء العلوية/السفلية 12mm */
-      @page { size: auto; margin: 12mm 5mm 12mm 5mm; }
+      /* اجعل جميع الهوامش 5mm */
+      @page { size: auto; margin: 5mm; }
       *{ box-sizing: border-box }
       body{ font-family: Tajawal, Segoe UI, Arial; direction: rtl; padding: 0; margin: 0; color: #111827 }
       header.print-header, footer.print-footer{ position: fixed; inset-inline: 0; }
-      /* قلّل الحشوات الأفقية للاستفادة من هوامش 5mm */
-      header.print-header{ top: 0; padding: 10mm 5mm 4mm; border-bottom: 1px solid #ddd; }
+  /* اجعل الحشوات الأفقية 5mm */
+  header.print-header{ top: 0; padding: 10mm 5mm 4mm; border-bottom: 1px solid #ddd; }
       footer.print-footer{ bottom: 0; padding: 6mm 5mm 8mm; border-top: 1px solid #ddd; display:flex; align-items:center; justify-content:space-between; gap:12px }
-      /* زيدت المسافة العلوية لتفادي تداخل رأس الصفحة مع المحتوى، خاصة مع العنوان والسنة الدراسية */
-  /* زِد الحافة اليمنى قليلاً لتفادي قص عمود اليمين عند التكبير من اليمين */
-  main.print-body{ padding: 46mm 7mm 24mm 5mm; }
+    /* اترك الضبط العلوي/السفلي ديناميكيًا بعد كتابة المستند */
+    main.print-body{ padding: 0 5mm; }
       table{ width:100%; border-collapse:collapse }
       td,th{ border:1px solid #ccc; padding:6px }
       .muted{ color:#6b7280 }

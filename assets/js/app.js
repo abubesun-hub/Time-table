@@ -3183,6 +3183,7 @@
   const btnPreviewGlobal = qs('#btnPreviewGlobal'); if (btnPreviewGlobal) btnPreviewGlobal.addEventListener('click', previewGlobal);
   const btnPreviewGlobalContent = qs('#btnPreviewGlobalContent'); if (btnPreviewGlobalContent) btnPreviewGlobalContent.addEventListener('click', previewGlobalContent);
   const btnPreviewByDay = qs('#btnPreviewByDay'); if (btnPreviewByDay) btnPreviewByDay.addEventListener('click', previewByDay);
+  const btnPreviewTeacherLoads = qs('#btnPreviewTeacherLoads'); if (btnPreviewTeacherLoads) btnPreviewTeacherLoads.addEventListener('click', previewTeacherLoads);
 
   // Per-day timetable preview (one page per working day)
   function previewByDay() {
@@ -3280,6 +3281,125 @@
       headerTypography: prn.headerTypography || {},
       footerLeftImageUrl: prn.footer?.leftImageUrl || '',
       footerRightHtml: prn.footer?.rightHtml || '',
+      noFixedHeader: true
+    });
+  }
+
+  // Teacher loads summary (portrait): header + table per teacher with totals and details (subject - class - count)
+  function previewTeacherLoads() {
+    const db = Store.getDB();
+    const teachers = db.teachers || [];
+    const assignments = db.assignments || {};
+    // Build map per teacher: { total: number, rows: [{subj, classLabel, count}] }
+    const perTeacher = new Map();
+    Object.entries(assignments).forEach(([csKey, subjMap]) => {
+      const [ciStr, siStr] = csKey.split(':');
+      const ci = parseInt(ciStr, 10), si = parseInt(siStr, 10);
+      const classLabel = `${db.classes?.[ci]?.name || '—'}${(db.classes?.[ci]?.sections?.[si]?.name ? ' — ' + db.classes[ci].sections[si].name : '')}`;
+      Object.entries(subjMap || {}).forEach(([subjIdxStr, tMap]) => {
+        const subjIdx = parseInt(subjIdxStr, 10);
+        const subjName = db.subjectsCatalog?.[subjIdx]?.name || '—';
+        Object.entries(tMap || {}).forEach(([tStr, cnt]) => {
+          const ti = parseInt(tStr, 10);
+          const c = Math.max(0, parseInt(cnt, 10) || 0);
+          if (c <= 0) return;
+          const key = ti;
+          if (!perTeacher.has(key)) perTeacher.set(key, { total: 0, rows: [] });
+          const rec = perTeacher.get(key);
+          rec.total += c;
+          rec.rows.push({ subj: subjName, classLabel, count: c });
+        });
+      });
+    });
+
+    // Build in-flow header to avoid fixed-header overlap across pages
+    const _rawGenderT = (db.school?.gender || '').toString();
+    const _normGenderT = _rawGenderT.replace(/[\sـ]/g, '');
+    let genderDisplayT = '';
+    if (/(ذكور|للذكور|بنين)/.test(_normGenderT)) genderDisplayT = 'للبنين';
+    else if (/(اناث|إناث|للاناث|للإناث|بنات)/.test(_normGenderT)) genderDisplayT = 'للبنات';
+    else if (/(مختلط|مختلطة|مشترك)/.test(_normGenderT)) genderDisplayT = 'المختلطة';
+    else genderDisplayT = _rawGenderT;
+
+    const reportHead = `
+      <div class="report-head">
+        <div class="rh-right" style="text-align:center">
+          <div class="school-name">${db.school?.name || 'المدرسة'}</div>
+          <div class="muted">${genderDisplayT || ''}</div>
+        </div>
+        <div class="rh-center" style="text-align:center; flex:1">
+          <div class="doc-title">حصص المعلمين — تقرير</div>
+          ${db.school?.year ? `<div class="muted" style="margin-top:2px">للعام الدراسي ${db.school.year}</div>` : ''}
+        </div>
+        <div class="rh-left" style="text-align:left">
+          ${db.school?.logo ? `<img class="logo" src="${db.school.logo}" alt="logo" style="height:52px">` : ''}
+        </div>
+      </div>`;
+
+  // Collect teacher sections (we'll wrap them in a table with thead so header repeats each page)
+  const sections = [];
+  perTeacher.forEach((rec, ti) => {
+      const name = teachers?.[ti]?.name || `معلم #${ti}`;
+      // sort rows by class then subject
+      rec.rows.sort((a,b) => (a.classLabel||'').localeCompare(b.classLabel||'', 'ar') || (a.subj||'').localeCompare(b.subj||'', 'ar'));
+      const rowsHtml = rec.rows.map(r => `<tr><td>${r.subj}</td><td>${r.classLabel}</td><td>${r.count}</td></tr>`).join('');
+      sections.push(`
+        <section class="tload-page">
+          <div class="tload-head">
+            <div class="left">${name}</div>
+            <div class="center">إجمالي الحصص: <b>${rec.total}</b></div>
+          </div>
+          <table class="tload-table">
+            <thead><tr><th>المادة</th><th>الصف</th><th>عدد الحصص</th></tr></thead>
+            <tbody>${rowsHtml || '<tr><td colspan="3">— لا توجد تخصيصات</td></tr>'}</tbody>
+          </table>
+        </section>`);
+    });
+
+    const css = `
+      /* حافظ على هامش جانبي داخلي 5mm حتى لا يلمس المحتوى الحواف */
+      main.print-body{ padding-inline: 5mm }
+      /* UI.printDocument يضع 12mm عند no-fixed؛ الغِ ذلك واجعلها 5mm جانبيًا فقط */
+      main.print-body.no-fixed{ padding: 0 5mm }
+      .rep-wrap{ width:100%; border-collapse:collapse }
+      .rep-wrap thead{ display: table-header-group }
+      .rep-wrap td{ border:none; padding:0 }
+      .report-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid #ddd; padding:6mm 0 4mm; margin:0 0 6mm }
+      .report-head .school-name{ font-weight:800; font-size:18px }
+      .report-head .doc-title{ font-weight:800; font-size:16px }
+      .tload-page{ break-inside: avoid; page-break-inside: avoid; margin-bottom: 8mm }
+      .tload-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:6px 0 8px }
+      .tload-head .left{ font-weight:800 }
+      .tload-head .center{ color:#111827 }
+      .tload-table{ width:100%; border-collapse:collapse }
+      .tload-table th, .tload-table td{ border:1px solid #d1d5db; padding:6px; text-align:center }
+      .tload-table thead th{ background:#eef2ff; font-weight:800 }
+      .tload-table thead{ display: table-header-group }
+      .tload-table tr{ break-inside: avoid; page-break-inside: avoid }
+      @media print{
+        .tload-page{ page-break-after: auto }
+        .tload-page:last-child{ margin-bottom: 0 }
+      }
+    `;
+
+    const wrapHtml = `
+      <table class="rep-wrap">
+        <thead><tr><td>${reportHead}</td></tr></thead>
+        <tbody>${sections.map(s => `<tr><td>${s}</td></tr>`).join('')}</tbody>
+      </table>`;
+
+    UI.printDocument({
+      contentHtml: `<style>${css}</style>${sections.length ? wrapHtml : '<div class=\"muted\">لا توجد بيانات</div>'}`,
+      docTitle: 'حصص المعلمين — تقرير',
+      school: { ...db.school },
+      orientation: 'portrait',
+      /* هوامش 0.5 سم من جميع الجهات */
+      margin: '5mm',
+      fontScale: 1,
+      headerTypography: db.settings?.printing?.headerTypography || {},
+      footerLeftImageUrl: db.settings?.printing?.footer?.leftImageUrl || '',
+      footerRightHtml: db.settings?.printing?.footer?.rightHtml || '',
+      // لا نستخدم رأسًا ثابتًا هنا لتفادي التداخل عبر الصفحات؛ لدينا رأس داخل المحتوى
       noFixedHeader: true
     });
   }
