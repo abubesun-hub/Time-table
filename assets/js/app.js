@@ -3321,6 +3321,7 @@
     else if (/(مختلط|مختلطة|مشترك)/.test(_normGenderT)) genderDisplayT = 'المختلطة';
     else genderDisplayT = _rawGenderT;
 
+    const _progLogo = new URL('./Jadwaly.png', location.href).href;
     const reportHead = `
       <div class="report-head">
         <div class="rh-right" style="text-align:center">
@@ -3332,7 +3333,7 @@
           ${db.school?.year ? `<div class="muted" style="margin-top:2px">للعام الدراسي ${db.school.year}</div>` : ''}
         </div>
         <div class="rh-left" style="text-align:left">
-          ${db.school?.logo ? `<img class="logo" src="${db.school.logo}" alt="logo" style="height:52px">` : ''}
+          <img class="logo" src="${_progLogo}" alt="Jadwaly" style="height:52px">
         </div>
       </div>`;
 
