@@ -3286,7 +3286,7 @@
   }
 
   // Teacher loads summary (portrait): header + table per teacher with totals and details (subject - class - count)
-  function previewTeacherLoads() {
+  async function previewTeacherLoads() {
     const db = Store.getDB();
     const teachers = db.teachers || [];
     const assignments = db.assignments || {};
@@ -3321,7 +3321,52 @@
     else if (/(مختلط|مختلطة|مشترك)/.test(_normGenderT)) genderDisplayT = 'المختلطة';
     else genderDisplayT = _rawGenderT;
 
-    const _progLogo = new URL('./Jadwaly.png', location.href).href;
+    // Prepare program logo as transparent (remove beige/solid background by sampling corner color)
+    const _progLogoAbs = new URL('./Jadwaly.png', location.href).href;
+    async function makeTransparent(src) {
+      return new Promise((resolve) => {
+        try {
+          const img = new Image();
+          img.decoding = 'async';
+          img.onload = () => {
+            try {
+              const w = img.naturalWidth || img.width; const h = img.naturalHeight || img.height;
+              if (!w || !h) return resolve(src);
+              const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+              const ctx = canvas.getContext('2d', { willReadFrequently: true });
+              ctx.drawImage(img, 0, 0);
+              const imgData = ctx.getImageData(0, 0, w, h);
+              const d = imgData.data;
+              // sample 4 corners as background reference
+              const cornerIdx = [0, (w-1)*4, (h-1)*w*4, (h*w - 1)*4];
+              const corners = cornerIdx.map(i => ({ r:d[i], g:d[i+1], b:d[i+2] }));
+              const near = (p, q) => {
+                const dr = p.r - q.r, dg = p.g - q.g, db = p.b - q.b;
+                return (dr*dr + dg*dg + db*db) <= 55*55; // ~chroma distance threshold
+              };
+              for (let i=0; i<d.length; i+=4) {
+                const p = { r:d[i], g:d[i+1], b:d[i+2] };
+                const light = (p.r + p.g + p.b) / 3;
+                // treat very light tones and corner-like tones as background
+                if (light >= 246 || corners.some(c => near(p, c))) {
+                  d[i+3] = 0; // alpha 0
+                }
+              }
+              ctx.putImageData(imgData, 0, 0);
+              const url = canvas.toDataURL('image/png');
+              resolve(url);
+            } catch {
+              resolve(src);
+            }
+          };
+          img.onerror = () => resolve(src);
+          img.src = src;
+        } catch {
+          resolve(src);
+        }
+      });
+    }
+    const _progLogo = await makeTransparent(_progLogoAbs);
     const reportHead = `
       <div class="report-head">
         <div class="rh-right" style="text-align:center">
@@ -3368,6 +3413,7 @@
       .report-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid #ddd; padding:6mm 0 4mm; margin:0 0 6mm }
       .report-head .school-name{ font-weight:800; font-size:18px }
       .report-head .doc-title{ font-weight:800; font-size:16px }
+  .report-head img.logo{ background: transparent !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; mix-blend-mode: normal !important; }
       .tload-page{ break-inside: avoid; page-break-inside: avoid; margin-bottom: 8mm }
       .tload-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:6px 0 8px }
       .tload-head .left{ font-weight:800 }
