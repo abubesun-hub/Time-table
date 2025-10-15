@@ -87,8 +87,8 @@
       <button class="nav-btn" data-route="#/school"><i class="bi bi-building"></i><span>المدرسة</span></button>
   <button class="nav-btn" data-route="#/subjects"><i class="bi bi-sliders"></i><span>تخصيص</span></button>
   <button class="nav-btn" data-route="#/catalog"><i class="bi bi-book"></i><span>المواد</span></button>
-      <button class="nav-btn" data-route="#/classes"><i class="bi bi-grid-3x3-gap"></i><span>الصفوف</span></button>
-      <button class="nav-btn" data-route="#/teachers"><i class="bi bi-people"></i><span>المعلمون</span></button>
+  <button class="nav-btn" data-route="#/classes"><i class="bi bi-grid-3x3-gap"></i><span>الصفوف</span></button>
+  <button class="nav-btn" data-route="#/teachers"><i class="bi bi-people"></i><span data-term-full="teachers-nav">المعلمون</span></button>
       <button class="nav-btn" data-route="#/timetable"><i class="bi bi-calendar-week"></i><span>الجدول الأسبوعي</span></button>
       <button class="nav-btn" data-route="#/invoices"><i class="bi bi-receipt"></i><span>الفواتير</span></button>
       <button class="nav-btn" data-route="#/backup"><i class="bi bi-cloud-arrow-up"></i><span>نسخ احتياطي</span></button>
@@ -129,10 +129,10 @@
             <div id="stat-classes" class="stat-value">0</div>
           </div>
         </div>
-  <div class="stat neo-surface stat-ac4" title="عدد المعلمين">
+  <div class="stat neo-surface stat-ac4" data-term-title="teachers-count-title" title="عدد المعلمين">
           <div class="stat-icon"><i class="bi bi-people"></i></div>
           <div class="stat-info">
-            <div class="stat-label">المعلمون</div>
+            <div class="stat-label" data-term-full="teachers-stat-label">المعلمون</div>
             <div id="stat-teachers" class="stat-value">0</div>
           </div>
         </div>
@@ -177,8 +177,8 @@
         </a>
         <a class="card neo-surface card-ac5" data-route-link="#/teachers" data-step="2">
           <div class="card-icon"><i class="bi bi-person-badge"></i></div>
-          <div class="card-title">المعلمون</div>
-          <div class="card-desc">إدارة المعلمين وتوزيع الحصص.</div>
+          <div class="card-title" data-term-full="teachers-card-title">المعلمون</div>
+          <div class="card-desc">إدارة <span data-term="t-pl-gen-def">المعلمين</span> وتوزيع الحصص.</div>
         </a>
         <a class="card neo-surface card-ac4" data-route-link="#/classes" data-step="3">
           <div class="card-icon"><i class="bi bi-grid-3x3-gap"></i></div>
@@ -224,7 +224,7 @@
         </a>
       </div>
 
-      <h2 class="section-title">إحصاءات المعلمين</h2>
+  <h2 class="section-title" data-term-full="teachers-stat-title">إحصاءات المعلمين</h2>
   <div class="neo-surface pad-16 full-bleed">
         <div id="teacherStatsTable" class="list"></div>
       </div>
@@ -255,7 +255,7 @@
         </div>
         <div id="ttStatsBar" class="row wrap" style="gap:12px;margin-bottom:10px">
           <span class="muted">المجدول: <b id="ttStatScheduled">0</b></span>
-          <span class="muted">المطلوب (التخصيص للمعلمين): <b id="ttStatAssigned">0</b></span>
+          <span class="muted">المطلوب (التخصيص ل<span data-term="t-pl-gen-def">المعلمين</span>): <b id="ttStatAssigned">0</b></span>
           <span class="muted">المتبقي للجدولة: <b id="ttStatGap">0</b></span>
           <span class="muted">المطلوب (التخصيص العام): <b id="ttStatAlloc">0</b></span>
           <span class="muted">سعة الخلايا: <b id="ttStatCapacity">0</b></span>
@@ -296,9 +296,9 @@
         <p class="muted" style="margin-top:0">اختر نوع المعاينة لفتح صفحة جديدة للطباعة. الميّزات قيد التطوير وسيتم تحسين التنسيقات تدريجيًا.</p>
         <div class="preview-actions">
           <button id="btnPreviewBySections" class="btn-hero btn-ac1"><i class="bi bi-grid-3x3-gap"></i> <span>الجدول حسب الشعب</span></button>
-          <button id="btnPreviewTeachers" class="btn-hero btn-ac2"><i class="bi bi-people"></i> <span>جدول حصص المعلمين</span></button>
+          <button id="btnPreviewTeachers" class="btn-hero btn-ac2"><i class="bi bi-people"></i> <span data-term-full="btn-preview-teachers">جدول حصص المعلمين</span></button>
           <button id="btnPreviewGlobal" class="btn-hero btn-ac3"><i class="bi bi-table"></i> <span>طباعة الجدول العام (صورة)</span></button>
-          <button id="btnPreviewTeacherLoads" class="btn-hero btn-ac4"><i class="bi bi-list-check"></i> <span>حصص المعلمين (تقرير)</span></button>
+          <button id="btnPreviewTeacherLoads" class="btn-hero btn-ac4"><i class="bi bi-list-check"></i> <span data-term-full="btn-preview-teacher-loads">حصص المعلمين (تقرير)</span></button>
           <button id="btnPreviewGlobalContent" class="btn-hero btn-ac4"><i class="bi bi-layout-text-window"></i> <span>طباعة الجدول العام (محتوى متعدد الصفحات)</span></button>
           <button id="btnPreviewByDay" class="btn-hero btn-ac5"><i class="bi bi-calendar2-week"></i> <span>طباعة حسب اليوم</span></button>
         </div>
@@ -419,17 +419,17 @@
       <!-- Teacher Sidebar (floating in this view) -->
       <aside id="teacherSidebar" class="teacher-sidebar neo-surface hidden" aria-live="polite">
         <div class="row" style="align-items:center;justify-content:space-between;margin-bottom:6px">
-          <div class="sub-title" style="margin:0">ملخص المعلمين</div>
+          <div class="sub-title" style="margin:0" data-term-full="teacher-summary-title">ملخص المعلمين</div>
           <small class="muted">الإجمالي: <b id="teacherSidebarTotal">0</b></small>
         </div>
         <div id="teacherSidebarList" class="list" style="padding:8px"></div>
       </aside>
       <div class="neo-surface pad-16">
         <div id="allocGuardNoTeachers" class="alert hidden">
-          <div class="alert-title">لا توجد معلمون بعد</div>
-          <div class="alert-desc">أضف معلمًا واحدًا على الأقل.</div>
+          <div class="alert-title" data-term-full="no-teachers-title">لا توجد معلمون بعد</div>
+          <div class="alert-desc" data-term-full="no-teachers-desc">أضف معلمًا واحدًا على الأقل.</div>
           <div class="row" style="margin-top:8px">
-            <button class="btn" data-route-link="#/teachers"><i class="bi bi-people"></i> إضافة معلم الآن</button>
+            <button class="btn" data-route-link="#/teachers"><i class="bi bi-people"></i> <span data-term-full="add-teacher-now">إضافة معلم الآن</span></button>
           </div>
         </div>
         <div id="allocGuardNoSubjects" class="alert hidden">
@@ -473,7 +473,7 @@
             <select id="asSubjectSelect" class="input"></select>
           </div>
           <div class="col" style="min-width:200px">
-            <label class="label" for="asTeacherSelect">المعلم</label>
+            <label class="label" for="asTeacherSelect" data-term="t-s-def">المعلم</label>
             <select id="asTeacherSelect" class="input"></select>
           </div>
           <div class="col" style="min-width:140px">
@@ -510,7 +510,7 @@
               <select id="ebSubjectSelect" class="input"></select>
             </div>
             <div class="col" style="min-width:200px">
-              <label class="label" for="ebTeacherSelect">المعلم</label>
+              <label class="label" for="ebTeacherSelect" data-term="t-s-def">المعلم</label>
               <select id="ebTeacherSelect" class="input"></select>
             </div>
           </div>
@@ -518,7 +518,7 @@
         <!-- شريط البحث في التخصيصات -->
         <div id="assignSearchBar" class="row gap-8 wrap" style="margin-top:10px">
           <div class="col" style="flex:1;min-width:260px">
-            <input id="assignSearchInput" class="input" type="text" placeholder="ابحث في التخصيصات (مادة، صف، شعبة، معلم)">
+            <input id="assignSearchInput" class="input" type="text" placeholder="ابحث في التخصيصات (مادة، صف، شعبة، معلم)" data-term-full-ph="assign-search-ph">
           </div>
           <div class="col" style="align-self:center">
             <small id="assignSearchCount" class="muted">النتائج: —</small>
@@ -535,7 +535,7 @@
               <h3 id="spTitle" style="margin:0">—</h3>
               <button id="spClose" class="btn ghost" aria-label="إغلاق"><i class="bi bi-x-lg"></i></button>
             </div>
-            <h4 class="sub-title">المخصصة للمعلمين</h4>
+            <h4 class="sub-title">المخصصة ل<span data-term="t-pl-gen-def">لمعلمين</span></h4>
             <div id="spAssignedList" class="list"></div>
             <h4 class="sub-title">غير المخصصة</h4>
             <div id="spUnassignedList" class="list"></div>
@@ -565,8 +565,8 @@
     <!-- Teachers -->
     <section id="view-teachers" class="view">
       <div class="header-row">
-        <h2 class="section-title">المعلمون</h2>
-        <button id="btnAddTeacher" class="btn primary"><i class="bi bi-plus-circle"></i> إضافة معلم</button>
+        <h2 class="section-title" data-term-full="teachers-card-title">المعلمون</h2>
+        <button id="btnAddTeacher" class="btn primary"><i class="bi bi-plus-circle"></i> <span data-term-full="add-teacher-now">إضافة معلم الآن</span></button>
       </div>
       <div id="teachersList" class="list neo-surface"></div>
     </section>
@@ -753,7 +753,7 @@
           <div class="muted small">معاينة رأس الصفحة (تستخدم القيم في الحقول أعلاه دون الحاجة للحفظ)</div>
           <div id="printHeaderPreviewHost" style="margin-top:8px"></div>
         </div>
-        <h4 class="sub-title" style="margin-top:10px">تنسيق جدول حصص المعلمين</h4>
+  <h4 class="sub-title" style="margin-top:10px"><span data-term-full="btn-preview-teachers">تنسيق جدول حصص المعلمين</span></h4>
         <div class="row wrap" style="gap:12px">
           <div class="col" style="min-width:200px">
             <label class="label" for="prnTeachHeaderBg">لون خلفية عناوين الجدول</label>
@@ -821,7 +821,7 @@
           </div>
         </div>
         <div id="teacherPrintPreview" class="neo-surface" style="margin-top:10px">
-          <div class="muted small">معاينة تنسيق جدول حصص المعلمين (تتحدّث لحظيًا دون حفظ)</div>
+          <div class="muted small"><span data-term-full="btn-preview-teachers">معاينة تنسيق جدول حصص المعلمين</span> (تتحدّث لحظيًا دون حفظ)</div>
           <div id="teacherPrintPreviewHost" style="margin-top:8px"></div>
         </div>
         <div class="row wrap" style="gap:12px;margin-top:8px">

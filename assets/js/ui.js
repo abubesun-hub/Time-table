@@ -18,6 +18,8 @@
     if (app) app.classList.toggle('wide', target === '#/timetable');
     // scroll to top when switching views
     window.scrollTo(0, 0);
+    // update dynamic terms on route switch
+    try { updateDynamicTerms(); } catch {}
   }
 
   function showToast(msg, type = 'info', timeout = 3000) {
@@ -235,5 +237,92 @@
     printHtml(html, { title: docTitle || 'طباعة', css, rasterize, rasterScale, afterWrite });
   }
 
-  global.UI = { qs, qsa, routeTo, showToast, renderList, printHtml, printDocument };
+  // ===== Terms (dynamic wording) =====
+  // Resolve teacher-related terms based on school type (ابتدائي → معلم/المعلم/المعلمون; otherwise → مدرس/المدرس/المدرسون)
+  const Terms = (function(){
+    function isPrimary(){
+      try {
+        // Prefer live select value if present on the page
+        const liveSel = document.getElementById('schoolType');
+        const liveVal = liveSel ? (liveSel.value || '') : '';
+        const t = liveVal || ((global.Store && global.Store.getDB && global.Store.getDB().school?.type) || '');
+        return String(t).replace(/\s/g,'') === 'ابتدائي';
+      } catch { return false; }
+    }
+    function get(key){
+      const primary = isPrimary();
+      // Core forms
+      const map = primary ? {
+        't-s': 'معلم',                 // bare singular
+        't-s-def': 'المعلم',           // definite singular
+        't-s-acc': 'معلماً',           // singular accusative (tanwīn)
+        't-pl-nom-def': 'المعلمون',    // plural nominative definite
+        't-pl-gen-def': 'المعلمين',    // plural genitive/accusative definite
+      } : {
+        't-s': 'مدرس',
+        't-s-def': 'المدرس',
+        't-s-acc': 'مدرساً',
+        't-pl-nom-def': 'المدرسون',
+        't-pl-gen-def': 'المدرسين',
+      };
+      return map[key] || '';
+    }
+    function full(key){
+      // Frequently used full phrases
+      switch(key){
+        case 'teachers-nav': return get('t-pl-nom-def');
+        case 'teachers-card-title': return get('t-pl-nom-def');
+        case 'teachers-stat-label': return get('t-pl-nom-def');
+        case 'teachers-stat-title': return 'إحصاءات ' + get('t-pl-gen-def');
+        case 'teachers-count-title': return 'عدد ' + get('t-pl-gen-def');
+        case 'btn-preview-teachers': return 'جدول حصص ' + get('t-pl-gen-def');
+        case 'btn-preview-teacher-loads': return 'حصص ' + get('t-pl-gen-def') + ' (تقرير)';
+        case 'teacher-summary-title': return 'ملخص ' + get('t-pl-gen-def');
+        case 'no-teachers-title': return 'لا يوجد ' + get('t-pl-nom-def') + ' بعد';
+        case 'no-teachers-desc': return 'أضف ' + get('t-s-acc') + ' واحدًا على الأقل.';
+        case 'add-teacher-now': return 'إضافة ' + get('t-s') + ' الآن';
+        case 'assign-search-ph': return `ابحث في التخصيصات (مادة، صف، شعبة، ${get('t-s')})`;
+        default: return '';
+      }
+    }
+    return { get, full, isPrimary };
+  })();
+
+  function updateDynamicTerms(){
+    try {
+      // Simple replacements for elements carrying data-term (single token) and data-term-full (full phrase)
+      qsa('[data-term]').forEach(el => {
+        const key = el.getAttribute('data-term');
+        const val = Terms.get(key);
+        if (val) el.textContent = val;
+      });
+      qsa('[data-term-full]').forEach(el => {
+        const key = el.getAttribute('data-term-full');
+        const val = Terms.full(key);
+        if (val) el.textContent = val;
+      });
+      // Placeholder attributes
+      qsa('[data-term-ph]').forEach(el => {
+        const key = el.getAttribute('data-term-ph');
+        const val = Terms.full(key) || Terms.get(key);
+        if (val) el.setAttribute('placeholder', val);
+      });
+      qsa('[data-term-full-ph]').forEach(el => {
+        const key = el.getAttribute('data-term-full-ph');
+        const val = Terms.full(key);
+        if (val) el.setAttribute('placeholder', val);
+      });
+      qsa('[data-term-title]').forEach(el => {
+        const key = el.getAttribute('data-term-title');
+        const val = Terms.full(key) || Terms.get(key);
+        if (val) el.setAttribute('title', val);
+      });
+    } catch {}
+  }
+
+  // Auto-run once DOM is ready
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', updateDynamicTerms); else updateDynamicTerms();
+
+  // Expose
+  global.UI = { qs, qsa, routeTo, showToast, renderList, printHtml, printDocument, Terms, updateDynamicTerms };
 })(window);

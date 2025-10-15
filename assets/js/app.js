@@ -58,11 +58,11 @@
           if (!hint) { hint = document.createElement('div'); hint.className = 'lock-hint bi bi-lock-fill'; card.appendChild(hint); }
           const reason = {
             1: 'ابدأ بمعلومات المدرسة أولاً',
-            2: 'أضف معلماً واحداً على الأقل',
+            2: (UI && UI.Terms && UI.Terms.isPrimary() ? 'أضف معلماً واحداً على الأقل' : 'أضف مدرساً واحداً على الأقل'),
             3: 'أضف صفاً/شُعبة أولاً',
             4: 'أضف مادة واحدة على الأقل',
             5: 'حدّد الحصص الأسبوعية لكل مادة/صف',
-            6: 'قم بتعيين المعلمين للمواد'
+            6: (UI && UI.Terms && UI.Terms.isPrimary() ? 'قم بتعيين المعلمين للمواد' : 'قم بتعيين المدرسين للمواد')
           }[n] || 'هذه الخطوة تعتمد على خطوات سابقة';
           card.title = reason;
         } else {
@@ -396,6 +396,7 @@
     qs('#stat-invoices').textContent = db.invoices.length;
     renderTeacherStatsTable();
     try { refreshPriorityCards(); } catch {}
+    try { if (UI && typeof UI.updateDynamicTerms === 'function') UI.updateDynamicTerms(); } catch {}
   }
 
   // ===== Live Clock (dashboard only) =====
@@ -521,8 +522,9 @@
     const stats = computeTeacherStats();
     host.innerHTML = '';
     // header
-    const head = document.createElement('div'); head.className = 'trow head';
-    head.innerHTML = '<div class="tcell">المعلم</div><div class="tcell">إجمالي الحصص</div><div class="tcell">مواد</div><div class="tcell">تفاصيل</div><div class="tcell"></div>';
+  const head = document.createElement('div'); head.className = 'trow head';
+  const thTeacher = (UI && UI.Terms) ? UI.Terms.get('t-s-def') : 'المعلم';
+  head.innerHTML = `<div class="tcell">${thTeacher}</div><div class="tcell">إجمالي الحصص</div><div class="tcell">مواد</div><div class="tcell">تفاصيل</div><div class="tcell"></div>`;
     host.appendChild(head);
     stats.forEach(st => {
       const row = document.createElement('div'); row.className = 'trow';
@@ -744,7 +746,7 @@
     qs('#schoolName').value = db.school.name || '';
     qs('#schoolAddress').value = db.school.address || '';
     qs('#schoolPhone').value = db.school.phone || '';
-    const typeEl = qs('#schoolType'); if (typeEl) typeEl.value = db.school.type || '';
+    const typeEl = qs('#schoolType'); if (typeEl) { typeEl.value = db.school.type || ''; typeEl.addEventListener('change', () => { try { if (UI && typeof UI.updateDynamicTerms === 'function') UI.updateDynamicTerms(); } catch {} }); }
     qs('#schoolLogo').value = db.school.logo || '';
     // new fields
     const yearEl = qs('#schoolYear'); if (yearEl) yearEl.value = db.school.year || '';
@@ -757,6 +759,7 @@
       if (typeof db.school.principalId === 'number' && teachers[db.school.principalId]) prinSel.value = String(db.school.principalId);
       else prinSel.value = '';
     }
+    try { if (UI && typeof UI.updateDynamicTerms === 'function') UI.updateDynamicTerms(); } catch {}
   }
   qs('#form-school').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -777,6 +780,7 @@
     Store.setDB(db);
     showToast('تم حفظ بيانات المدرسة');
     try { refreshPriorityCards(); } catch {}
+    try { if (UI && typeof UI.updateDynamicTerms === 'function') UI.updateDynamicTerms(); } catch {}
   });
   qs('#btnSchoolClear').addEventListener('click', () => {
     if (!confirm('مسح بيانات المدرسة؟')) return;
@@ -784,6 +788,7 @@
     db.school = { name: '', address: '', phone: '', type: '', email: '', logo: '' };
     Store.setDB(db);
     loadSchoolForm();
+    try { if (UI && typeof UI.updateDynamicTerms === 'function') UI.updateDynamicTerms(); } catch {}
   });
 
   // Times editor (working days + per-day settings)
@@ -1031,7 +1036,7 @@
     Store.setDB(db);
     // بعد حفظ التخصيص العام، تأكد من مزامنة تعيينات المعلمين بحيث لا تتجاوز القيم الجديدة
     try { reconcileAssignmentsWithAllocations(subjIdx); } catch {}
-    showToast('تم حفظ التخصيص وتحديث تعيينات المعلمين');
+  try { showToast(UI && UI.Terms && UI.Terms.isPrimary() ? 'تم حفظ التخصيص وتحديث تعيينات المعلمين' : 'تم حفظ التخصيص وتحديث تعيينات المدرسين'); } catch { showToast('تم حفظ التخصيص'); }
     // تحديث الواجهات والإحصاءات المرتبطة
     renderAssignList();
     renderAssignStats();
@@ -1049,7 +1054,7 @@
     const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect');
     if (classSel) classSel.innerHTML = '<option value="">— اختر صف —</option>' + (db.classes || []).map((c, i) => `<option value="${i}">${c.name}</option>`).join('');
     if (subjSel) subjSel.innerHTML = '<option value="">— اختر مادة —</option>' + (db.subjectsCatalog || []).map((s, i) => `<option value="${i}">${s.name}</option>`).join('');
-    if (teachSel) teachSel.innerHTML = '<option value="">— اختر معلم —</option>' + (db.teachers || []).map((t, i) => `<option value="${i}">${t.name}</option>`).join('');
+  if (teachSel) { const lab = (UI && UI.Terms) ? UI.Terms.get('t-s') : 'معلم'; teachSel.innerHTML = `<option value="">— اختر ${lab} —</option>` + (db.teachers || []).map((t, i) => `<option value="${i}">${t.name}</option>`).join(''); }
     if (sectSel) sectSel.innerHTML = '<option value="">— اختر شعبة —</option>';
     if (classSel) classSel.onchange = () => {
       const idx = classSel.value; const sections = idx === '' ? [] : (db.classes[idx].sections || []);
@@ -1255,7 +1260,7 @@
     return changed;
   }
 
-  // قم بمواءمة تعيينات المعلمين مع التخصيص العام عند تغييره
+  // قم بمواءمة تعيينات المعلمين/المدرسين مع التخصيص العام عند تغييره
   // إذا تم تخفيض عدد الحصص المخصصة لمادة/صف، يتم تقليم التعيينات بحيث لا تتجاوز العدد الجديد.
   function reconcileAssignmentsWithAllocations(onlySubjIdx = null) {
     const db = Store.getDB();
@@ -1296,24 +1301,24 @@
   function saveAssignment() {
     const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect'); const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect'); const per = qs('#asPeriods');
     if (!classSel || !sectSel || !subjSel || !teachSel || !per) return;
-    if (classSel.value === '' || sectSel.value === '' || subjSel.value === '' || teachSel.value === '') { showToast('أكمل الاختيارات: صف، شعبة، مادة، معلم'); return; }
+  if (classSel.value === '' || sectSel.value === '' || subjSel.value === '' || teachSel.value === '') { const t = (UI && UI.Terms) ? UI.Terms.get('t-s') : 'معلم'; showToast(`أكمل الاختيارات: صف، شعبة، مادة، ${t}`); return; }
     const cIdx = parseInt(classSel.value, 10); const sIdx = parseInt(sectSel.value, 10);
     const subjIdx = parseInt(subjSel.value, 10); const tIdx = parseInt(teachSel.value, 10);
     const count = Math.max(0, parseInt(per.value, 10) || 0);
     if (count <= 0) { showToast('أدخل عدد حصص أكبر من صفر'); return; }
   const db = Store.getDB();
   const allocForSubject = (db.allocations?.[subjIdx]?.[cIdx]) || 0;
-  // عند الاستبدال بمعلم واحد لكل مادة، نقارن مباشرة بالحد الأقصى المخصص للصف
+  // عند الاستبدال ب${(UI&&UI.Terms)?UI.Terms.get('t-s'):'معلم'} واحد لكل مادة، نقارن مباشرة بالحد الأقصى المخصص للصف
   if (count > allocForSubject) { showToast('عدد الحصص يتجاوز التخصيص لهذا الصف'); return; }
     db.assignments = db.assignments || {}; const csKey = keyCS(cIdx, sIdx);
     db.assignments[csKey] = db.assignments[csKey] || {};
-    // فرض معلم واحد فقط لكل مادة ضمن (صف/شعبة): إزالة أي مخصصات سابقة لنفس المادة ثم تعيين المعلم الحالي
+  // فرض ${(UI&&UI.Terms)?UI.Terms.get('t-s'):'معلم'} واحد فقط لكل مادة ضمن (صف/شعبة): إزالة أي مخصصات سابقة لنفس المادة ثم تعيين المعلم الحالي
     db.assignments[csKey][subjIdx] = {};
     db.assignments[csKey][subjIdx][tIdx] = count;
     Store.setDB(db);
   renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); updateAssignRemaining(); renderTeacherSidebar();
     try { refreshPriorityCards(); } catch {}
-    showToast('تم حفظ التخصيص للمعلم');
+  try { showToast((UI && UI.Terms && UI.Terms.isPrimary()) ? 'تم حفظ التخصيص للمعلم' : 'تم حفظ التخصيص للمدرس'); } catch { showToast('تم الحفظ'); }
   }
 
   const btnAsSave = qs('#btnAsSave'); if (btnAsSave) btnAsSave.addEventListener('click', saveAssignment);
@@ -1350,7 +1355,7 @@
     if (!cSel || !sSel || !subjSel || !tSel) return;
     cSel.innerHTML = '<option value="">— اختر صف —</option>' + (db.classes||[]).map((c, i) => `<option value="${i}">${c.name}</option>`).join('');
     subjSel.innerHTML = '<option value="">— اختر مادة —</option>' + (db.subjectsCatalog||[]).map((s, i) => `<option value="${i}">${s.name}</option>`).join('');
-    tSel.innerHTML = '<option value="">— اختر معلم —</option>' + (db.teachers||[]).map((t, i) => `<option value="${i}">${t.name}</option>`).join('');
+  { const label = (UI && UI.Terms) ? UI.Terms.get('t-s') : 'معلم'; tSel.innerHTML = `<option value="">— اختر ${label} —</option>` + (db.teachers||[]).map((t, i) => `<option value="${i}">${t.name}</option>`).join(''); }
     cSel.onchange = () => {
       const ci = cSel.value === '' ? -1 : parseInt(cSel.value, 10);
       const cls = (db.classes||[])[ci];
@@ -1505,7 +1510,7 @@
     const dbForSelect = Store.getDB();
     const sel = qs('#sectionTeacher');
     if (sel) {
-      sel.innerHTML = '<option value="">— اختر معلم —</option>' + (dbForSelect.teachers || []).map((t, idx) => `<option value="${idx}">${t.name}</option>`).join('');
+  { const label = (UI && UI.Terms) ? UI.Terms.get('t-s') : 'معلم'; sel.innerHTML = `<option value="">— اختر ${label} —</option>` + (dbForSelect.teachers || []).map((t, idx) => `<option value="${idx}">${t.name}</option>`).join(''); }
       if (typeof section?.teacherId === 'number') sel.value = String(section.teacherId);
     }
     dlg.returnValue = 'cancel';
@@ -2638,7 +2643,7 @@
             <div class="g">${genderDisplay || ''}</div>
           </div>
           <div class="ttl">
-            <div class="t">جدول حصص المعلمين</div>
+            <div class="t">${(UI && UI.Terms) ? ('جدول حصص ' + UI.Terms.get('t-pl-gen-def')) : 'جدول حصص المعلمين'}</div>
             ${db.school?.year ? `<div class="y">للعام الدراسي ${db.school.year}</div>` : ''}
           </div>
           <div class="l">
@@ -2685,7 +2690,7 @@
       });
       html += `</tbody></table></div>`;
     });
-    // أنماط خاصة بجدول حصص المعلمين
+  // أنماط خاصة بجدول حصص المعلمين/المدرسين
     const css = `
       .page-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid ${C_BORDER}; padding:8px 0 }
       .page-header .sch{ text-align:center }
@@ -2708,7 +2713,7 @@
     `;
     UI.printDocument({
       contentHtml: `<style>${css}</style>${html}`,
-  docTitle: 'جدول حصص المعلمين',
+  docTitle: (UI && UI.Terms) ? ('جدول حصص ' + UI.Terms.get('t-pl-gen-def')) : 'جدول حصص المعلمين',
   // لا نستخدم رأسًا ثابتًا هنا لتجنّب التداخل بين الصفحات
   school: { ...Store.getDB().school, logo: '' },
       orientation: prn.orientations?.teachers || 'portrait',
@@ -3376,7 +3381,7 @@
           <div class="muted">${genderDisplayT || ''}</div>
         </div>
         <div class="rh-center" style="text-align:center; flex:1">
-          <div class="doc-title">حصص المعلمين — تقرير</div>
+          <div class="doc-title">${(UI && UI.Terms) ? ('حصص ' + UI.Terms.get('t-pl-gen-def') + ' — تقرير') : 'حصص المعلمين — تقرير'}</div>
           ${db.school?.year ? `<div class="muted" style="margin-top:2px">للعام الدراسي ${db.school.year}</div>` : ''}
         </div>
         <div class="rh-left" style="text-align:left">
@@ -3439,7 +3444,7 @@
 
     UI.printDocument({
       contentHtml: `<style>${css}</style>${sections.length ? wrapHtml : '<div class=\"muted\">لا توجد بيانات</div>'}`,
-      docTitle: 'حصص المعلمين — تقرير',
+  docTitle: (UI && UI.Terms) ? ('حصص ' + UI.Terms.get('t-pl-gen-def') + ' — تقرير') : 'حصص المعلمين — تقرير',
       school: { ...db.school },
       orientation: 'portrait',
       /* هوامش 0.5 سم من جميع الجهات */

@@ -20,13 +20,16 @@
     return ({1:'#/school',2:'#/teachers',3:'#/classes',4:'#/catalog',5:'#/subjects',6:'#/timetable'}[step] || '#/dashboard');
   }
   function stepToText(step) {
+    const isPrim = (window.UI && UI.Terms && UI.Terms.isPrimary());
+    const tSingAcc = (window.UI && UI.Terms) ? UI.Terms.get('t-s-acc') : 'معلماً';
+    const tPlGen = (window.UI && UI.Terms) ? UI.Terms.get('t-pl-gen-def') : 'المعلمين';
     return ({
       1: 'ابدأ بمعلومات المدرسة: الاسم، العنوان، الأوقات…',
-      2: 'أضف معلمًا واحدًا على الأقل.',
+      2: `أضف ${tSingAcc} واحدًا على الأقل.`,
       3: 'أضف صفًا/شعبًا.',
       4: 'أضف المواد المعتمدة.',
       5: 'وزّع الحصص على الصفوف (تخصيص).',
-      6: 'عيّن المعلمين للمواد لكل صف/شعبة.',
+      6: `عيّن ${tPlGen} للمواد لكل صف/شعبة.`,
       7: 'اكتمل الإعداد! يمكنك العمل على الجدول الأسبوعي والطباعة.'
     })[step] || '—';
   }
@@ -120,7 +123,7 @@
       chips.push({ text: 'الجدول الأسبوعي', icon: 'bi-calendar-week', onClick: () => { UI.routeTo('#/timetable'); togglePanel(false); } });
       chips.push({ text: 'معاينة قبل الطباعة', icon: 'bi-eye', onClick: () => { UI.routeTo('#/timetable'); setTimeout(()=>{ const btn = UI.qs('#btnPreviewTT'); if (btn) btn.click(); }, 200); togglePanel(false); } });
     }
-    chips.push({ text: 'المعلمون', icon: 'bi-people', onClick: () => { UI.routeTo('#/teachers'); togglePanel(false); } });
+    chips.push({ text: (window.UI && UI.Terms ? UI.Terms.full('teachers-card-title') : 'المعلمون'), icon: 'bi-people', onClick: () => { UI.routeTo('#/teachers'); togglePanel(false); } });
     chips.push({ text: 'الصفوف', icon: 'bi-grid-3x3-gap', onClick: () => { UI.routeTo('#/classes'); togglePanel(false); } });
     chips.push({ text: 'المواد', icon: 'bi-book', onClick: () => { UI.routeTo('#/catalog'); togglePanel(false); } });
     chips.push({ text: 'تخصيص', icon: 'bi-sliders', onClick: () => { UI.routeTo('#/subjects'); togglePanel(false); } });
@@ -141,8 +144,8 @@
     if (/^(ما )?الخطوة التالية|next|خطوه|خطوة$/i.test(t)) {
       return { reply: stepToText(step), action: () => routeTo(stepToRoute(step)) };
     }
-    if (/مدرسة|school/.test(t)) { return { reply: 'سأفتح صفحة المدرسة.', action: () => routeTo('#/school') }; }
-    if (/معلم|teachers?/.test(t)) { return { reply: 'سأفتح صفحة المعلمين.', action: () => routeTo('#/teachers') }; }
+  if (/مدرسة|school/.test(t)) { return { reply: 'سأفتح صفحة المدرسة.', action: () => routeTo('#/school') }; }
+  if (/(معلم|مدرس|teachers?)/.test(t)) { return { reply: (window.UI && UI.Terms ? `سأفتح صفحة ${UI.Terms.full('teachers-card-title')}.` : 'سأفتح صفحة المعلمين.'), action: () => routeTo('#/teachers') }; }
     if (/صف|شعب|classes?/.test(t)) { return { reply: 'سأفتح صفحة الصفوف.', action: () => routeTo('#/classes') }; }
     if (/مادة|مواد|catalog|subjects/.test(t)) { return { reply: 'سأفتح صفحة المواد.', action: () => routeTo('#/catalog') }; }
     if (/تخصيص|assign|allocation|وزع/.test(t)) { return { reply: 'سأفتح صفحة التخصيص.', action: () => routeTo('#/subjects') }; }
