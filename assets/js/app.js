@@ -539,14 +539,18 @@
       if (!rows.length){ host.innerHTML = '<div class="muted">لا توجد حصص في هذه اللحظة.</div>'; }
       else {
         const table = document.createElement('table'); table.className = 'mini-list';
+        // colgroup for stable widths
+        const colgroup = document.createElement('colgroup');
+        colgroup.innerHTML = '<col class="w-class" /><col class="w-subj" /><col class="w-teacher" />';
+        table.appendChild(colgroup);
         const thead = document.createElement('thead');
         const thr = document.createElement('tr');
-        thr.innerHTML = '<th>الصف</th><th>المادة</th><th>'+((window.UI&&UI.Terms)?UI.Terms.get('t-s-def'):'المعلم')+'</th>';
+        thr.innerHTML = '<th class="col-class">الصف</th><th class="col-subj">المادة</th><th class="col-teacher">'+((window.UI&&UI.Terms)?UI.Terms.get('t-s-def'):'المعلم')+'</th>';
         thead.appendChild(thr);
         const tbody = document.createElement('tbody');
         rows.forEach(r => {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${r.classLabel}</td><td>${r.subjTxt||'—'}</td><td>${r.teacherTxt||'—'}</td>`;
+          tr.innerHTML = `<td class="col-class">${r.classLabel}</td><td class="col-subj">${r.subjTxt||'—'}</td><td class="col-teacher">${r.teacherTxt||'—'}</td>`;
           tbody.appendChild(tr);
         });
         table.appendChild(thead); table.appendChild(tbody);
