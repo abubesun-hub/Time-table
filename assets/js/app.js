@@ -744,7 +744,7 @@
     qs('#schoolName').value = db.school.name || '';
     qs('#schoolAddress').value = db.school.address || '';
     qs('#schoolPhone').value = db.school.phone || '';
-    qs('#schoolEmail').value = db.school.email || '';
+    const typeEl = qs('#schoolType'); if (typeEl) typeEl.value = db.school.type || '';
     qs('#schoolLogo').value = db.school.logo || '';
     // new fields
     const yearEl = qs('#schoolYear'); if (yearEl) yearEl.value = db.school.year || '';
@@ -761,11 +761,13 @@
   qs('#form-school').addEventListener('submit', (e) => {
     e.preventDefault();
     const db = Store.getDB();
+    const prevEmail = (db.school && db.school.email) ? String(db.school.email).trim() : '';
     db.school = {
       name: qs('#schoolName').value.trim(),
       address: qs('#schoolAddress').value.trim(),
       phone: qs('#schoolPhone').value.trim(),
-      email: qs('#schoolEmail').value.trim(),
+      type: (qs('#schoolType')?.value || '').trim(),
+      email: prevEmail,
       logo: qs('#schoolLogo').value.trim(),
       year: (qs('#schoolYear')?.value || '').trim(),
       shiftType: qs('#schoolShiftType')?.value || 'صباحي',
@@ -779,7 +781,7 @@
   qs('#btnSchoolClear').addEventListener('click', () => {
     if (!confirm('مسح بيانات المدرسة؟')) return;
     const db = Store.getDB();
-    db.school = { name: '', address: '', phone: '', email: '', logo: '' };
+    db.school = { name: '', address: '', phone: '', type: '', email: '', logo: '' };
     Store.setDB(db);
     loadSchoolForm();
   });
