@@ -493,6 +493,73 @@
     }
   }
 
+  // ===== Dashboard: current lesson per class table =====
+  function getCurrentLessonIndex(db){
+    const info = getCurrentAndNextInterval();
+    if (!info || info.mode !== 'toEnd') return -1;
+    return info.idx;
+  }
+  function renderNowLessonPanel(){
+    const panel = document.querySelector('#nowLessonPanel'); if (!panel) return;
+    const host = document.querySelector('#nowLessonHost'); const empty = document.querySelector('#nowLessonEmpty'); const metaEl = document.querySelector('#nowLessonMeta');
+    const onDash = (location.hash || '#/dashboard') === '#/dashboard';
+    panel.style.display = onDash ? '' : 'none';
+    const db = Store.getDB();
+    const day = getTodaySchoolDayName(db);
+    // Non-working day
+  if (!day) { if (host) host.innerHTML=''; if (empty) { empty.textContent = 'اليوم إجازة أو غير مُدرَج ضمن أيام الدوام.'; empty.style.display=''; } if (metaEl) metaEl.textContent='—'; return; }
+    // Determine current slot index (0-based) from per-day time grid
+    const idx = getCurrentLessonIndex(db);
+  if (idx < 0) { if (host) host.innerHTML=''; if (empty) { empty.textContent = 'لا توجد حصة جارية الآن.'; empty.style.display=''; } if (metaEl) metaEl.textContent = day; return; }
+    if (empty) empty.style.display='none';
+    // Build a compact table: Class/Section | Subject | Teacher
+    const classes = db.classes || []; const subjects = db.subjectsCatalog || []; const teachers = db.teachers || [];
+    const slots = db.timetable?.slots || ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة'];
+    const slotName = slots[idx] || String(idx+1);
+    const grid = db.timetable?.grid || {};
+    const rows = [];
+    classes.forEach((cls, ci) => {
+      const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
+      sections.forEach((sec, si) => {
+        const keyByName = `${ci}:${si}|${day}|${slotName}`;
+        const keyByNum = `${ci}:${si}|${day}|${idx+1}`;
+        const val = grid[keyByName] ?? grid[keyByNum] ?? '';
+        if (!val) return; // skip empty
+        let subjTxt = '', teacherTxt = '';
+        const parsed = (function(){ try { return getTeacherAndSubjectByCellValue(db, val); } catch { return null; } })();
+        if (parsed){ subjTxt = subjects?.[parsed.subjIdx]?.name || ''; teacherTxt = teachers?.[parsed.teacherIdx]?.name || ''; }
+        else {
+          const parts = String(val).split('•'); subjTxt = (parts[0]||'').trim(); teacherTxt = (parts[1]||'').trim();
+        }
+        rows.push({ classLabel: `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`, subjTxt, teacherTxt });
+      });
+    });
+    // Render
+    if (host){
+      if (!rows.length){ host.innerHTML = '<div class="muted">لا توجد حصص في هذه اللحظة.</div>'; }
+      else {
+        const table = document.createElement('table'); table.className = 'mini-list';
+        const thead = document.createElement('thead');
+        const thr = document.createElement('tr');
+        thr.innerHTML = '<th>الصف</th><th>المادة</th><th>'+((window.UI&&UI.Terms)?UI.Terms.get('t-s-def'):'المعلم')+'</th>';
+        thead.appendChild(thr);
+        const tbody = document.createElement('tbody');
+        rows.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${r.classLabel}</td><td>${r.subjTxt||'—'}</td><td>${r.teacherTxt||'—'}</td>`;
+          tbody.appendChild(tr);
+        });
+        table.appendChild(thead); table.appendChild(tbody);
+        host.innerHTML = ''; host.appendChild(table);
+      }
+    }
+    if (metaEl) metaEl.textContent = `اليوم: ${day} • الحصة: ${slotName}`;
+  }
+
+  // refresh the panel once per second alongside the clock updates
+  setInterval(() => { try { renderNowLessonPanel(); } catch {} }, 1000);
+  setTimeout(() => { try { renderNowLessonPanel(); } catch {} }, 0);
+
   // Build teacher stats across assignments
   function computeTeacherStats() {
     const db = Store.getDB();

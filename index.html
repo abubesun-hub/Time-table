@@ -224,7 +224,17 @@
         </a>
       </div>
 
-  <h2 class="section-title" data-term-full="teachers-stat-title">إحصاءات المعلمين</h2>
+      <!-- Live: current lesson per class -->
+      <div id="nowLessonPanel" class="neo-surface pad-16" style="margin-top:12px">
+        <div class="row" style="justify-content:space-between;align-items:center;gap:8px; margin-bottom:6px">
+          <h3 class="sub-title" style="margin:0">الحصة الحالية حسب الصفوف</h3>
+          <small id="nowLessonMeta" class="muted">—</small>
+        </div>
+        <div id="nowLessonEmpty" class="muted">لا توجد حصة جارية الآن.</div>
+        <div id="nowLessonHost" class="list" style="overflow:auto"></div>
+      </div>
+
+      <h2 class="section-title" data-term-full="teachers-stat-title">إحصاءات المعلمين</h2>
   <div class="neo-surface pad-16 full-bleed">
         <div id="teacherStatsTable" class="list"></div>
       </div>
