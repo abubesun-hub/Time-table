@@ -2173,9 +2173,16 @@
     const csKeys = [...new Set(pool.map(p => p.csKey))];
     const offsets = Object.fromEntries(csKeys.map((k) => [k, Math.floor(Math.random() * days.length)]));
     // ترتيب حصص اليوم يمكن تدويره عشوائياً
+    // احترم عدد الحصص الفعلي لكل يوم عند التوزيع
+    const getCnt = (day) => {
+      const per = db.times?.perDay?.[day];
+      const def = Math.max(1, parseInt(db.times?.global?.defaultPeriods, 10) || slots.length || 6);
+      return Math.max(1, Math.min(12, parseInt(per?.periods, 10) || def));
+    };
     const slotOrders = days.reduce((acc, d) => {
-      const order = [...slots.keys()]; // [0..n-1]
-      const pivot = Math.floor(Math.random() * slots.length);
+      const cnt = getCnt(d);
+      const order = Array.from({ length: cnt }, (_, i) => i); // [0..cnt-1]
+      const pivot = Math.floor(Math.random() * Math.max(1, cnt));
       const rotated = order.slice(pivot).concat(order.slice(0, pivot));
       acc[d] = rotated;
       return acc;
@@ -2272,12 +2279,18 @@
     const allDays = db.timetable?.days || ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
     const days = allDays.filter(d => (db.times?.workingDays?.[d]) !== false);
     const slots = db.timetable?.slots || ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة'];
-    const slotCount = slots.length;
+    const getSlotCountForDay = (day) => {
+      const per = db.times?.perDay?.[day];
+      const def = Math.max(1, parseInt(db.times?.global?.defaultPeriods, 10) || slots.length || 6);
+      return Math.max(1, Math.min(12, parseInt(per?.periods, 10) || def));
+    };
   const grid = db.timetable?.grid || {};
 
   host.innerHTML = '';
   const table = document.createElement('table'); table.className = 'tt-table';
-  table.classList.add('slots-' + slotCount);
+  // اضبط فئة CSS على الحد الأقصى لعدد الحصص عبر الأيام لضمان العرض
+  const slotMax = days.length ? Math.max(...days.map(d => getSlotCountForDay(d))) : (slots.length || 6);
+  table.classList.add('slots-' + slotMax);
 
     // thead: صف الأيام ثم صف الحصص
     const thead = document.createElement('thead');
@@ -2285,13 +2298,15 @@
     const thClasses = document.createElement('th'); thClasses.className = 'class-col'; thClasses.rowSpan = 2; thClasses.textContent = 'الصف / الشعبة';
     daysRow.appendChild(thClasses);
     days.forEach((day, di) => {
-      const th = document.createElement('th'); th.colSpan = slotCount; th.textContent = day; if (slotCount > 0) th.classList.add('tt-daysep-start'); daysRow.appendChild(th);
+      const cnt = getSlotCountForDay(day);
+      const th = document.createElement('th'); th.colSpan = cnt; th.textContent = day; if (cnt > 0) th.classList.add('tt-daysep-start'); daysRow.appendChild(th);
     });
     thead.appendChild(daysRow);
 
     const periodsRow = document.createElement('tr'); periodsRow.className = 'periods-row';
-    days.forEach((_, di) => {
-      for (let i = 1; i <= slotCount; i++) {
+    days.forEach((day, di) => {
+      const cnt = getSlotCountForDay(day);
+      for (let i = 1; i <= cnt; i++) {
         const th = document.createElement('th'); th.textContent = String(i);
         if (i === 1) th.classList.add('tt-sep');
         periodsRow.appendChild(th);
@@ -2310,7 +2325,8 @@
         const tr = document.createElement('tr');
         const tdClass = document.createElement('td'); tdClass.className = 'class-col'; tdClass.textContent = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`; tr.appendChild(tdClass);
         days.forEach((day, di) => {
-          for (let sIndex = 0; sIndex < slotCount; sIndex++) {
+          const cnt = getSlotCountForDay(day);
+          for (let sIndex = 0; sIndex < cnt; sIndex++) {
             const td = document.createElement('td'); td.className = 'slot';
             if (sIndex === 0) td.classList.add('tt-sep');
             const box = document.createElement('div'); box.className = 'tt-cell-box';
@@ -2407,7 +2423,12 @@
   const days2 = allDays2.filter(d => (Store.getDB().times?.workingDays?.[d]) !== false);
       const slots = Store.getDB().timetable?.slots || [];
       const sectionsTotal = classes.reduce((s, c) => s + Math.max(1, (c.sections || []).length || 0), 0);
-  const capacity = days2.length * slots.length * sectionsTotal;
+      const getCnt = (d) => {
+        const per = Store.getDB().times?.perDay?.[d];
+        const def = Math.max(1, parseInt(Store.getDB().times?.global?.defaultPeriods, 10) || slots.length || 6);
+        return Math.max(1, Math.min(12, parseInt(per?.periods, 10) || def));
+      };
+      const capacity = days2.reduce((sum, d) => sum + getCnt(d), 0) * sectionsTotal;
       const emptyCells = capacity - statScheduled;
       const gap = Math.max(0, assignedTarget - statScheduled);
       const set = (id, val) => { const el = qs('#' + id); if (el) el.textContent = String(val); };
@@ -3110,11 +3131,17 @@
     // build header rows
     let thead = `<thead>`;
     thead += `<tr class="days-row"><th class="class-col" rowspan="2">الصف / الشعبة</th>`;
-    days.forEach(d => { thead += `<th class="day-head" colspan="${slots.length}">${d}</th>`; });
+    const getCnt = (day) => {
+      const per = db.times?.perDay?.[day];
+      const def = Math.max(1, parseInt(db.times?.global?.defaultPeriods, 10) || slots.length || 6);
+      return Math.max(1, Math.min(12, parseInt(per?.periods, 10) || def));
+    };
+    days.forEach(d => { thead += `<th class="day-head" colspan="${getCnt(d)}">${d}</th>`; });
     thead += `</tr>`;
     thead += `<tr class="periods-row">`;
-    days.forEach(() => {
-      for (let i = 1; i <= slots.length; i++) thead += `<th class="p">${i}</th>`;
+    days.forEach((d) => {
+      const cnt = getCnt(d);
+      for (let i = 1; i <= cnt; i++) thead += `<th class="p">${i}</th>`;
     });
     thead += `</tr></thead>`;
 
@@ -3127,7 +3154,8 @@
         const label = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`;
         tbody += `<td class="class-col">${label}</td>`;
         days.forEach((day, di) => {
-          for (let s = 0; s < slots.length; s++) {
+          const cnt = getCnt(day);
+          for (let s = 0; s < cnt; s++) {
             const key = `${ci}:${si}|${day}|${slots[s]}`;
             const legacy = `${ci}:${si}|${day}|${s+1}`;
             const val = grid[key] ?? grid[legacy] ?? '';
@@ -3197,7 +3225,7 @@
       .global-tt .g-time{ color:${TIME_COLOR}; font-weight:${TIME_BOLD}; font-size:${TIME_SIZE}px }
     `;
   // استخدم colgroup بنِسَب مئوية لضمان ملاءمة الجدول لعرض الصفحة
-  const totalPeriodCols = days.length * slots.length;
+  const totalPeriodCols = days.reduce((sum, d) => sum + getCnt(d), 0);
   // تقدير عرض نص الصف/الشعبة لتخصيص نسبة تكفي سطرًا واحدًا دون التفاف
   const longestLabel = classes.reduce((m, cls) => {
     const secs = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '' }];
@@ -3323,9 +3351,14 @@
       const chunkDays = days.slice(start, start + maxDaysPerPage);
   // build header (اترك عرض العمود للـ colgroup)
   let thead = `<thead><tr><th class="class-col" rowspan="2">الصف / الشعبة</th>`;
-      chunkDays.forEach(d => thead += `<th class="day-head" colspan="${slots.length}">${d}</th>`);
+      const getCnt = (day) => {
+        const per = db.times?.perDay?.[day];
+        const def = Math.max(1, parseInt(db.times?.global?.defaultPeriods, 10) || slots.length || 6);
+        return Math.max(1, Math.min(12, parseInt(per?.periods, 10) || def));
+      };
+      chunkDays.forEach(d => thead += `<th class="day-head" colspan="${getCnt(d)}">${d}</th>`);
       thead += `</tr><tr>`;
-      chunkDays.forEach(() => { for (let i=1;i<=slots.length;i++) thead += `<th class="p">${i}</th>`; });
+      chunkDays.forEach((d) => { const cnt = getCnt(d); for (let i=1;i<=cnt;i++) thead += `<th class="p">${i}</th>`; });
       thead += `</tr></thead>`;
 
       // body
@@ -3338,7 +3371,8 @@
           const label = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`;
           tbody += `<td class="class-col">${label}</td>`;
           chunkDays.forEach((day) => {
-            for (let s = 0; s < slots.length; s++) {
+            const cnt = getCnt(day);
+            for (let s = 0; s < cnt; s++) {
               const key = `${ci}:${si}|${day}|${slots[s]}`;
               const legacy = `${ci}:${si}|${day}|${s+1}`;
               const val = grid[key] ?? grid[legacy] ?? '';
@@ -3368,7 +3402,7 @@
 
   // colgroup for this page (percentage-based to always fill the width)
   let colgroup = `<colgroup>`;
-  const totalCols = chunkDays.length * slots.length;
+  const totalCols = chunkDays.reduce((sum, d) => sum + getCnt(d), 0);
   const denom = CLASS_W + totalCols * SLOT_W;
   const pctClass = Math.max(8, Math.min(22, (CLASS_W / denom) * 100));
   const pctSlot = (100 - pctClass) / Math.max(1, totalCols);
@@ -3558,7 +3592,10 @@
 
     days.forEach(day => {
       let thead = '<thead><tr><th class="class-col">الصف / الشعبة</th>';
-      for (let i = 0; i < slots.length; i++) thead += `<th class=\"p\">الدرس ${ordinal(i+1)}</th>`;
+      const per = db.times?.perDay?.[day];
+      const def = Math.max(1, parseInt(db.times?.global?.defaultPeriods, 10) || slots.length || 6);
+      const cnt = Math.max(1, Math.min(12, parseInt(per?.periods, 10) || def));
+      for (let i = 0; i < cnt; i++) thead += `<th class=\"p\">الدرس ${ordinal(i+1)}</th>`;
       thead += '</tr></thead>';
       let tbody = '<tbody>';
       classes.forEach((cls, ci) => {
@@ -3568,7 +3605,7 @@
           tbody += '<tr>';
           const label = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`;
           tbody += `<td class="class-col">${label}</td>`;
-          for (let s = 0; s < slots.length; s++) {
+          for (let s = 0; s < cnt; s++) {
             const key = `${ci}:${si}|${day}|${slots[s]}`;
             const legacy = `${ci}:${si}|${day}|${s+1}`;
             const val = grid[key] ?? grid[legacy] ?? '';
