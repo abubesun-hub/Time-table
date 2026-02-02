@@ -400,6 +400,7 @@
     try { if (UI && typeof UI.updateDynamicTerms === 'function') UI.updateDynamicTerms(); } catch {}
   }
 
+
   // ===== Live Clock (dashboard only) =====
   function formatClock(d) {
     const pad = (n) => n < 10 ? '0' + n : '' + n;
@@ -887,8 +888,32 @@
     });
   }
 
+  // Defensive: تأكد من بنية times سليمة قبل التحرير/الحساب
+  function sanitizeTimesStructure() {
+    const db = Store.getDB(); db.times = db.times || {}; db.times.perDay = db.times.perDay || {};
+    const days = Array.isArray(db.timetable?.days) ? db.timetable.days : [];
+    const defMinutes = Math.max(10, parseInt(db.times?.global?.lessonMinutes, 10) || 40);
+    days.forEach(d => {
+      const p = db.times.perDay[d] || { mode: 'صباحي', start: '08:00', periods: db.times?.global?.defaultPeriods || 6 };
+      // احرص على الحدود والتشغيل الآمن
+      p.periods = Math.max(1, Math.min(12, parseInt(p.periods, 10) || (db.times?.global?.defaultPeriods || 6)));
+      if (p.manual && Array.isArray(p.manualTimes)) {
+        // قصّ/مدّ المصفوفة لتتطابق مع عدد الحصص
+        const arr = p.manualTimes.slice();
+        while (arr.length < p.periods) arr.push({ start: p.start || '08:00', minutes: defMinutes });
+        if (arr.length > p.periods) arr.length = p.periods;
+        // قيّم مدة كل درس إن لم تُحدد
+        for (let i=0;i<arr.length;i++){ const mm = parseInt(arr[i]?.minutes,10) || defMinutes; arr[i] = { start: arr[i]?.start || p.start || '08:00', minutes: Math.max(10, mm) }; }
+        p.manualTimes = arr;
+      }
+      db.times.perDay[d] = p;
+    });
+    Store.setDB(db);
+  }
+
   function renderTimesEditor() {
     const host = qs('#timesEditor'); if (!host) return;
+    try { sanitizeTimesStructure(); } catch {}
     const db = Store.getDB(); const t = db.times || {};
     const g = t.global || { lessonMinutes: 40, breakMinutes: 10, defaultPeriods: 6 };
     qs('#globalLessonDuration').value = g.lessonMinutes;
@@ -912,7 +937,14 @@
       const periods = document.createElement('input'); periods.type = 'number'; periods.min = '1'; periods.max = '12'; periods.className = 'input'; periods.style.minWidth = '100px';
       periods.value = (t.perDay?.[d]?.periods) || (t.global?.defaultPeriods || 6);
 
-      actions.append(start, mode, periods); row.append(left, actions); host.appendChild(row);
+      // Manual per-lesson mode toggle
+      const manualToggle = document.createElement('input'); manualToggle.type = 'checkbox'; manualToggle.title = 'تفعيل ضبط يدوي للحصص';
+      manualToggle.checked = !!(t.perDay?.[d]?.manual);
+
+      // Container for per-lesson editor rows
+      const manualBox = document.createElement('div'); manualBox.className = 'rows'; manualBox.style.marginTop = '8px'; manualBox.style.width = '100%';
+
+      actions.append(start, mode, periods, manualToggle); row.append(left, actions); host.appendChild(row);
 
       [start, mode, periods].forEach(ctrl => ctrl.addEventListener('change', () => {
         const db2 = Store.getDB(); db2.times = db2.times || {}; db2.times.perDay = db2.times.perDay || {};
@@ -921,6 +953,70 @@
         db2.times.perDay[d] = cur; Store.setDB(db2);
         try { initializeLessonAlerts(); } catch {}
       }));
+
+      // Build manual per-lesson editor
+      function renderManualEditor() {
+        manualBox.innerHTML = '';
+        const db2 = Store.getDB(); db2.times = db2.times || {}; db2.times.perDay = db2.times.perDay || {};
+        const g = db2.times.global || { lessonMinutes: 40 };
+        const per = db2.times.perDay[d] || { start: '08:00', periods: g.defaultPeriods || 6, mode: 'صباحي' };
+        const cnt = Math.max(1, parseInt(periods.value, 10) || (g.defaultPeriods || 6));
+        let arr = Array.isArray(per.manualTimes) ? per.manualTimes.slice() : [];
+        while (arr.length < cnt) arr.push({ start: per.start || '08:00', minutes: (g.lessonMinutes || 40) });
+        if (arr.length > cnt) arr.length = cnt;
+        per.manualTimes = arr; db2.times.perDay[d] = per; Store.setDB(db2);
+        arr.forEach((slot, i) => {
+          const r = document.createElement('div'); r.className = 'list-item';
+          const L = document.createElement('div'); L.innerHTML = `<div class="list-sub">الدرس ${i+1}</div>`;
+          const A = document.createElement('div'); A.className = 'item-actions'; A.style.gap = '8px';
+          const ti = document.createElement('input'); ti.type = 'time'; ti.className = 'input'; ti.style.minWidth = '120px'; ti.value = slot.start || '08:00';
+          const mins = document.createElement('input'); mins.type = 'number'; mins.min = '10'; mins.className = 'input'; mins.style.minWidth = '90px';
+          mins.value = Math.max(10, parseInt(slot.minutes, 10) || (g.lessonMinutes || 40));
+          ti.addEventListener('change', () => {
+            const db3 = Store.getDB(); db3.times = db3.times || {}; db3.times.perDay = db3.times.perDay || {};
+            const p = db3.times.perDay[d] || {}; p.manualTimes = p.manualTimes || arr;
+            const cur = p.manualTimes[i] || {};
+            p.manualTimes[i] = { start: ti.value, minutes: Math.max(10, parseInt(cur.minutes, 10) || (db3.times?.global?.lessonMinutes || 40)) };
+            db3.times.perDay[d] = p; Store.setDB(db3);
+            try { initializeLessonAlerts(); } catch {}
+          });
+          mins.addEventListener('change', () => {
+            const db3 = Store.getDB(); db3.times = db3.times || {}; db3.times.perDay = db3.times.perDay || {};
+            const p = db3.times.perDay[d] || {}; p.manualTimes = p.manualTimes || arr;
+            const cur = p.manualTimes[i] || { start: ti.value || (p.start || '08:00') };
+            p.manualTimes[i] = { start: cur.start, minutes: Math.max(10, parseInt(mins.value, 10) || (db3.times?.global?.lessonMinutes || 40)) };
+            db3.times.perDay[d] = p; Store.setDB(db3);
+            try { initializeLessonAlerts(); } catch {}
+          });
+          A.append(ti, mins); r.append(L, A); manualBox.appendChild(r);
+        });
+      }
+
+      // Toggle manual state visibility and seeding
+      function updateManualState() {
+        manualBox.style.display = manualToggle.checked ? '' : 'none';
+        const db2 = Store.getDB(); db2.times = db2.times || {}; db2.times.perDay = db2.times.perDay || {};
+        const per = db2.times.perDay[d] || { start: '08:00', periods: (db2.times?.global?.defaultPeriods || 6), mode: 'صباحي' };
+        per.manual = !!manualToggle.checked;
+        if (manualToggle.checked && (!Array.isArray(per.manualTimes) || per.manualTimes.length === 0)) {
+          const cnt = Math.max(1, parseInt(periods.value, 10) || (db2.times?.global?.defaultPeriods || 6));
+          const [h, m] = String(start.value || '08:00').split(':').map(x=>parseInt(x,10)||0);
+          const base = new Date(); base.setHours(h, m, 0, 0);
+          const one = Math.max(10, parseInt(db2.times?.global?.lessonMinutes, 10) || 40);
+          const br = db2.times?.breaks || [];
+          const arr = []; let cur = base.getTime();
+          for (let i=0;i<cnt;i++){ arr.push({ start: new Date(cur).toTimeString().slice(0,5), minutes: one }); cur += one*60000 + (parseInt(br[i],10)|| (db2.times?.global?.breakMinutes||10))*60000; }
+          per.manualTimes = arr;
+        }
+        db2.times.perDay[d] = per; Store.setDB(db2);
+        if (manualToggle.checked) renderManualEditor();
+      }
+
+      // Attach manual editor under the row and initialize
+      row.appendChild(manualBox);
+      updateManualState();
+      manualToggle.addEventListener('change', updateManualState);
+      periods.addEventListener('change', () => { if (manualToggle.checked) renderManualEditor(); });
     });
   }
 
@@ -2009,9 +2105,17 @@
   function getLessonMinutes(db) { return Math.max(10, parseInt(db.times?.global?.lessonMinutes, 10) || 40); }
   function getPerDayStart(db, day) { return db.times?.perDay?.[day]?.start || '08:00'; }
   function calcSlotTimeRange(db, day, slotIndex) {
-    // slotIndex: 0-based
-    const startM = parseHm(getPerDayStart(db, day));
+    // slotIndex: 0-based. Prefer using lesson computation for consistency
+    try {
+      const arr = computeDayLessons(db, day) || [];
+      if (arr[slotIndex]) {
+        const from = arr[slotIndex].start.getHours()*60 + arr[slotIndex].start.getMinutes();
+        const to = arr[slotIndex].end.getHours()*60 + arr[slotIndex].end.getMinutes();
+        return `${fmtHm(from)} - ${fmtHm(to)}`;
+      }
+    } catch {}
     const L = getLessonMinutes(db);
+    const startM = parseHm(getPerDayStart(db, day));
     let cur = startM;
     for (let i = 0; i < slotIndex; i++) cur += L + getBreakAfter(db, i);
     const from = cur; const to = cur + L;
@@ -4350,16 +4454,41 @@
   function computeDayLessons(db, dayName) {
     const per = db?.times?.perDay?.[dayName];
     if (!per) return [];
+    const Ldef = getLessonMinutes(db);
+    const cnt = Math.max(1, parseInt(per.periods, 10) || (db.times?.global?.defaultPeriods || 6));
+    const arr = [];
+    if (per.manual && Array.isArray(per.manualTimes) && per.manualTimes.length) {
+      // manual plan: if a start is missing, derive from previous end + break; minutes per lesson may vary
+      let prevEndMs = null;
+      for (let i=0;i<cnt;i++){
+        const def = per.manualTimes[i] || {};
+        const minutes = Math.max(10, parseInt(def.minutes, 10) || Ldef);
+        let st;
+        if (def.start) {
+          const [h, m] = String(def.start).split(':').map(x=>parseInt(x,10)||0);
+          st = new Date(); st.setHours(h, m, 0, 0);
+        } else if (prevEndMs != null) {
+          const gapMin = i>0 ? (getBreakAfter(db, i-1) || db.times?.global?.breakMinutes || 0) : 0;
+          st = new Date(prevEndMs + gapMin*60000);
+        } else {
+          // fallback to day's start
+          const [h, m] = String(per.start || '08:00').split(':').map(x=>parseInt(x,10)||0);
+          st = new Date(); st.setHours(h, m, 0, 0);
+        }
+        const en = new Date(st.getTime() + minutes*60000);
+        arr.push({ i, start: st, end: en });
+        prevEndMs = en.getTime();
+      }
+      return arr;
+    }
+    // automatic progression
     const startStr = per.start || '08:00';
     const [h, m] = String(startStr).split(':').map(x=>parseInt(x,10)||0);
     const base = new Date(); base.setHours(h, m, 0, 0);
-    const L = getLessonMinutes(db);
-    const cnt = Math.max(1, parseInt(per.periods, 10) || (db.times?.global?.defaultPeriods || 6));
-    const arr = [];
     let curMs = base.getTime();
     for (let i=0;i<cnt;i++){
       const st = new Date(curMs);
-      const en = new Date(curMs + L*60000);
+      const en = new Date(curMs + Ldef*60000);
       arr.push({ i, start: st, end: en });
       const gap = getBreakAfter(db, i) || 0; // بعد الدرس i (0-based)
       curMs = en.getTime() + gap*60000;
@@ -4598,7 +4727,8 @@
     refreshStats();
     loadSchoolForm();
     renderDaysList();
-    renderTimesEditor();
+    try { sanitizeTimesStructure(); } catch {}
+    try { renderTimesEditor(); } catch (e) { console.error('TimesEditor failed', e); }
     renderBreaksEditor();
     renderCatalog();
     renderClasses();
