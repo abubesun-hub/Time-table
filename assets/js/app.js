@@ -378,6 +378,7 @@
   // Data helpers
   function refreshStats() {
   const db = Store.getDB();
+    try { sanitizeDBIntegrity(); } catch {}
     qs('#stat-subjects').textContent = (db.subjectsCatalog || []).length;
     // total periods (school-wide) = sum of allocations per class multiplied by number of sections in that class
     const classes = db.classes || [];
@@ -519,7 +520,8 @@
     const grid = db.timetable?.grid || {};
     const rows = [];
     classes.forEach((cls, ci) => {
-      const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
+      const sections = (cls.sections && cls.sections.length) ? cls.sections : [];
+      if (!sections.length) return; // لا تعرض الصفوف دون شعب
       sections.forEach((sec, si) => {
         const keyByName = `${ci}:${si}|${day}|${slotName}`;
         const keyByNum = `${ci}:${si}|${day}|${idx+1}`;
@@ -590,6 +592,7 @@
 
   function renderTeacherStatsTable() {
     const host = qs('#teacherStatsTable'); if (!host) return;
+    try { sanitizeDBIntegrity(); } catch {}
     const stats = computeTeacherStats();
     host.innerHTML = '';
     // header
@@ -1517,10 +1520,18 @@
       edit.addEventListener('click', () => openClassModal(c, i));
       del.addEventListener('click', () => {
         if (!confirm('حذف الصف؟')) return;
-        // قبل الحذف: نظّف/أعد ترقيم التخصيصات المرتبطة بالصفوف
+        // قبل الحذف: نظّف/أعد ترقيم التخصيصات والجدول والتخصيص العام المرتبط بالصفوف
         dropClassAndRemapAssignments(i);
+        dropClassAndRemapAllocations(i);
+        dropClassAndRemapTimetable(i);
         db.classes.splice(i, 1);
-        Store.setDB(db); renderClasses(); refreshStats(); try { refreshPriorityCards(); } catch {}
+        Store.setDB(db);
+        renderClasses();
+        refreshStats();
+        renderTeacherStatsTable();
+        renderTeacherSidebar();
+        renderTimetable();
+        try { refreshPriorityCards(); } catch {}
       });
       addSection.addEventListener('click', () => openSectionModal(i));
       actions.append(addSection, edit, del);
@@ -1542,9 +1553,18 @@
         // احسب فهرس الشعبة المراد حذفها قبل التغيير
         const secIndex = (cls.sections || []).findIndex(s => s.name === name);
         // عالج التخصيصات: إسقاط الشعبة المعنية وإعادة ترقيم ما بعدها
-        if (secIndex >= 0) dropSectionAndRemapAssignments(i, secIndex);
+        if (secIndex >= 0) {
+          dropSectionAndRemapAssignments(i, secIndex);
+          dropSectionAndRemapTimetable(i, secIndex);
+        }
         cls.sections = (cls.sections || []).filter(s => s.name !== name);
-        Store.setDB(db2); renderClasses(); try { refreshPriorityCards(); } catch {}
+        Store.setDB(db2);
+        renderClasses();
+        refreshStats();
+        renderTeacherStatsTable();
+        renderTeacherSidebar();
+        renderTimetable();
+        try { refreshPriorityCards(); } catch {}
       }));
       return item;
     });
@@ -1689,6 +1709,126 @@
       if (si > sectionIndex) return { ci, si: si - 1 };
       return { ci, si };
     });
+  }
+
+  // ===== إعادة ترقيم/تنظيف الجدول الأسبوعي (grid) عند الحذف =====
+  function rekeyTimetableGrid(mapper) {
+    const db = Store.getDB();
+    const old = db.timetable?.grid || {};
+    const fresh = {};
+    Object.entries(old).forEach(([key, val]) => {
+      if (!val) return;
+      const { ci, si, day, slot } = parseGridKey(key);
+      const mapped = mapper(ci, si);
+      if (!mapped) return; // drop
+      const nk = `${mapped.ci}:${mapped.si}|${day}|${slot}`;
+      // في حال التصادم بعد إعادة الترقيم، احتفظ بأول قيمة موجودة
+      if (fresh[nk] == null) fresh[nk] = val;
+    });
+    db.timetable = db.timetable || {};
+    db.timetable.grid = fresh;
+    Store.setDB(db);
+  }
+
+  function dropClassAndRemapTimetable(classIndex) {
+    rekeyTimetableGrid((ci, si) => {
+      if (ci === classIndex) return null; // احذف كل الشعب التابعة لهذا الصف
+      if (ci > classIndex) return { ci: ci - 1, si };
+      return { ci, si };
+    });
+  }
+
+  function dropSectionAndRemapTimetable(classIndex, sectionIndex) {
+    rekeyTimetableGrid((ci, si) => {
+      if (ci !== classIndex) return { ci, si };
+      if (si === sectionIndex) return null; // احذف الشعبة المعنية
+      if (si > sectionIndex) return { ci, si: si - 1 };
+      return { ci, si };
+    });
+  }
+
+  // ===== إعادة ترقيم/تنظيف التخصيص العام (allocations) عند حذف صف =====
+  function dropClassAndRemapAllocations(classIndex) {
+    const db = Store.getDB();
+    const oldAllocs = db.allocations || {};
+    const newAllocs = {};
+    Object.entries(oldAllocs).forEach(([subjIdxStr, classMap]) => {
+      const subjIdx = parseInt(subjIdxStr, 10);
+      const remapped = {};
+      Object.entries(classMap || {}).forEach(([ciStr, v]) => {
+        const ci = parseInt(ciStr, 10);
+        const val = Math.max(0, parseInt(v, 10) || 0);
+        if (val <= 0) return;
+        if (ci === classIndex) return; // تجاهل الصف المحذوف
+        const nci = ci > classIndex ? ci - 1 : ci;
+        remapped[nci] = val;
+      });
+      if (Object.keys(remapped).length > 0) newAllocs[subjIdx] = remapped;
+    });
+    db.allocations = newAllocs;
+    Store.setDB(db);
+  }
+
+  // ===== مُنقّي شامل للاتساق بعد الحذف أو تغييرات الفهارس =====
+  function sanitizeDBIntegrity() {
+    const db = Store.getDB();
+    const classes = db.classes || [];
+    // assignments: أسقط مفاتيح خارج مدى الصفوف/الشعب، وأي مواد/معلمين غير صالحين
+    const asg = db.assignments || {};
+    const cleanAsg = {};
+    Object.entries(asg).forEach(([csKey, subjMap]) => {
+      const { ci, si } = parseCSKey(csKey);
+      const cls = classes[ci]; if (!cls) return;
+      const sections = cls.sections || []; if (!sections.length) return;
+      if (si < 0 || si >= sections.length) return;
+      const newSubjMap = {};
+      Object.entries(subjMap || {}).forEach(([subjIdxStr, teachMap]) => {
+        const subjIdx = parseInt(subjIdxStr, 10);
+        if (!Array.isArray(db.subjectsCatalog) || !db.subjectsCatalog[subjIdx]) return;
+        const newTeach = {};
+        Object.entries(teachMap || {}).forEach(([tStr, cnt]) => {
+          const ti = parseInt(tStr, 10); const c = parseInt(cnt, 10) || 0;
+          if (c <= 0) return;
+          if (!Array.isArray(db.teachers) || !db.teachers[ti]) return;
+          newTeach[ti] = c;
+        });
+        if (Object.keys(newTeach).length > 0) newSubjMap[subjIdx] = newTeach;
+      });
+      if (Object.keys(newSubjMap).length > 0) cleanAsg[`${ci}:${si}`] = newSubjMap;
+    });
+    db.assignments = cleanAsg;
+
+    // allocations: أسقط فهارس صفوف خارج المدى أو قيم صفرية
+    const newAllocs = {};
+    Object.entries(db.allocations || {}).forEach(([subjIdxStr, classMap]) => {
+      const subjIdx = parseInt(subjIdxStr, 10);
+      if (!Array.isArray(db.subjectsCatalog) || !db.subjectsCatalog[subjIdx]) return;
+      const cm = {};
+      Object.entries(classMap || {}).forEach(([ciStr, v]) => {
+        const ci = parseInt(ciStr, 10); const val = parseInt(v, 10) || 0;
+        if (!classes[ci] || val <= 0) return;
+        cm[ci] = val;
+      });
+      if (Object.keys(cm).length > 0) newAllocs[subjIdx] = cm;
+    });
+    db.allocations = newAllocs;
+
+    // timetable.grid: أسقط مفاتيح لأي صف بلا شعب أو فهرس شعبة خارج المدى
+    const oldGrid = db.timetable?.grid || {};
+    const freshGrid = {};
+    Object.entries(oldGrid).forEach(([key, val]) => {
+      if (!val) return;
+      const { ci, si } = parseGridKey(key);
+      const cls = classes[ci]; if (!cls) return;
+      const sections = cls.sections || []; if (!sections.length) return;
+      if (si < 0 || si >= sections.length) return;
+      freshGrid[key] = val;
+    });
+    db.timetable = db.timetable || {};
+    db.timetable.grid = freshGrid;
+
+    Store.setDB(db);
+    try { normalizeAssignmentsUniquePerSubject(); } catch {}
   }
 
   function dropTeacherAndRemapAssignments(teacherIndex) {
@@ -2022,6 +2162,7 @@
     // عرض شامل: جدول بكل الصفوف/الشعب مقابل الأيام وعدد الحصص حسب الإعدادات (افتراضياً 6)
     const host = qs('#ttGlobalContainer');
     if (!host) return;
+    try { sanitizeDBIntegrity(); } catch {}
     const db = Store.getDB();
     const classes = db.classes || [];
     const allDays = db.timetable?.days || ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
@@ -2059,7 +2200,8 @@
     // tbody: لكل صف وشعبة
     const tbody = document.createElement('tbody');
     classes.forEach((cls, ci) => {
-      const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
+      const sections = (cls.sections && cls.sections.length) ? cls.sections : [];
+      if (!sections.length) return;
       sections.forEach((sec, si) => {
         const tr = document.createElement('tr');
         const tdClass = document.createElement('td'); tdClass.className = 'class-col'; tdClass.textContent = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`; tr.appendChild(tdClass);
@@ -2572,7 +2714,8 @@
 
     let bigHtml = extraCss;
     (db.classes || []).forEach((cls, ci) => {
-      const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
+      const sections = (cls.sections && cls.sections.length) ? cls.sections : [];
+      if (!sections.length) return; // تجاهل الصفوف بلا شعب
       sections.forEach((sec, si) => {
         // هيدر داخل المحتوى لكل شعبة (بدون تاريخ)
         const leftTitle = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name||'')}`;
@@ -3084,7 +3227,8 @@
       // body
       let tbody = '<tbody>';
       classes.forEach((cls, ci) => {
-        const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
+        const sections = (cls.sections && cls.sections.length) ? cls.sections : [];
+        if (!sections.length) return;
         sections.forEach((sec, si) => {
           tbody += `<tr>`;
           const label = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`;
@@ -3314,7 +3458,8 @@
       thead += '</tr></thead>';
       let tbody = '<tbody>';
       classes.forEach((cls, ci) => {
-        const sections = (cls.sections && cls.sections.length) ? cls.sections : [{ name: '', _virtual: true }];
+        const sections = (cls.sections && cls.sections.length) ? cls.sections : [];
+        if (!sections.length) return;
         sections.forEach((sec, si) => {
           tbody += '<tr>';
           const label = `${cls.name}${sec._virtual ? '' : ' — ' + (sec.name || '')}`;
