@@ -3320,22 +3320,22 @@
 
     // CSS tuned for paged content (no raster)
     const css = `
-  .gpg{ page-break-after:always; overflow: visible; box-sizing:border-box; break-inside: avoid }
-  .gpg:last-child{ page-break-after:auto }
-  /* اربط التكبير بحافة اليمين لأن الصفحة RTL حتى لا يُقص عمود الصف/الأحد */
-  .gpg .fit-wrap{ transform-origin: top right; width:100%; display:block }
-  /* قاعدة أصغر قليلاً لتلائم A4 بشكل أفضل دون تأثير كبير على A3 */
-  table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed; color:${gSt.textColor}; font-size:13px }
+    .gpg{ page-break-after:always; overflow: visible; box-sizing:border-box; break-inside: avoid }
+    .gpg:last-child{ page-break-after:auto }
+    /* اربط التكبير بحافة اليمين لأن الصفحة RTL حتى لا يُقص عمود الصف/الأحد */
+    .gpg .fit-wrap{ transform-origin: top right; width:100%; display:block }
+    /* قاعدة أصغر قليلاً لتلائم A4 بشكل أفضل دون تأثير كبير على A3 */
+    table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed; color:${gSt.textColor}; font-size:13px }
       /* زيادة طفيفة في الحشوة لتفادي قصّ آخر حرف مع التكبير */
-  .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:4px 6px; vertical-align:top; text-align:center; box-sizing:border-box; overflow: visible }
+    .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:4px 6px; vertical-align:top; text-align:center; box-sizing:border-box; overflow: visible }
       .global-tt thead th.day-head{ background:${gSt.dayHeadBg}; font-weight:${gSt.headBold?800:600}; font-size:${gSt.headSize}px }
       .global-tt .class-col{ text-align:right; background:${gSt.classBg}; font-weight:700 }
       .global-tt tr:nth-child(odd) .class-col{ background:${gSt.classAltBg} }
-  .g-cell{ line-height:1.35; display:block; padding-inline:2px }
-  /* اللف عند المسافات فقط وعدم كسر الكلمات العربية؛ لا قصّ ولا قطع */
-  .g-subj{ color:${gSt.subjColor}; font-weight:${gSt.subjBold?800:700}; font-size:${gSt.subjSize}px; margin-bottom:2px; overflow:visible; text-overflow:clip; display:block; overflow-wrap:normal; word-break:normal; white-space:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
-  .g-teach{ color:${gSt.teachColor}; font-weight:${gSt.teachBold?700:400}; font-size:${gSt.teachSize}px; overflow:visible; text-overflow:clip; white-space:nowrap; overflow-wrap:normal; word-break:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
-  .g-time{ color:${gSt.timeColor}; font-size:${gSt.timeSize}px; overflow:visible; text-overflow:clip; white-space:nowrap; overflow-wrap:normal; word-break:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
+    .g-cell{ line-height:1.35; display:block; padding-inline:2px }
+    /* اسم المادة: اسمح بالكسر عند الحاجة لضبط الاتساع */
+    .g-subj{ color:${gSt.subjColor}; font-weight:${gSt.subjBold?800:700}; font-size:${gSt.subjSize}px; margin-bottom:2px; overflow:visible; text-overflow:clip; display:block; overflow-wrap:anywhere; word-break:break-word; white-space:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
+    .g-teach{ color:${gSt.teachColor}; font-weight:${gSt.teachBold?700:400}; font-size:${gSt.teachSize}px; overflow:visible; text-overflow:clip; white-space:nowrap; overflow-wrap:normal; word-break:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
+    .g-time{ color:${gSt.timeColor}; font-size:${gSt.timeSize}px; overflow:visible; text-overflow:clip; white-space:nowrap; overflow-wrap:normal; word-break:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
     `;
 
     // Layout strategy: compute how many day columns fit per page width.
@@ -3449,8 +3449,9 @@
             if (!el) return;
             // طبّق التفاف طبيعي وعدم كسر الكلمات
             el.style.whiteSpace = 'normal';
-            el.style.wordBreak = 'normal';
-            el.style.overflowWrap = 'normal';
+            // اسمح بالكسر عند أي نقطة إذا كان العرض يفيض
+            el.style.wordBreak = 'break-word';
+            el.style.overflowWrap = 'anywhere';
             el.style.hyphens = 'none';
             // ابدأ من الحجم الحالي وانقص تدريجيًا حتى ينضبط الارتفاع داخل الخلية
             const getFont = () => parseFloat(w.getComputedStyle(el).fontSize) || 14;
@@ -3460,6 +3461,7 @@
             const host = box || slotTd || el.parentElement;
             if (!host) return;
             const hostH = host.clientHeight || host.offsetHeight;
+            const hostW = host.clientWidth || host.offsetWidth;
             // اسمح بهامش داخلي صغير
             const safe = Math.max(2, Math.floor(hostH * 0.04));
             // تقدير عدد الأسطر عبر ارتفاع السطر
@@ -3469,12 +3471,13 @@
             const measure = () => {
               const r = el.getBoundingClientRect();
               const usedH = r.height;
+              const usedW = r.width;
               const lines = Math.ceil(usedH / Math.max(1, lineH));
-              return { usedH, lines };
+              return { usedH, usedW, lines };
             };
             let guard = 0;
             let m = measure();
-            while (guard < 40 && (m.lines > linesAllowed || (hostH && m.usedH > hostH - safe)) && size > min) {
+            while (guard < 40 && (m.lines > linesAllowed || (hostH && m.usedH > hostH - safe) || (hostW && m.usedW > hostW - 4)) && size > min) {
               guard++;
               size -= 1;
               el.style.fontSize = size + 'px';
