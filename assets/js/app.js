@@ -3414,9 +3414,12 @@
   big += `<div class="gpg"><div class="fit-wrap"><table class="global-tt">${colgroup}${thead}${tbody}</table></div></div>`;
     }
 
+    const schoolYear = db.school?.schoolYear || '';
+    const docTitle = `الجدول العام للشعب الدراسية`;
+    
     UI.printDocument({
       contentHtml: big,
-      docTitle: 'الجدول الأسبوعي (محتوى متعدد الصفحات)',
+      docTitle: docTitle,
       // استبدال شعار المدرسة بعبارة الحقوق في خانة اليسار
       school: { ...Store.getDB().school, logo: '' },
       orientation: 'A3 landscape',
