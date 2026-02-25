@@ -3306,8 +3306,8 @@
       dayHeadBg: saved.dayHeadBg || '#eef2ff',
       borderColor: saved.borderColor || '#d1d5db',
       borderWidth: toNum(saved.borderWidth, 1),
-      classColWidth: toNum(saved.classColWidth, 170),
-      slotColWidth: toNum(saved.slotColWidth, 72),
+      classColWidth: toNum(saved.classColWidth, 90),
+      slotColWidth: toNum(saved.slotColWidth, 85),
       subjColor: saved.subjColor || '#111827', subjBold: (saved.subjBold !== false), subjSize: toNum(saved.subjSize, 14),
       teachShow: (saved.teachShow !== false), teachColor: saved.teachColor || '#374151', teachSize: toNum(saved.teachSize, 14), teachBold: !!saved.teachBold,
       timeShow: !!saved.timeShow, timeColor: saved.timeColor || '#6b7280', timeSize: toNum(saved.timeSize, 11),
@@ -3315,8 +3315,8 @@
     };
     const C_BORDER = gSt.borderColor;
     const B_WIDTH = Math.max(1, parseInt(gSt.borderWidth, 10) || 1);
-    const CLASS_W = Math.max(60, parseInt(gSt.classColWidth, 10) || 170);
-    const SLOT_W = Math.max(40, parseInt(gSt.slotColWidth, 10) || 72);
+    const CLASS_W = Math.max(60, parseInt(gSt.classColWidth, 10) || 90);
+    const SLOT_W = Math.max(40, parseInt(gSt.slotColWidth, 10) || 85);
 
     // CSS tuned for paged content (no raster)
     const css = `
@@ -3327,24 +3327,25 @@
     /* قاعدة أصغر قليلاً لتلائم A4 بشكل أفضل دون تأثير كبير على A3 */
     table.global-tt{ width:100%; border-collapse:collapse; table-layout:fixed; color:${gSt.textColor}; font-size:13px }
       /* زيادة طفيفة في الحشوة لتفادي قصّ آخر حرف مع التكبير */
-    .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:4px 6px; vertical-align:top; text-align:center; box-sizing:border-box; overflow: visible }
+    .global-tt th, .global-tt td{ border:${B_WIDTH}px solid ${C_BORDER}; padding:3px 4px; vertical-align:top; text-align:center; box-sizing:border-box; overflow: visible }
       .global-tt thead th.day-head{ background:${gSt.dayHeadBg}; font-weight:${gSt.headBold?800:600}; font-size:${gSt.headSize}px }
       .global-tt .class-col{ text-align:right; background:${gSt.classBg}; font-weight:700 }
       .global-tt tr:nth-child(odd) .class-col{ background:${gSt.classAltBg} }
-    .g-cell{ line-height:1.35; display:block; padding-inline:2px }
-    /* اسم المادة: اسمح بالكسر عند الحاجة لضبط الاتساع */
-    .g-subj{ color:${gSt.subjColor}; font-weight:${gSt.subjBold?800:700}; font-size:${gSt.subjSize}px; margin-bottom:2px; overflow:visible; text-overflow:clip; display:block; overflow-wrap:anywhere; word-break:break-word; white-space:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
-    .g-teach{ color:${gSt.teachColor}; font-weight:${gSt.teachBold?700:400}; font-size:${gSt.teachSize}px; overflow:visible; text-overflow:clip; white-space:nowrap; overflow-wrap:normal; word-break:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
+    .g-cell{ line-height:1.2; display:flex; flex-direction:column; padding:2px 1px; gap:2px; align-items:center; justify-content:center; writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg) }
+    /* اسم المادة: عمودي مدوّر */
+    .g-subj{ color:${gSt.subjColor}; font-weight:${gSt.subjBold?800:700}; font-size:${gSt.subjSize}px; margin:0; overflow:visible; text-overflow:clip; display:block; white-space:nowrap; hyphens:none; direction:ltr; unicode-bidi:isolate; text-align:center }
+    .g-teach{ color:${gSt.teachColor}; font-weight:${gSt.teachBold?700:400}; font-size:${gSt.teachSize}px; overflow:visible; text-overflow:clip; white-space:nowrap; hyphens:none; direction:ltr; unicode-bidi:isolate; text-align:center }
     .g-time{ color:${gSt.timeColor}; font-size:${gSt.timeSize}px; overflow:visible; text-overflow:clip; white-space:nowrap; overflow-wrap:normal; word-break:normal; hyphens:none; direction:rtl; unicode-bidi:isolate }
     `;
 
     // Layout strategy: compute how many day columns fit per page width.
     // We'll assume printable width ~ 100% of content area and use slot width as a guide.
-  const approxContentPx = 1100; // conservative content width; browser will scale fonts if needed
+  // تم توسيع المساحة لضم جميع الأيام في صفحة واحدة
+  const approxContentPx = 1900; // مساحة محسّنة للطباعة على A3/A4 landscape
   const remain = Math.max(200, approxContentPx - CLASS_W);
   const perDayWidth = SLOT_W * Math.max(1, slots.length);
-  // اطبع على الأقل 3 أيام في الصفحة الواحدة كما طلبت
-  const maxDaysPerPage = Math.max(3, Math.floor(remain / perDayWidth));
+  // جميع الأيام في صفحة واحدة
+  const maxDaysPerPage = Math.max(days.length, Math.floor(remain / perDayWidth));
 
     let big = `<style>${css}</style>`;
     for (let start = 0; start < days.length; start += maxDaysPerPage) {
