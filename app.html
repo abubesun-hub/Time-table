@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>جدولي | لوحة التحكم</title>
+  <meta name="description" content="جدولي — برنامج إدارة الجداول المدرسية يعمل دون اتصال مع واجهة عربية وتصميم نيومورفيك." />
+  <link rel="icon" type="image/png" href="./Jadwaly.png" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="./assets/css/style.css" />
+</head>
+<body>
+  <noscript>
+    <div class="no-js">هذا التطبيق يحتاج لتفعيل JavaScript.</div>
+  </noscript>
+
+  <!-- Welcome Overlay (Splash) -->
+  <div id="welcome-overlay" class="overlay hidden" aria-hidden="true" role="dialog" aria-label="مرحباً بكم في جدولي">
+    <div class="overlay-card welcome-card neo-surface" role="document">
+      <div class="welcome-hero">
+        <img src="./Jadwaly.png" alt="شعار جدولي" class="welcome-logo" />
+        <div class="welcome-title">جدولي</div>
+        <div class="welcome-tag">تنظيم وإدارة الجداول المدرسية</div>
+      </div>
+      <div class="welcome-body">
+        <div class="welcome-line">جميع الحقوق محفوظة لـ <b>جدولي</b></div>
+        <div class="welcome-line">برمجة: <b>أحمد حسين علي</b></div>
+        <div class="welcome-actions">
+          <button id="welcome-start" class="btn primary"><i class="bi bi-rocket-takeoff"></i> ابدأ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Bar -->
+  <header class="topbar neo-surface">
+    <div class="brand">
+      <img class="brand-logo" src="./Jadwaly.png" alt="شعار جدولي" />
+      <span class="brand-title">جدولي</span>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn" data-route="#/dashboard"><i class="bi bi-house"></i><span>الرئيسية</span></button>
+      <button class="nav-btn" data-route="#/school"><i class="bi bi-building"></i><span>المدرسة</span></button>
+  <button class="nav-btn" data-route="#/subjects"><i class="bi bi-sliders"></i><span>تخصيص</span></button>
+  <button class="nav-btn" data-route="#/catalog"><i class="bi bi-book"></i><span>المواد</span></button>
+  <button class="nav-btn" data-route="#/classes"><i class="bi bi-grid-3x3-gap"></i><span>الصفوف</span></button>
+  <button class="nav-btn" data-route="#/teachers"><i class="bi bi-people"></i><span data-term-full="teachers-nav">المعلمون</span></button>
+      <button class="nav-btn" data-route="#/timetable"><i class="bi bi-calendar-week"></i><span>الجدول الأسبوعي</span></button>
+      <button class="nav-btn" data-route="#/invoices"><i class="bi bi-receipt"></i><span>الفواتير</span></button>
+      <button class="nav-btn" data-route="#/backup"><i class="bi bi-cloud-arrow-up"></i><span>نسخ احتياطي</span></button>
+      <button class="nav-btn" data-route="#/settings"><i class="bi bi-gear"></i><span>الإعدادات</span></button>
+      <button class="nav-btn" data-route="#/about"><i class="bi bi-info-circle"></i><span>حول</span></button>
+    </nav>
+    <div class="account">
+      <span class="bi bi-person-circle"></span>
+      <span id="currentUser">غير مسجل</span>
+      <button id="btnLogout" class="btn ghost" title="تسجيل الخروج"><i class="bi bi-box-arrow-right"></i></button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="app" class="container">
+    <!-- Dashboard -->
+    <section id="view-dashboard" class="view active">
+      <div class="stats-grid">
+  <div class="stat neo-surface stat-ac1" title="عدد المواد">
+          <div class="stat-icon"><i class="bi bi-book"></i></div>
+          <div class="stat-info">
+            <div class="stat-label">المواد</div>
+            <div id="stat-subjects" class="stat-value">0</div>
+          </div>
+        </div>
+  <div class="stat neo-surface stat-ac2" title="عدد الحصص (المجمّعة)">
+          <div class="stat-icon"><i class="bi bi-calendar-week"></i></div>
+          <div class="stat-info">
+            <div class="stat-label">عدد الحصص</div>
+            <div id="stat-periods" class="stat-value">0</div>
+          </div>
+        </div>
+  <div class="stat neo-surface stat-ac3" title="عدد الصفوف">
+          <div class="stat-icon"><i class="bi bi-grid-3x3-gap"></i></div>
+          <div class="stat-info">
+            <div class="stat-label">الصفوف</div>
+            <div id="stat-classes" class="stat-value">0</div>
+          </div>
+        </div>
+  <div class="stat neo-surface stat-ac4" data-term-title="teachers-count-title" title="عدد المعلمين">
+          <div class="stat-icon"><i class="bi bi-people"></i></div>
+          <div class="stat-info">
+            <div class="stat-label" data-term-full="teachers-stat-label">المعلمون</div>
+            <div id="stat-teachers" class="stat-value">0</div>
+          </div>
+        </div>
+  <div class="stat neo-surface stat-ac5" title="الفواتير">
+          <div class="stat-icon"><i class="bi bi-receipt"></i></div>
+          <div class="stat-info">
+            <div class="stat-label">الفواتير</div>
+            <div id="stat-invoices" class="stat-value">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-header">
+        <h2 class="section-title">الصفحات الرئيسية</h2>
+        <div class="row" style="align-items:center; gap:8px">
+          <div id="lessonCountdown" class="clock countdown" aria-label="الوقت المتبقي" title="الوقت المتبقي" dir="ltr">—</div>
+          <div id="liveClock" class="clock" aria-label="الوقت الحالي" title="الوقت الحالي" dir="ltr">00:00:00</div>
+        </div>
+      </div>
+      <div class="cards-grid">
+        <a id="cardNew" class="card neo-surface card-ac12" href="#">
+          <div class="card-icon"><i class="bi bi-file-earmark-plus"></i></div>
+          <div class="card-title">جديد</div>
+          <div class="card-desc">ابدأ عملاً جديدًا (يمسح البيانات الحالية دون المساس بالنسخ الاحتياطية).</div>
+        </a>
+        <a id="cardOpen" class="card neo-surface card-ac11" href="#">
+          <div class="card-icon"><i class="bi bi-folder2-open"></i></div>
+          <div class="card-title">فتح</div>
+          <div class="card-desc">افتح ملف STT تم حفظه مسبقًا.</div>
+        </a>
+        <a id="cardSaveAs" class="card neo-surface card-ac10">
+          <div class="card-icon"><i class="bi bi-save2"></i></div>
+          <div class="card-title">حفظ باسم</div>
+          <div class="card-desc">احفظ العمل كملف STT لفتحه على جهاز آخر.</div>
+        </a>
+        <input type="file" id="openFromDashboard" accept=".stt,application/json" hidden />
+        <!-- Priority order 1 → 6 -->
+        <a class="card neo-surface card-ac1" data-route-link="#/school" data-step="1">
+          <div class="card-icon"><i class="bi bi-building"></i></div>
+          <div class="card-title">معلومات المدرسة</div>
+          <div class="card-desc">تحديث بيانات المدرسة والشعار والعنوان.</div>
+        </a>
+        <a class="card neo-surface card-ac5" data-route-link="#/teachers" data-step="2">
+          <div class="card-icon"><i class="bi bi-person-badge"></i></div>
+          <div class="card-title" data-term-full="teachers-card-title">المعلمون</div>
+          <div class="card-desc">إدارة <span data-term="t-pl-gen-def">المعلمين</span> وتوزيع الحصص.</div>
+        </a>
+        <a class="card neo-surface card-ac4" data-route-link="#/classes" data-step="3">
+          <div class="card-icon"><i class="bi bi-grid-3x3-gap"></i></div>
+          <div class="card-title">الصفوف</div>
+          <div class="card-desc">تعريف الصفوف والأقساط وعدد الطلاب.</div>
+        </a>
+        <a class="card neo-surface card-ac3" data-route-link="#/catalog" data-step="4">
+          <div class="card-icon"><i class="bi bi-book"></i></div>
+          <div class="card-title">المواد</div>
+          <div class="card-desc">إضافة المواد المعتمدة للاستخدام في التخصيص.</div>
+        </a>
+        <a class="card neo-surface card-ac2" data-route-link="#/subjects" data-step="5">
+          <div class="card-icon"><i class="bi bi-sliders"></i></div>
+          <div class="card-title">تخصيص</div>
+          <div class="card-desc">توزيع حصص المواد على الصفوف.</div>
+        </a>
+        <a class="card neo-surface card-ac6" data-route-link="#/timetable" data-step="6">
+          <div class="card-icon"><i class="bi bi-calendar-week"></i></div>
+          <div class="card-title">الجدول الأسبوعي</div>
+          <div class="card-desc">تحرير الجدول الأسبوعي وحفظه.</div>
+        </a>
+        <!-- Other tools -->
+        <a class="card neo-surface card-ac7" data-route-link="#/invoices">
+          <div class="card-icon"><i class="bi bi-receipt"></i></div>
+          <div class="card-title">نظام الفواتير</div>
+          <div class="card-desc">إنشاء فواتير مع الخصومات والطباعة.</div>
+        </a>
+        <a class="card neo-surface card-ac9" data-route-link="#/settings">
+          <div class="card-icon"><i class="bi bi-gear"></i></div>
+          <div class="card-title">الإعدادات</div>
+          <div class="card-desc">تخصيص المظهر، الجرس، وخيارات الطباعة.</div>
+        </a>
+        <a class="card neo-surface card-ac8" data-route-link="#/backup">
+          <div class="card-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+          <div class="card-title">النسخ الاحتياطي</div>
+          <div class="card-desc">نسخ تلقائي كل ساعة واستعادة البيانات.</div>
+        </a>
+        <!-- About App card -->
+        <a class="card neo-surface" data-route-link="#/about">
+          <div class="card-icon"><i class="bi bi-info-circle"></i></div>
+          <div class="card-title">معلومات عن البرنامج</div>
+          <div class="card-desc">تعرف على “جدولي” وبيانات التواصل وروابط الشبكات الاجتماعية.</div>
+        </a>
+      </div>
+
+      <!-- Live: current lesson per class -->
+      <div id="nowLessonPanel" class="neo-surface pad-16" style="margin-top:12px">
+        <div class="row" style="justify-content:space-between;align-items:center;gap:8px; margin-bottom:6px">
+          <h3 class="sub-title" style="margin:0">الحصة الحالية حسب الصفوف</h3>
+          <small id="nowLessonMeta" class="muted">—</small>
+        </div>
+        <div id="nowLessonEmpty" class="muted">لا توجد حصة جارية الآن.</div>
+        <div id="nowLessonHost" class="list" style="overflow:auto"></div>
+      </div>
+
+      <h2 class="section-title" data-term-full="teachers-stat-title">إحصاءات المعلمين</h2>
+  <div class="neo-surface pad-16 full-bleed">
+        <div id="teacherStatsTable" class="list"></div>
+      </div>
+    </section>
+
+    <!-- Timetable (global view: classes x (days x 6 periods)) -->
+    <section id="view-timetable" class="view">
+      <div class="header-row" style="align-items:center;justify-content:space-between;gap:12px">
+        <h2 class="section-title" style="margin:8px 0">الجدول الأسبوعي (عرض شامل)</h2>
+        <div class="row gap-8 wrap">
+          <button id="btnDistributeTT" class="btn primary"><i class="bi bi-magic"></i> توزيع الحصص</button>
+          <button id="btnShuffleTT" class="btn"><i class="bi bi-shuffle"></i> إعادة توزيع</button>
+          <button id="btnResetTT" class="btn danger"><i class="bi bi-trash3"></i> تفريغ الجدول</button>
+          <button id="btnPreviewTT" class="btn"><i class="bi bi-eye"></i> معاينة قبل الطباعة</button>
+        </div>
+      </div>
+      <div class="neo-surface pad-16">
+        <div class="row wrap" style="gap:12px;margin-bottom:8px">
+          <label class="label" style="display:flex;align-items:center;gap:6px; margin:0">
+            <input type="checkbox" id="ttFitToggle" />
+            <span>ملاءمة العرض</span>
+          </label>
+          <div class="row" style="align-items:center;gap:6px">
+            <span class="muted small">التكبير</span>
+            <input id="ttZoomRange" type="range" min="50" max="120" value="100" />
+            <span id="ttZoomVal" class="muted small">100%</span>
+          </div>
+        </div>
+        <div id="ttStatsBar" class="row wrap" style="gap:12px;margin-bottom:10px">
+          <span class="muted">المجدول: <b id="ttStatScheduled">0</b></span>
+          <span class="muted">المطلوب (التخصيص ل<span data-term="t-pl-gen-def">المعلمين</span>): <b id="ttStatAssigned">0</b></span>
+          <span class="muted">المتبقي للجدولة: <b id="ttStatGap">0</b></span>
+          <span class="muted">المطلوب (التخصيص العام): <b id="ttStatAlloc">0</b></span>
+          <span class="muted">سعة الخلايا: <b id="ttStatCapacity">0</b></span>
+          <span class="muted">الخلايا الفارغة: <b id="ttStatEmptyCells">0</b></span>
+        </div>
+        <div class="tt-container">
+          <div id="ttGlobalContainer"></div>
+        </div>
+        <!-- Unplaced (leftover) lessons bar -->
+        <div id="ttUnplacedBar" class="neo-surface pad-12" style="margin-top:10px;">
+          <h3 class="sub-title" style="margin-top:0">مواد لم تُدرج بعد</h3>
+          <div class="muted" id="ttUnplacedHelp" style="margin-bottom:6px">هذه الحصص لم تجد خانة مناسبة أثناء التوزيع بسبب تضارب المعلم/الصف أو امتلاء اليوم. يمكنك إدراجها يدويًا من الجدول.</div>
+          <div class="muted small" id="ttUnplacedStatus" style="margin-bottom:6px"></div>
+          <div id="ttUnplacedList" class="unplaced-grid"></div>
+        </div>
+        <!-- عناصر مخفية قد تعتمد عليها شيفرات قديمة -->
+        <div style="display:none">
+          <input type="checkbox" id="ttGlobalToggle">
+          <select id="ttViewMode"></select>
+          <select id="ttClassSelect"></select>
+          <select id="ttSectionSelect"></select>
+          <button id="btnSaveTimetable"></button>
+          <button id="btnResetTimetable"></button>
+        </div>
+        <div id="ttGuard" class="hidden"></div>
+      </div>
+    </section>
+
+    <!-- Preview (معاينة قبل الطباعة) -->
+    <section id="view-preview" class="view">
+      <div class="header-row" style="align-items:center;justify-content:space-between;gap:12px">
+        <h2 class="section-title" style="margin:8px 0">معاينة قبل الطباعة</h2>
+        <div class="row gap-8 wrap">
+          <button id="btnPreviewBack" class="btn"><i class="bi bi-arrow-right"></i> رجوع إلى الجدول</button>
+        </div>
+      </div>
+      <div class="neo-surface pad-16">
+        <p class="muted" style="margin-top:0">اختر نوع المعاينة لفتح صفحة جديدة للطباعة. الميّزات قيد التطوير وسيتم تحسين التنسيقات تدريجيًا.</p>
+        <div class="preview-actions">
+          <button id="btnPreviewBySections" class="btn-hero btn-ac1"><i class="bi bi-grid-3x3-gap"></i> <span>الجدول حسب الشعب</span></button>
+          <button id="btnPreviewTeachers" class="btn-hero btn-ac2"><i class="bi bi-people"></i> <span data-term-full="btn-preview-teachers">جدول حصص المعلمين</span></button>
+          <button id="btnPreviewGlobal" class="btn-hero btn-ac3"><i class="bi bi-table"></i> <span>طباعة الجدول العام (صورة)</span></button>
+          <button id="btnPreviewTeacherLoads" class="btn-hero btn-ac4"><i class="bi bi-list-check"></i> <span data-term-full="btn-preview-teacher-loads">حصص المعلمين (تقرير)</span></button>
+          <button id="btnPreviewGlobalContent" class="btn-hero btn-ac4"><i class="bi bi-layout-text-window"></i> <span>طباعة الجدول العام (نص عموديا)</span></button>
+          <button id="btnPreviewByDay" class="btn-hero btn-ac5"><i class="bi bi-calendar2-week"></i> <span>طباعة حسب اليوم</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- School Info -->
+    <section id="view-school" class="view">
+      <h2 class="section-title">معلومات المدرسة</h2>
+      <form id="form-school" class="form neo-surface">
+        <div class="row">
+          <div class="col">
+            <label class="label" for="schoolName">اسم المدرسة</label>
+            <input id="schoolName" class="input" placeholder="اسم المدرسة" />
+          </div>
+          <div class="col">
+            <label class="label" for="schoolAddress">العنوان</label>
+            <input id="schoolAddress" class="input" placeholder="المدينة - الشارع - رقم المبنى" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label class="label" for="schoolPhone">الهاتف</label>
+            <input id="schoolPhone" class="input" placeholder="مثال: 0501234567" />
+          </div>
+          <div class="col">
+            <label class="label" for="schoolType">نوع المدرسة</label>
+            <select id="schoolType" class="input">
+              <option value="">— اختر النوع —</option>
+              <option value="ابتدائي">ابتدائي</option>
+              <option value="متوسطة">متوسطة</option>
+              <option value="اعدادية">اعدادية</option>
+              <option value="ثانوي">ثانوي</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label class="label" for="schoolYear">العام الدراسي</label>
+            <input id="schoolYear" class="input" placeholder="2024-2025" />
+          </div>
+          <div class="col">
+            <label class="label" for="schoolShiftType">نوع الدوام</label>
+            <select id="schoolShiftType" class="input">
+              <option value="صباحي">صباحي</option>
+              <option value="مسائي">مسائي</option>
+              <option value="مختلط">مختلط</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label class="label" for="schoolGender">جنس المدرسة</label>
+            <select id="schoolGender" class="input">
+              <option value="ذكور">ذكور</option>
+              <option value="إناث">إناث</option>
+              <option value="مختلط">مختلط</option>
+            </select>
+          </div>
+          <div class="col">
+            <label class="label" for="schoolPrincipal">مدير المدرسة</label>
+            <select id="schoolPrincipal" class="input"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label class="label" for="schoolLogo">شعار المدرسة (رابط صورة)</label>
+            <input id="schoolLogo" class="input" placeholder="https://..." />
+          </div>
+        </div>
+        <div class="row gap-8">
+          <button type="submit" class="btn primary"><i class="bi bi-save2"></i> حفظ</button>
+          <button type="button" id="btnSchoolClear" class="btn danger"><i class="bi bi-trash3"></i> مسح</button>
+        </div>
+      </form>
+
+      <h2 class="section-title">الأوقات</h2>
+      <div class="neo-surface pad-16">
+        <h3 class="sub-title">الأيام</h3>
+        <div id="daysList" class="list" style="padding:8px"></div>
+
+        <h3 class="sub-title">تخصيص الأوقات</h3>
+        <div class="row wrap" style="gap:12px;margin-bottom:10px">
+          <div class="col" style="min-width:180px">
+            <label class="label" for="globalLessonDuration">مدة الدرس (دقيقة)</label>
+            <input id="globalLessonDuration" class="input" type="number" min="10" value="40" />
+          </div>
+          <div class="col" style="min-width:180px">
+            <label class="label" for="globalBreakDuration">فسحة بين الدروس (دقيقة)</label>
+            <input id="globalBreakDuration" class="input" type="number" min="0" value="10" />
+          </div>
+          <div class="col" style="min-width:180px">
+            <label class="label" for="globalPeriods">عدد الحصص اليومي (افتراضي)</label>
+            <input id="globalPeriods" class="input" type="number" min="1" max="12" value="6" />
+          </div>
+        </div>
+
+        <div style="margin:6px 0">
+          <h3 class="sub-title">تفاصيل الفُسَح (بعد كل حصة)</h3>
+          <div id="breaksEditor" class="list" style="padding:8px"></div>
+          <small class="muted">يتم تطبيق هذه الفترات بعد الحصة رقم 1، 2، 3 ... إلخ. إذا زاد عدد الحصص، ستُستخدم القيمة الافتراضية أو آخر قيمة متاحة.</small>
+        </div>
+
+        <div id="timesEditor" class="list"></div>
+        <div class="row gap-8" style="margin-top:10px">
+          <button id="btnSaveTimes" class="btn primary"><i class="bi bi-save2"></i> حفظ</button>
+          <button id="btnResetTimes" class="btn"><i class="bi bi-arrow-counterclockwise"></i> إعادة ضبط</button>
+        </div>
+        <small class="muted">يمكنك تحديد إن كان اليوم صباحيًا أو مسائيًا، وقت البداية لكل يوم، عدد الحصص في ذلك اليوم، ومدة الدرس والفسحة بشكل عام.</small>
+      </div>
+    </section>
+
+    <!-- تخصيص -->
+    <section id="view-subjects" class="view">
+      <div class="header-row">
+        <h2 class="section-title">تخصيص الحصص حسب الصف</h2>
+      </div>
+      <!-- Teacher Sidebar (floating in this view) -->
+      <aside id="teacherSidebar" class="teacher-sidebar neo-surface hidden" aria-live="polite">
+        <div class="row" style="align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="sub-title" style="margin:0" data-term-full="teacher-summary-title">ملخص المعلمين</div>
+          <small class="muted">الإجمالي: <b id="teacherSidebarTotal">0</b></small>
+        </div>
+        <div id="teacherSidebarList" class="list" style="padding:8px"></div>
+      </aside>
+      <div class="neo-surface pad-16">
+        <div id="allocGuardNoTeachers" class="alert hidden">
+          <div class="alert-title" data-term-full="no-teachers-title">لا توجد معلمون بعد</div>
+          <div class="alert-desc" data-term-full="no-teachers-desc">أضف معلمًا واحدًا على الأقل.</div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" data-route-link="#/teachers"><i class="bi bi-people"></i> <span data-term-full="add-teacher-now">إضافة معلم الآن</span></button>
+          </div>
+        </div>
+        <div id="allocGuardNoSubjects" class="alert hidden">
+          <div class="alert-title">لا توجد مواد معتمدة بعد</div>
+          <div class="alert-desc">أضف المواد أولًا من صفحة "المواد".</div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" data-route-link="#/catalog"><i class="bi bi-book"></i> الذهاب إلى المواد</button>
+          </div>
+        </div>
+        <div id="allocGuardNoClasses" class="alert hidden">
+          <div class="alert-title">لا توجد صفوف بعد</div>
+          <div class="alert-desc">أضف صفًا واحدًا على الأقل.</div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" data-route-link="#/classes"><i class="bi bi-grid-3x3-gap"></i> إضافة صف الآن</button>
+          </div>
+        </div>
+        <div class="row gap-8 wrap">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="allocSubjectSelect">المادة</label>
+            <select id="allocSubjectSelect" class="input"></select>
+          </div>
+          <div class="col" style="align-self:end">
+            <button id="btnSaveAllocations" class="btn primary"><i class="bi bi-save2"></i> حفظ التخصيص</button>
+          </div>
+        </div>
+        <div id="allocationsList" class="list" style="margin-top:10px"></div>
+
+        <h3 class="sub-title" style="margin-top:18px">تخصيص الحصص للمعلمين</h3>
+        <div id="assignStatsList" class="list" style="margin-bottom:10px"></div>
+        <div class="row gap-8 wrap">
+          <div class="col" style="min-width:180px">
+            <label class="label" for="asClassSelect">الصف</label>
+            <select id="asClassSelect" class="input"></select>
+          </div>
+          <div class="col" style="min-width:180px">
+            <label class="label" for="asSectionSelect">الشعبة</label>
+            <select id="asSectionSelect" class="input"></select>
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="asSubjectSelect">المادة</label>
+            <select id="asSubjectSelect" class="input"></select>
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="asTeacherSelect" data-term="t-s-def">المعلم</label>
+            <select id="asTeacherSelect" class="input"></select>
+          </div>
+          <div class="col" style="min-width:140px">
+            <label class="label" for="asPeriods">عدد الحصص</label>
+            <input id="asPeriods" class="input" type="number" min="0" value="0" />
+            <small class="muted" id="asRemaining" style="display:block;margin-top:4px">المتبقي: 0</small>
+          </div>
+        </div>
+        <div class="row gap-8" style="margin-top:8px">
+          <button id="btnAsSave" class="btn primary"><i class="bi bi-check2-circle"></i> حفظ/إضافة</button>
+          <button id="btnAsClear" class="btn"><i class="bi bi-x-circle"></i> إلغاء التحديد</button>
+        </div>
+        <!-- شريط التعديل للتخصيص -->
+        <div id="assignEditBar" class="neo-surface pad-12 hidden" style="margin-top:10px;border-radius:12px">
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+            <h4 class="sub-title" style="margin:0">تعديل التخصيص</h4>
+            <div>
+              <small class="muted">الحصص الحالية: <span id="ebCount">0</span></small>
+              <button id="btnEbClose" class="btn" style="margin-right:8px"><i class="bi bi-x-circle"></i> إغلاق</button>
+              <button id="btnEbSave" class="btn primary"><i class="bi bi-check2-circle"></i> حفظ التعديل</button>
+            </div>
+          </div>
+          <div class="row gap-8 wrap">
+            <div class="col" style="min-width:180px">
+              <label class="label" for="ebClassSelect">الصف</label>
+              <select id="ebClassSelect" class="input"></select>
+            </div>
+            <div class="col" style="min-width:180px">
+              <label class="label" for="ebSectionSelect">الشعبة</label>
+              <select id="ebSectionSelect" class="input"></select>
+            </div>
+            <div class="col" style="min-width:200px">
+              <label class="label" for="ebSubjectSelect">المادة</label>
+              <select id="ebSubjectSelect" class="input"></select>
+            </div>
+            <div class="col" style="min-width:200px">
+              <label class="label" for="ebTeacherSelect" data-term="t-s-def">المعلم</label>
+              <select id="ebTeacherSelect" class="input"></select>
+            </div>
+          </div>
+        </div>
+        <!-- شريط البحث في التخصيصات -->
+        <div id="assignSearchBar" class="row gap-8 wrap" style="margin-top:10px">
+          <div class="col" style="flex:1;min-width:260px">
+            <input id="assignSearchInput" class="input" type="text" placeholder="ابحث في التخصيصات (مادة، صف، شعبة، معلم)" data-term-full-ph="assign-search-ph">
+          </div>
+          <div class="col" style="align-self:center">
+            <small id="assignSearchCount" class="muted">النتائج: —</small>
+          </div>
+          <div class="col">
+            <button id="assignSearchClear" class="btn"><i class="bi bi-x-circle"></i> مسح</button>
+          </div>
+        </div>
+        <div id="assignList" class="list" style="margin-top:10px"></div>
+        <!-- Side Panel for Class/Section Details -->
+        <div id="sidepanel-overlay" class="side-overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="spTitle">
+          <div class="sidepanel neo-surface">
+            <div class="sidepanel-header">
+              <h3 id="spTitle" style="margin:0">—</h3>
+              <button id="spClose" class="btn ghost" aria-label="إغلاق"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <h4 class="sub-title">المخصصة ل<span data-term="t-pl-gen-def">لمعلمين</span></h4>
+            <div id="spAssignedList" class="list"></div>
+            <h4 class="sub-title">غير المخصصة</h4>
+            <div id="spUnassignedList" class="list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Catalog (المواد) -->
+    <section id="view-catalog" class="view">
+      <div class="header-row">
+        <h2 class="section-title">المواد</h2>
+        <button id="btnAddCatalogSubject" class="btn primary"><i class="bi bi-plus-circle"></i> إضافة مادة</button>
+      </div>
+      <div id="catalogList" class="list neo-surface"></div>
+    </section>
+
+    <!-- Classes -->
+    <section id="view-classes" class="view">
+      <div class="header-row">
+        <h2 class="section-title">الصفوف</h2>
+        <button id="btnAddClass" class="btn primary"><i class="bi bi-plus-circle"></i> إضافة صف</button>
+      </div>
+      <div id="classesList" class="list neo-surface"></div>
+    </section>
+
+    <!-- Teachers -->
+    <section id="view-teachers" class="view">
+      <div class="header-row">
+        <h2 class="section-title" data-term-full="teachers-card-title">المعلمون</h2>
+        <button id="btnAddTeacher" class="btn primary"><i class="bi bi-plus-circle"></i> <span data-term-full="add-teacher-now">إضافة معلم الآن</span></button>
+      </div>
+      <div id="teachersList" class="list neo-surface"></div>
+    </section>
+
+    <!-- Invoices -->
+    <section id="view-invoices" class="view">
+      <div class="header-row">
+        <h2 class="section-title">الفواتير</h2>
+        <button id="btnAddInvoice" class="btn primary"><i class="bi bi-plus-circle"></i> إنشاء فاتورة</button>
+      </div>
+      <div id="invoicesList" class="list neo-surface"></div>
+      <div id="invoicePrintArea" class="print-area"></div>
+    </section>
+
+    <!-- Backup & Import/Export -->
+    <section id="view-backup" class="view">
+      <h2 class="section-title">النسخ الاحتياطي والاستيراد/التصدير</h2>
+      <div class="neo-surface pad-16">
+        <div class="row gap-8 wrap">
+          <button id="btnCreateBackup" class="btn"><i class="bi bi-cloud-arrow-up"></i> إنشاء نسخة الآن</button>
+          <button id="btnExport" class="btn"><i class="bi bi-download"></i> تصدير JSON (قديم)</button>
+          <button id="btnExportPkg" class="btn"><i class="bi bi-box-arrow-down"></i> تصدير الحزمة (STT)</button>
+          <label class="btn file-btn"><i class="bi bi-upload"></i> استيراد البيانات
+            <input type="file" id="fileImport" accept=".stt,application/json" hidden />
+          </label>
+        </div>
+        <h3 class="sub-title">النسخ المتوفرة</h3>
+        <div id="backupsList" class="list"></div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section id="view-settings" class="view">
+      <h2 class="section-title">الإعدادات</h2>
+      <div class="neo-surface pad-16">
+        <div class="row">
+          <div class="col">
+            <label class="label" for="themeSelect">المظهر</label>
+            <select id="themeSelect" class="input">
+              <option value="auto">تلقائي (حسب النظام)</option>
+              <option value="light">فاتح</option>
+              <option value="dark">داكن</option>
+            </select>
+          </div>
+          <div class="col">
+            <label class="label" for="densitySelect">الكثافة</label>
+            <select id="densitySelect" class="input">
+              <option value="comfortable">مريحة</option>
+              <option value="compact">مضغوطة</option>
+            </select>
+          </div>
+        </div>
+        <h3 class="sub-title">إعدادات الطباعة</h3>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnOrientationSections">اتجاه طباعة: حسب الشعب</label>
+            <select id="prnOrientationSections" class="input">
+              <option value="portrait">عمودي</option>
+              <option value="landscape">أفقي</option>
+            </select>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnOrientationTeachers">اتجاه طباعة: حصص المعلمين</label>
+            <select id="prnOrientationTeachers" class="input">
+              <option value="portrait">عمودي</option>
+              <option value="landscape">أفقي</option>
+            </select>
+          </div>
+          <div class="col" style="min-width:180px">
+            <label class="label" for="prnMargin">الهوامش (mm)</label>
+            <input id="prnMargin" class="input" type="text" placeholder="12mm" />
+          </div>
+          <div class="col" style="min-width:180px">
+            <label class="label" for="prnFontScale">حجم الخط (x)</label>
+            <input id="prnFontScale" class="input" type="number" step="0.1" min="0.8" max="1.6" />
+          </div>
+          <div class="col" style="min-width:240px">
+            <label class="label" for="prnFontFamily">خط الطباعة (اختياري)</label>
+            <input id="prnFontFamily" class="input" type="text" placeholder="مثال: Tajawal, Cairo, Arial" />
+            <small class="muted">اتركه فارغًا لاستخدام الخط الافتراضي للتطبيق.</small>
+          </div>
+        </div>
+        <h4 class="sub-title" style="margin-top:10px">خطوط وتكبير رأس الصفحة</h4>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:240px">
+            <label class="label" for="htSchoolNameFamily">خط اسم المدرسة</label>
+            <input id="htSchoolNameFamily" class="input" type="text" placeholder="مثال: Tajawal, Cairo" />
+            <label class="label" for="htSchoolNameSize">حجم اسم المدرسة (px)</label>
+            <input id="htSchoolNameSize" class="input" type="number" min="10" max="36" step="1" />
+          </div>
+          <div class="col" style="min-width:240px">
+            <label class="label" for="htGenderFamily">خط جنس المدرسة</label>
+            <input id="htGenderFamily" class="input" type="text" placeholder="مثال: Tajawal, Cairo" />
+            <label class="label" for="htGenderSize">حجم جنس المدرسة (px)</label>
+            <input id="htGenderSize" class="input" type="number" min="10" max="24" step="1" />
+          </div>
+          <div class="col" style="min-width:240px">
+            <label class="label" for="htDocTitleFamily">خط عنوان المستند</label>
+            <input id="htDocTitleFamily" class="input" type="text" />
+            <label class="label" for="htDocTitleSize">حجم عنوان المستند (px)</label>
+            <input id="htDocTitleSize" class="input" type="number" min="12" max="28" step="1" />
+          </div>
+          <div class="col" style="min-width:240px">
+            <label class="label" for="htYearFamily">خط العام الدراسي</label>
+            <input id="htYearFamily" class="input" type="text" />
+            <label class="label" for="htYearSize">حجم العام الدراسي (px)</label>
+            <input id="htYearSize" class="input" type="number" min="10" max="22" step="1" />
+          </div>
+          <div class="col" style="min-width:240px">
+            <label class="label" for="htDateFamily">خط التاريخ</label>
+            <input id="htDateFamily" class="input" type="text" />
+            <label class="label" for="htDateSize">حجم التاريخ (px)</label>
+            <input id="htDateSize" class="input" type="number" min="10" max="20" step="1" />
+          </div>
+          <div class="col" style="min-width:240px">
+            <label class="label" for="htLeftFamily">خط عنوان اليسار (الصف/الشعبة)</label>
+            <input id="htLeftFamily" class="input" type="text" />
+            <label class="label" for="htLeftSize">حجم عنوان اليسار (px)</label>
+            <input id="htLeftSize" class="input" type="number" min="12" max="28" step="1" />
+          </div>
+  </div>
+  
+  <h4 class="sub-title" style="margin-top:10px">تنسيق الجدول حسب الشعب</h4>
+  <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnSecHeaderBg">لون خلفية عناوين الدروس</label>
+            <input id="prnSecHeaderBg" class="input" type="color" value="#eef2ff" />
+            <label class="label" for="prnSecHeaderText">لون نص العناوين</label>
+            <input id="prnSecHeaderText" class="input" type="color" value="#111827" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnSecDayColBg">لون عمود اليوم</label>
+            <input id="prnSecDayColBg" class="input" type="color" value="#f9fafb" />
+            <label class="label" for="prnSecDayColAlt">لون عمود اليوم (سطر متناوب)</label>
+            <input id="prnSecDayColAlt" class="input" type="color" value="#f3f4f6" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnSecBorder">لون الإطار والخطوط</label>
+            <input id="prnSecBorder" class="input" type="color" value="#d1d5db" />
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px; margin-top:6px">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnSecSubjSize">حجم خط اسم المادة (px)</label>
+            <input id="prnSecSubjSize" class="input" type="number" min="10" max="32" step="1" value="16" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnSecTeacherSize">حجم خط اسم المعلم (px)</label>
+            <input id="prnSecTeacherSize" class="input" type="number" min="10" max="28" step="1" value="14" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnSecTimeSize">حجم خط وقت الحصة (px)</label>
+            <input id="prnSecTimeSize" class="input" type="number" min="8" max="24" step="1" value="13" />
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px; margin-top:6px">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnSecDayFontColor">لون نص اليوم</label>
+            <input id="prnSecDayFontColor" class="input" type="color" value="#111827" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnSecDayFontSize">حجم خط اليوم (px)</label>
+            <input id="prnSecDayFontSize" class="input" type="number" min="10" max="24" step="1" value="14" />
+          </div>
+        </div>
+        <div id="printHeaderPreview" class="neo-surface" style="margin-top:10px">
+          <div class="muted small">معاينة رأس الصفحة (تستخدم القيم في الحقول أعلاه دون الحاجة للحفظ)</div>
+          <div id="printHeaderPreviewHost" style="margin-top:8px"></div>
+        </div>
+  <h4 class="sub-title" style="margin-top:10px"><span data-term-full="btn-preview-teachers">تنسيق جدول حصص المعلمين</span></h4>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachHeaderBg">لون خلفية عناوين الجدول</label>
+            <input id="prnTeachHeaderBg" class="input" type="color" value="#eef2ff" />
+            <label class="label" for="prnTeachHeaderText">لون نص العناوين</label>
+            <input id="prnTeachHeaderText" class="input" type="color" value="#111827" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachDayColBg">لون عمود اليوم</label>
+            <input id="prnTeachDayColBg" class="input" type="color" value="#f9fafb" />
+            <label class="label" for="prnTeachDayColAlt">لون عمود اليوم (سطر متناوب)</label>
+            <input id="prnTeachDayColAlt" class="input" type="color" value="#f3f4f6" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachBorder">لون الإطار والخطوط</label>
+            <input id="prnTeachBorder" class="input" type="color" value="#d1d5db" />
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px; margin-top:6px">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachMainSize">حجم الخط داخل الخلايا (px)</label>
+            <input id="prnTeachMainSize" class="input" type="number" min="10" max="32" step="1" value="16" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachTimeSize">حجم خط وقت الحصة (px)</label>
+            <input id="prnTeachTimeSize" class="input" type="number" min="8" max="24" step="1" value="13" />
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px; margin-top:6px">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachDayFontColor">لون نص اليوم</label>
+            <input id="prnTeachDayFontColor" class="input" type="color" value="#111827" />
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachDayFontSize">حجم خط اليوم (px)</label>
+            <input id="prnTeachDayFontSize" class="input" type="number" min="10" max="24" step="1" value="14" />
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px; margin-top:6px">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachHeaderSize">حجم خط عناوين الدروس (px)</label>
+            <input id="prnTeachHeaderSize" class="input" type="number" min="10" max="24" step="1" value="14" />
+            <label class="label"><input id="prnTeachHeaderBold" type="checkbox" /> عريض</label>
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachClsSize">حجم خط اسم الصف (px)</label>
+            <input id="prnTeachClsSize" class="input" type="number" min="10" max="28" step="1" value="16" />
+            <label class="label" for="prnTeachClsColor">لون اسم الصف</label>
+            <input id="prnTeachClsColor" class="input" type="color" value="#374151" />
+            <label class="label"><input id="prnTeachClsBold" type="checkbox" /> عريض</label>
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachSubjSize">حجم خط اسم المادة (px)</label>
+            <input id="prnTeachSubjSize" class="input" type="number" min="10" max="28" step="1" value="16" />
+            <label class="label" for="prnTeachSubjColor">لون اسم المادة</label>
+            <input id="prnTeachSubjColor" class="input" type="color" value="#111827" />
+            <label class="label"><input id="prnTeachSubjBold" type="checkbox" checked /> عريض</label>
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnTeachTimeSize">حجم خط الوقت (px)</label>
+            <input id="prnTeachTimeSize" class="input" type="number" min="8" max="24" step="1" value="13" />
+            <label class="label" for="prnTeachTimeColor">لون الوقت</label>
+            <input id="prnTeachTimeColor" class="input" type="color" value="#6b7280" />
+            <label class="label"><input id="prnTeachTimeBold" type="checkbox" /> عريض</label>
+          </div>
+        </div>
+        <div id="teacherPrintPreview" class="neo-surface" style="margin-top:10px">
+          <div class="muted small"><span data-term-full="btn-preview-teachers">معاينة تنسيق جدول حصص المعلمين</span> (تتحدّث لحظيًا دون حفظ)</div>
+          <div id="teacherPrintPreviewHost" style="margin-top:8px"></div>
+        </div>
+        <div class="row wrap" style="gap:12px;margin-top:8px">
+          <div class="col">
+            <label class="label" for="prnFooterImage">صورة التذييل (يسار) - رابط</label>
+            <input id="prnFooterImage" class="input" type="url" placeholder="https://..." />
+            <small class="muted">يمكنك رفع الصورة الشفافة واستعمال رابطها. سيتم عرضها يسار التذييل.</small>
+          </div>
+          <div class="col">
+            <label class="label" for="prnFooterRight">محتوى التذييل (يمين)</label>
+            <textarea id="prnFooterRight" class="input" rows="3" placeholder="نص/HTML قصير لمعلومات التواصل..."></textarea>
+          </div>
+        </div>
+        <h4 class="sub-title" style="margin-top:10px">تنسيق طباعة الجدول العام</h4>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:200px">
+            <label class="label" for="prnGlobTextColor">لون النص العام</label>
+            <input id="prnGlobTextColor" class="input" type="color" value="#111827" />
+          </div>
+          <div class="col" style="min-width:200px; opacity:.5">
+            <label class="label" for="prnGlobTextSize">حجم النص العام (px)</label>
+            <input id="prnGlobTextSize" class="input" type="number" value="14" disabled />
+          </div>
+        </div>
+
+        <h5 class="sub-title" style="margin-top:8px">عناصر العناوين</h5>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobDayColor">لون: أيام الأسبوع</label>
+            <input id="prnGlobDayColor" class="input" type="color" value="#111827" />
+            <label class="label" for="prnGlobDaySize">حجم (px): أيام الأسبوع</label>
+            <input id="prnGlobDaySize" class="input" type="number" value="14" disabled />
+            <label class="label"><input id="prnGlobDayBold" type="checkbox" checked /> غامق (Bold)</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobClassColor">لون: عمود الصف/الشعبة</label>
+            <input id="prnGlobClassColor" class="input" type="color" value="#111827" />
+            <label class="label" for="prnGlobClassSize">حجم (px): عمود الصف/الشعبة</label>
+            <input id="prnGlobClassSize" class="input" type="number" value="14" disabled />
+            <label class="label"><input id="prnGlobClassBold" type="checkbox" checked /> غامق (Bold)</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobHeadColor">لون: عناوين الحصص</label>
+            <input id="prnGlobHeadColor" class="input" type="color" value="#111827" />
+            <label class="label" for="prnGlobHeadSize">حجم (px): عناوين الحصص</label>
+            <input id="prnGlobHeadSize" class="input" type="number" value="13" disabled />
+            <label class="label"><input id="prnGlobHeadBold" type="checkbox" checked /> غامق (Bold)</label>
+          </div>
+        </div>
+
+        <h5 class="sub-title" style="margin-top:8px">داخل الخلايا</h5>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobSubjColor">لون: المادة</label>
+            <input id="prnGlobSubjColor" class="input" type="color" value="#111827" />
+            <label class="label" for="prnGlobSubjSize">حجم (px): المادة</label>
+            <input id="prnGlobSubjSize" class="input" type="number" value="12" disabled />
+            <label class="label"><input id="prnGlobSubjBold" type="checkbox" checked /> غامق (Bold)</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label"><input id="prnGlobTeachShow" type="checkbox" checked /> إظهار: معلم المادة</label>
+            <label class="label" for="prnGlobTeachColor">لون: معلم المادة</label>
+            <input id="prnGlobTeachColor" class="input" type="color" value="#374151" />
+            <label class="label" for="prnGlobTeachSize">حجم (px): معلم المادة</label>
+            <input id="prnGlobTeachSize" class="input" type="number" value="10" disabled />
+            <label class="label"><input id="prnGlobTeachBold" type="checkbox" /> غامق (Bold)</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label"><input id="prnGlobTimeShow" type="checkbox" /> إظهار: التوقيت</label>
+            <label class="label" for="prnGlobTimeColor">لون: التوقيت</label>
+            <input id="prnGlobTimeColor" class="input" type="color" value="#6b7280" />
+            <label class="label" for="prnGlobTimeSize">حجم (px): التوقيت</label>
+            <input id="prnGlobTimeSize" class="input" type="number" value="12" disabled />
+            <label class="label"><input id="prnGlobTimeBold" type="checkbox" /> غامق (Bold)</label>
+          </div>
+        </div>
+
+  <h5 class="sub-title" style="margin-top:8px; opacity:.5">هوامش الصفحة (mm)</h5>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:160px">
+            <label class="label" for="prnGlobMarginTop">الهامش العلوي</label>
+            <input id="prnGlobMarginTop" class="input" type="text" placeholder="مثال: 12mm" disabled />
+          </div>
+          <div class="col" style="min-width:160px">
+            <label class="label" for="prnGlobMarginRight">الهامش الأيمن</label>
+            <input id="prnGlobMarginRight" class="input" type="text" placeholder="مثال: 12mm" disabled />
+          </div>
+          <div class="col" style="min-width:160px">
+            <label class="label" for="prnGlobMarginBottom">الهامش السفلي</label>
+            <input id="prnGlobMarginBottom" class="input" type="text" placeholder="مثال: 12mm" disabled />
+          </div>
+          <div class="col" style="min-width:160px">
+            <label class="label" for="prnGlobMarginLeft">الهامش الأيسر</label>
+            <input id="prnGlobMarginLeft" class="input" type="text" placeholder="مثال: 12mm" disabled />
+          </div>
+        </div>
+
+        <h5 class="sub-title" style="margin-top:8px">خلفيات وأُطر الجدول العام</h5>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobDayHeadBg">لون خلفية رؤوس الأيام</label>
+            <input id="prnGlobDayHeadBg" class="input" type="color" value="#eef2ff" />
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobClassBg">لون خلفية عمود الصف/الشعبة</label>
+            <input id="prnGlobClassBg" class="input" type="color" value="#f9fafb" />
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobClassAltBg">لون خلفية عمود الصف/الشعبة (سطر متناوب)</label>
+            <input id="prnGlobClassAltBg" class="input" type="color" value="#f3f4f6" />
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobClassColWidth">عرض عمود الصف/الشعبة (px)</label>
+            <input id="prnGlobClassColWidth" class="input" type="number" value="170" disabled />
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobBorderColor">لون إطار الجدول العام</label>
+            <input id="prnGlobBorderColor" class="input" type="color" value="#d1d5db" />
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobBorderWidth">سمك إطار الجدول العام (px)</label>
+            <input id="prnGlobBorderWidth" class="input" type="number" value="1" disabled />
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="prnGlobSlotColWidth">عرض عمود الدروس (px)</label>
+            <input id="prnGlobSlotColWidth" class="input" type="number" value="72" disabled />
+          </div>
+        </div>
+
+        <div id="globalPrintPreview" class="neo-surface" style="margin-top:10px">
+          <div class="muted small">معاينة تنسيق الجدول العام (تتحدّث لحظيًا دون حفظ)</div>
+          <div id="globalPrintPreviewHost" style="margin-top:8px"></div>
+        </div>
+
+        <h4 class="sub-title" style="margin-top:18px">تنسيق طباعة حسب اليوم</h4>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDayTitleColor">لون عنوان الصفحة</label>
+            <input id="perDayTitleColor" class="input" type="color" value="#111827" />
+            <label class="label" for="perDayTitleSize">حجم عنوان الصفحة (px)</label>
+            <input id="perDayTitleSize" class="input" type="number" min="10" max="36" step="1" value="18" />
+            <label class="label"><input id="perDayTitleBold" type="checkbox" checked /> عريض</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDayNameColor">لون اسم اليوم</label>
+            <input id="perDayNameColor" class="input" type="color" value="#111827" />
+            <label class="label" for="perDayNameSize">حجم اسم اليوم (px)</label>
+            <input id="perDayNameSize" class="input" type="number" min="10" max="28" step="1" value="16" />
+            <label class="label"><input id="perDayNameBold" type="checkbox" checked /> عريض</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDaySchoolNameSize">حجم اسم المدرسة (px)</label>
+            <input id="perDaySchoolNameSize" class="input" type="number" min="10" max="28" step="1" value="16" />
+            <label class="label" for="perDaySchoolNameColor">لون اسم المدرسة</label>
+            <input id="perDaySchoolNameColor" class="input" type="color" value="#111827" />
+            <label class="label"><input id="perDaySchoolNameBold" type="checkbox" checked /> عريض</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDayGenderSize">حجم جنس المدرسة (px)</label>
+            <input id="perDayGenderSize" class="input" type="number" min="10" max="22" step="1" value="12" />
+            <label class="label" for="perDayGenderColor">لون جنس المدرسة</label>
+            <input id="perDayGenderColor" class="input" type="color" value="#6b7280" />
+            <label class="label"><input id="perDayGenderBold" type="checkbox" /> عريض</label>
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px; margin-top:6px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDayClassColBold">تعريض عمود الصف/الشعبة</label>
+            <label class="label"><input id="perDayClassColBold" type="checkbox" checked /> عريض</label>
+            <label class="label" for="perDayClassColColor">لون عمود الصف/الشعبة</label>
+            <input id="perDayClassColColor" class="input" type="color" value="#111827" />
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDayLessonHeaderColor">لون عناوين الحصص</label>
+            <input id="perDayLessonHeaderColor" class="input" type="color" value="#111827" />
+            <label class="label" for="perDayLessonHeaderBold">تعريض عناوين الحصص</label>
+            <label class="label"><input id="perDayLessonHeaderBold" type="checkbox" checked /> عريض</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDaySubjColor">لون اسم المادة</label>
+            <input id="perDaySubjColor" class="input" type="color" value="#111827" />
+            <label class="label" for="perDaySubjSize">حجم اسم المادة (px)</label>
+            <input id="perDaySubjSize" class="input" type="number" min="10" max="24" step="1" value="12" />
+            <label class="label"><input id="perDaySubjBold" type="checkbox" checked /> عريض</label>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="perDayTeachColor">لون اسم المعلم</label>
+            <input id="perDayTeachColor" class="input" type="color" value="#374151" />
+            <label class="label" for="perDayTeachSize">حجم اسم المعلم (px)</label>
+            <input id="perDayTeachSize" class="input" type="number" min="8" max="20" step="1" value="10" />
+            <label class="label"><input id="perDayTeachBold" type="checkbox" /> عريض</label>
+          </div>
+        </div>
+
+        <h3 class="sub-title" style="margin-top:16px">تنبيهات الجرس</h3>
+        <div class="row wrap" style="gap:12px">
+          <div class="col" style="min-width:240px">
+            <label class="label"><input id="alertEnableStart" type="checkbox" checked /> تشغيل الجرس عند بداية الدرس</label>
+            <label class="label"><input id="alertEnableEnd" type="checkbox" checked /> تشغيل الجرس عند نهاية الدرس</label>
+            <label class="label"><input id="alertShowOverlay" type="checkbox" checked /> إظهار نافذة وسط الشاشة</label>
+            <label class="label"><input id="alertUseSystemNotif" type="checkbox" checked /> إشعار النظام عندما تكون النافذة في الخلفية</label>
+          </div>
+          <div class="col" style="min-width:240px">
+            <label class="label" for="alertVolume">شدة صوت الجرس</label>
+            <input id="alertVolume" class="input" type="range" min="0" max="100" value="70" />
+            <small class="muted">اضبط مستوى الصوت المناسب لك</small>
+          </div>
+        </div>
+        <div class="row wrap" style="gap:12px; margin-top:8px">
+          <div class="col" style="min-width:200px">
+            <button id="btnTestStartBell" class="btn"><i class="bi bi-bell"></i> اختبار جرس بداية</button>
+          </div>
+          <div class="col" style="min-width:200px">
+            <button id="btnTestEndBell" class="btn"><i class="bi bi-bell"></i> اختبار جرس نهاية</button>
+          </div>
+          <div class="col" style="min-width:260px">
+            <button id="btnRequestNotifPerm" class="btn"><i class="bi bi-bell-fill"></i> طلب إذن إشعارات النظام</button>
+            <small class="muted" style="display:block;margin-top:6px">يُستخدم الإشعار عندما تكون النافذة في الخلفية</small>
+          </div>
+        </div>
+
+        <div class="row wrap" style="gap:12px; margin-top:8px">
+          <div class="col" style="min-width:220px">
+            <label class="label" for="alertToneStart">نغمة بداية الدرس</label>
+            <select id="alertToneStart" class="input">
+              <option value="classic">جرس كلاسيكي</option>
+              <option value="long">جرس طويل</option>
+              <option value="pulses">رنات متقطعة</option>
+              <option value="continuous">طنين مستمر</option>
+            </select>
+          </div>
+          <div class="col" style="min-width:220px">
+            <label class="label" for="alertToneEnd">نغمة نهاية الدرس</label>
+            <select id="alertToneEnd" class="input">
+              <option value="classic">جرس كلاسيكي</option>
+              <option value="long">جرس طويل</option>
+              <option value="pulses">رنات متقطعة</option>
+              <option value="continuous">طنين مستمر</option>
+            </select>
+          </div>
+          <div class="col" style="min-width:200px">
+            <label class="label" for="alertDurationSec">مدة الرنين (ثوانٍ)</label>
+            <input id="alertDurationSec" class="input" type="number" min="1" max="30" step="1" value="10" />
+            <small class="muted">الافتراضي 10 ثوانٍ</small>
+          </div>
+        </div>
+
+        <div class="row wrap" style="gap:12px; margin-top:8px">
+          <div class="col" style="min-width:280px">
+            <label class="label" for="alertCustomStartFile">جرس مخصص لبداية الدرس (MP3)</label>
+            <input id="alertCustomStartFile" class="input" type="file" accept="audio/*" />
+            <div class="row" style="align-items:center; gap:8px; margin-top:6px">
+              <small id="customStartStatus" class="muted">لا يوجد ملف مخصص</small>
+              <button id="btnClearCustomStart" type="button" class="btn ghost small">مسح</button>
+            </div>
+            <small class="muted">يُفضل ملف قصير ≤ 1MB</small>
+          </div>
+          <div class="col" style="min-width:280px">
+            <label class="label" for="alertCustomEndFile">جرس مخصص لنهاية الدرس (MP3)</label>
+            <input id="alertCustomEndFile" class="input" type="file" accept="audio/*" />
+            <div class="row" style="align-items:center; gap:8px; margin-top:6px">
+              <small id="customEndStatus" class="muted">لا يوجد ملف مخصص</small>
+              <button id="btnClearCustomEnd" type="button" class="btn ghost small">مسح</button>
+            </div>
+            <small class="muted">يُفضل ملف قصير ≤ 1MB</small>
+          </div>
+        </div>
+
+        <div class="row gap-8" style="margin-top:8px">
+          <button id="btnSaveSettings" class="btn primary"><i class="bi bi-save2"></i> حفظ</button>
+          <button id="btnResetApp" class="btn danger"><i class="bi bi-recycle"></i> إعادة ضبط التطبيق</button>
+        </div>
+      </div>
+    </section>
+    <!-- About App -->
+    <section id="view-about" class="view">
+      <!-- Hero -->
+      <div class="about-hero">
+        <div class="about-hero-inner">
+          <div class="about-hero-brand">
+            <img src="./Jadwaly.png" alt="شعار جدولي" class="about-hero-logo" />
+            <div class="about-hero-titles">
+              <div class="title-ar">جدولي</div>
+              <div class="title-en">Jadwaly</div>
+              <div class="tagline">نظام إدارة الجداول المدرسية — يعمل دون اتصال وبواجهة عربية</div>
+            </div>
+          </div>
+          <div class="about-hero-actions">
+            <a class="btn primary" href="mailto:itechanbar@gmail.com"><i class="bi bi-envelope"></i> راسلنا</a>
+            <a class="btn" href="tel:07905880479"><i class="bi bi-telephone"></i> اتصل الآن</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panels -->
+      <div class="about-panels">
+        <div class="panel glass">
+          <div class="panel-title"><i class="bi bi-person-lines-fill"></i> بيانات التواصل</div>
+          <div class="info">
+            <div class="info-row"><i class="bi bi-envelope"></i><a href="mailto:itechanbar@gmail.com">itechanbar@gmail.com</a></div>
+            <div class="info-row"><i class="bi bi-telephone"></i><a href="tel:07905880479">07905880479</a> — <a href="tel:07817823680">07817823680</a></div>
+            <div class="info-row"><i class="bi bi-geo-alt"></i><span>العراق — الأنبار — الرمادي</span></div>
+          </div>
+        </div>
+        <div class="panel glass">
+          <div class="panel-title"><i class="bi bi-app-indicator"></i> عن التطبيق</div>
+          <ul class="bullets">
+            <li><span class="chip">جدولي</span> / <span class="chip">Jadwaly</span></li>
+            <li>تصنيف: تنظيم وإدارة الجداول المدرسية</li>
+            <li>لغة الواجهة: العربية (RTL)</li>
+            <li>وضع العمل: دون اتصال + حفظ/استيراد/تصدير</li>
+          </ul>
+        </div>
+        <div class="panel glass">
+          <div class="panel-title"><i class="bi bi-c-circle"></i> الحقوق والملكية</div>
+          <div class="muted">جميع الحقوق محفوظة لـ <b>جدولي</b></div>
+          <div class="muted" style="margin-top:4px">برمجة: <b>أحمد حسين علي</b></div>
+        </div>
+      </div>
+
+      <!-- Social -->
+      <div class="panel glass" style="margin-top:14px">
+        <div class="panel-title" style="margin-bottom:10px; text-align: center;"><i class="bi bi-share"></i> صفحاتنا على مواقع التواصل الاجتماعي</div>
+        <div class="socials modern" style="justify-content: center;">
+          <a class="social-btn" href="https://www.facebook.com/Jadawl" target="_blank" rel="noopener" data-social="facebook" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+          <a class="social-btn" href="https://www.instagram.com/jadwaly_25/" target="_blank" rel="noopener" data-social="instagram" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+          <a class="social-btn" href="https://x.com/itechanbar" target="_blank" rel="noopener" data-social="x" aria-label="X / Twitter"><i class="bi bi-twitter-x"></i></a>
+          <a class="social-btn" href="https://www.youtube.com/@I-TECHtechnologyservices" target="_blank" rel="noopener" data-social="youtube" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+          <a class="social-btn" href="https://t.me/jadwaly25" target="_blank" rel="noopener" data-social="telegram" aria-label="Telegram"><i class="bi bi-telegram"></i></a>
+          <a class="social-btn" href="https://www.tiktok.com/@user79508805600398" target="_blank" rel="noopener" data-social="tiktok" aria-label="TikTok"><i class="bi bi-tiktok"></i></a>
+          <a class="social-btn" href="https://www.linkedin.com/in/itech-anbar/" target="_blank" rel="noopener" data-social="linkedin" aria-label="LinkedIn"><i class="bi bi-linkedin"></i></a>
+          <a class="social-btn" href="https://whatsapp.com/channel/0029VbBS0MD2ER6mrZgZ4J2P" target="_blank" rel="noopener" data-social="whatsapp" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+        </div>
+      </div>
+
+      <!-- Floating WhatsApp contact button (About view only) -->
+      <a class="wa-fab" href="https://wa.me/9647905880479" target="_blank" rel="noopener" title="تواصل عبر واتساب" aria-label="WhatsApp">
+        <i class="bi bi-whatsapp"></i>
+      </a>
+    </section>
+  </main>
+
+  <!-- Global footer -->
+  <footer class="site-footer" role="contentinfo" aria-label="حقوق النشر">
+    <div class="site-footer-inner">
+      <span>جميع الحقوق محفوظة لـ <b>جدولي</b> — برمجة: <b>أحمد حسين علي</b></span>
+    </div>
+  </footer>
+
+  <!-- Catalog Subject Modal -->
+  <dialog id="modal-catalog" class="modal neo-surface">
+    <form method="dialog" id="form-catalog">
+      <h3>مادة</h3>
+      <label class="label" for="catalogName">اسم المادة</label>
+      <input id="catalogName" class="input" required />
+      <label class="label" for="catalogShort" style="margin-top:8px">اختصار (اختياري)</label>
+      <input id="catalogShort" class="input" maxlength="12" placeholder="مثال: عرب / رياض / علوم" />
+      <menu class="row gap-8">
+        <button type="button" id="btnCancelCatalog" class="btn ghost">إلغاء</button>
+        <button type="submit" value="default" class="btn primary">حفظ</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Class Modal -->
+  <dialog id="modal-class" class="modal neo-surface">
+    <form method="dialog" id="form-class">
+      <h3>صف دراسي</h3>
+      <label class="label" for="className">اسم الصف</label>
+      <input id="className" class="input" required />
+      <label class="label" for="classStudents">عدد الطلاب</label>
+      <input id="classStudents" class="input" type="number" min="0" value="0" required />
+      <menu class="row gap-8">
+        <button type="button" id="btnCancelClass" class="btn ghost">إلغاء</button>
+        <button type="submit" value="default" class="btn primary">حفظ</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Teacher Modal -->
+  <dialog id="modal-teacher" class="modal neo-surface">
+    <form method="dialog" id="form-teacher">
+      <h3>معلومات معلم</h3>
+      <label class="label" for="teacherName">الاسم</label>
+      <input id="teacherName" class="input" required />
+      <label class="label" for="teacherPhone">الهاتف</label>
+      <input id="teacherPhone" class="input" />
+      <label class="label" for="teacherEmail">البريد الإلكتروني</label>
+      <input id="teacherEmail" class="input" type="email" />
+      <menu class="row gap-8">
+        <button type="button" id="btnCancelTeacher" class="btn ghost">إلغاء</button>
+        <button type="submit" value="default" class="btn primary">حفظ</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Section Modal -->
+  <dialog id="modal-section" class="modal neo-surface">
+    <form method="dialog" id="form-section">
+      <h3>شعبة دراسية</h3>
+      <label class="label" for="sectionName">اسم الشعبة</label>
+      <input id="sectionName" class="input" required />
+      <label class="label" for="sectionStudents">عدد الطلاب</label>
+      <input id="sectionStudents" class="input" type="number" min="0" value="0" required />
+      <label class="label" for="sectionTeacher">المعلم المسؤول</label>
+      <select id="sectionTeacher" class="input"></select>
+      <menu class="row gap-8">
+        <button type="button" id="btnCancelSection" class="btn ghost">إلغاء</button>
+        <button type="submit" value="default" class="btn primary">حفظ</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Invoice Modal -->
+  <dialog id="modal-invoice" class="modal neo-surface">
+    <form method="dialog" id="form-invoice">
+      <h3>فاتورة</h3>
+      <div class="row">
+        <div class="col">
+          <label class="label" for="invoiceTo">اسم المستفيد</label>
+          <input id="invoiceTo" class="input" required />
+        </div>
+        <div class="col">
+          <label class="label" for="invoiceDate">التاريخ</label>
+          <input id="invoiceDate" class="input" type="date" required />
+        </div>
+      </div>
+      <label class="label" for="invoiceItems">البنود (اسم - كمية - سعر)</label>
+      <textarea id="invoiceItems" class="input mono" rows="4" placeholder="مثال:\nرسوم تسجيل,1,100\nزي مدرسي,2,50"></textarea>
+      <div class="row">
+        <div class="col">
+          <label class="label" for="invoiceDiscount">خصم (%)</label>
+          <input id="invoiceDiscount" type="number" class="input" min="0" max="100" value="0" />
+        </div>
+        <div class="col">
+          <label class="label" for="invoiceNotes">ملاحظات</label>
+          <input id="invoiceNotes" class="input" />
+        </div>
+      </div>
+      <menu class="row gap-8">
+        <button type="button" id="btnCancelInvoice" class="btn ghost">إلغاء</button>
+        <button type="submit" value="default" class="btn primary">حفظ</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Pick lesson for a timetable cell -->
+  <dialog id="modal-tt-pick" class="modal neo-surface">
+    <form method="dialog" id="form-tt-pick">
+      <h3>تعيين مادة للخانة</h3>
+      <div id="ttPickCellLabel" class="muted" style="margin-bottom:8px">—</div>
+      <label class="label" for="ttPickSubject">المادة</label>
+      <select id="ttPickSubject" class="input"></select>
+      <div class="muted small" id="ttPickTeacherRow" style="margin-top:6px">—</div>
+      <menu class="row gap-8" style="margin-top:12px">
+        <button type="button" id="btnTtPickClear" class="btn"><i class="bi bi-eraser"></i> تفريغ الخانة</button>
+        <button type="button" id="btnTtPickCancel" class="btn ghost">إلغاء</button>
+        <button type="submit" value="default" class="btn primary"><i class="bi bi-check2-circle"></i> تعيين</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Toasts -->
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Assistant (Guide) UI -->
+  <div id="assistant-fab" class="assistant-fab" title="المرشد">
+    <i class="bi bi-robot"></i>
+  </div>
+  <div id="assistant-panel" class="assistant-panel hidden" role="dialog" aria-label="مرشد الجدول">
+    <div class="assistant-header">
+      <div class="assistant-title"><i class="bi bi-robot"></i><span>مرشد الجدول</span></div>
+      <div class="assistant-controls">
+        <button id="assistant-voice" class="assistant-btn" title="تشغيل/إيقاف الصوت"><i class="bi bi-volume-up"></i></button>
+        <button id="assistant-mic" class="assistant-btn" title="تحدث"><i class="bi bi-mic"></i></button>
+        <button id="assistant-close" class="assistant-btn" title="إغلاق"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>
+    <div id="assistant-suggest" class="assistant-suggest"></div>
+    <div id="assistant-body" class="assistant-body" aria-live="polite"></div>
+    <div class="assistant-input">
+      <input id="assistant-input" class="input" placeholder="اسألني: ما الخطوة التالية؟ كيف أطبع؟ أين أضيف المعلمين؟" />
+      <button id="assistant-send" class="btn"><i class="bi bi-send"></i></button>
+    </div>
+  </div>
+
+  <!-- Login Overlay -->
+  <div id="login-overlay" class="overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="loginTitle">
+    <div class="overlay-card neo-surface">
+      <div class="overlay-header">
+        <span class="bi bi-box-arrow-in-right"></span>
+        <h2 id="loginTitle">تسجيل الدخول</h2>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label class="label" for="loginUser">اسم المستخدم</label>
+          <input id="loginUser" class="input" autocomplete="username" />
+        </div>
+        <div class="col">
+          <label class="label" for="loginPass">كلمة المرور</label>
+          <input id="loginPass" class="input" type="password" autocomplete="current-password" />
+        </div>
+      </div>
+      <div class="row gap-8">
+        <button id="btnLogin" class="btn primary"><i class="bi bi-box-arrow-in-right"></i> دخول</button>
+      </div>
+      <div class="overlay-footer">
+        <small class="muted">تلميح: استخدم الأرقام الإنجليزية 0-9 في كلمة المرور (وليس ٠-٩). إذا كانت هذه أول مرة، أنشئ حساب المسؤول أولاً.</small>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnResetUsers" class="btn ghost"><i class="bi bi-recycle"></i> تهيئة من جديد (مسح المستخدمين)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Setup Overlay -->
+  <div id="setup-overlay" class="overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="setupTitle">
+    <div class="overlay-card neo-surface">
+      <div class="overlay-header">
+        <span class="bi bi-person-gear"></span>
+        <h2 id="setupTitle">إنشاء حساب مسؤول</h2>
+      </div>
+      <p class="muted">الرجاء إعداد حساب المسؤول لبدء استخدام النظام.</p>
+      <div class="row">
+        <div class="col">
+          <label class="label" for="setupUser">اسم المستخدم</label>
+          <input id="setupUser" class="input" autocomplete="username" />
+        </div>
+        <div class="col">
+          <label class="label" for="setupPass">كلمة المرور</label>
+          <input id="setupPass" class="input" type="password" autocomplete="new-password" />
+        </div>
+      </div>
+      <div class="row gap-8">
+        <button id="btnSetupAdmin" class="btn primary"><i class="bi bi-person-check"></i> إنشاء</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./assets/js/crypto.js"></script>
+  <script src="./assets/js/storage.js"></script>
+  <script src="./assets/js/ui.js"></script>
+  <script src="./assets/js/assistant.js"></script>
+  <script src="./assets/js/app.js"></script>
+</body>
+</html>
