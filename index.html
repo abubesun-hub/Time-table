@@ -196,12 +196,13 @@
         <div class="hidden items-center gap-8 md:flex">
           <a href="#home" class="nav-link text-sm font-semibold text-slate-700 transition-colors hover:text-indigo-700">الرئيسية</a>
           <a href="#features" class="nav-link text-sm font-semibold text-slate-700 transition-colors hover:text-indigo-700">المميزات</a>
+          <a href="#pricing" class="nav-link text-sm font-semibold text-slate-700 transition-colors hover:text-indigo-700">الأسعار</a>
           <a href="#contact" class="nav-link text-sm font-semibold text-slate-700 transition-colors hover:text-indigo-700">تواصل معنا</a>
         </div>
 
         <!-- Login Button (Desktop) -->
         <div class="hidden md:block">
-          <a href="index.html" class="btn-shine inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-indigo-700 to-violet-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-600/30 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-600/40 hover:-translate-y-0.5">
+          <a href="app.html" id="btnLoginDesktop" class="btn-shine inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-indigo-700 to-violet-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-600/30 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-600/40 hover:-translate-y-0.5">
             <i class="fa-solid fa-right-to-bracket text-xs"></i>
             تسجيل الدخول
           </a>
@@ -218,8 +219,9 @@
         <div class="flex flex-col gap-3">
           <a href="#home" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700">الرئيسية</a>
           <a href="#features" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700">المميزات</a>
+          <a href="#pricing" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700">الأسعار</a>
           <a href="#contact" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700">تواصل معنا</a>
-          <a href="index.html" class="btn-shine mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-l from-indigo-700 to-violet-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/30">
+          <a href="app.html" id="btnLoginMobile" class="btn-shine mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-l from-indigo-700 to-violet-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/30">
             <i class="fa-solid fa-right-to-bracket text-xs"></i>
             تسجيل الدخول
           </a>
@@ -262,7 +264,7 @@
 
           <!-- CTA Buttons -->
           <div class="fade-up delay-3 mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
-            <a href="#features" class="btn-shine group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-indigo-700 to-violet-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-indigo-600/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-600/40 sm:w-auto">
+            <a href="#features" id="ctaStartBtn" class="btn-shine group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-indigo-700 to-violet-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-indigo-600/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-600/40 sm:w-auto">
               ابدأ الآن
               <i class="fa-solid fa-arrow-left text-sm transition-transform duration-300 group-hover:-translate-x-1"></i>
             </a>
@@ -527,6 +529,31 @@
     </div>
   </section>
 
+  <!-- ==================== PRICING SECTION ==================== -->
+  <section id="pricing" class="relative py-24">
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-violet-50/40 to-transparent"></div>
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mx-auto mb-16 max-w-2xl text-center">
+        <span class="mb-4 inline-block rounded-full bg-indigo-100 px-4 py-1.5 text-sm font-bold text-indigo-700">الاشتراكات</span>
+        <h2 class="text-3xl font-black text-slate-900 sm:text-4xl lg:text-5xl">
+          خطط أسعار <span class="gradient-text">تناسب الجميع</span>
+        </h2>
+        <p class="mt-4 text-lg text-slate-600">
+          اختر الباقة المناسبة لمدرستك وابدأ استخدام جدولي فوراً.
+        </p>
+      </div>
+
+      <div id="pricingCards" class="mx-auto grid max-w-5xl items-start gap-8 md:grid-cols-3">
+        <!-- تُملأ الباقات تلقائياً من قاعدة البيانات -->
+      </div>
+
+      <p class="mt-10 text-center text-sm font-semibold text-slate-500">
+        <i class="fa-solid fa-circle-info ml-1 text-indigo-500"></i>
+        يتم إنشاء الحسابات وتفعيل الاشتراكات من قبل إدارة الموقع — تواصل معنا للاشتراك.
+      </p>
+    </div>
+  </section>
+
   <!-- ==================== ABOUT / TRUST SECTION ==================== -->
   <section id="about" class="relative py-24">
     <div class="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
@@ -606,6 +633,12 @@
               </a>
             </li>
             <li>
+              <a href="#pricing" class="inline-flex items-center gap-2 text-slate-400 transition-colors hover:text-white">
+                <i class="fa-solid fa-angle-left text-xs text-indigo-500"></i>
+                الأسعار والاشتراكات
+              </a>
+            </li>
+            <li>
               <a href="#about" class="inline-flex items-center gap-2 text-slate-400 transition-colors hover:text-white">
                 <i class="fa-solid fa-angle-left text-xs text-indigo-500"></i>
                 عن المطور
@@ -666,11 +699,56 @@
         <p class="mt-2 text-xs text-slate-500">
           صُنع بحب <i class="fa-solid fa-heart text-rose-500 mx-1"></i> لتطوير التعليم في العراق
         </p>
+        <a href="admin.html" class="mt-4 inline-block rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-slate-500 transition hover:border-indigo-500 hover:text-indigo-400">
+          <i class="fa-solid fa-user-shield ml-1"></i> صفحة الإدارة
+        </a>
       </div>
     </div>
   </footer>
 
+  <!-- ==================== نافذة تسجيل الدخول ==================== -->
+  <div id="loginModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+    <div class="relative w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+      <button id="loginModalClose" class="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div class="mb-6 text-center">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-700 to-violet-600 text-white shadow-lg shadow-indigo-600/40">
+          <i class="fa-solid fa-right-to-bracket text-2xl"></i>
+        </div>
+        <h3 class="text-2xl font-black text-slate-900">تسجيل الدخول إلى جدولي</h3>
+        <p class="mt-1 text-sm text-slate-500">استخدم الحساب الذي أنشأته لك الإدارة</p>
+      </div>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="mb-1 block text-sm font-bold text-slate-700">اسم المستخدم</label>
+          <input id="loginUsername" autocomplete="username" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" placeholder="اسم المستخدم" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-bold text-slate-700">كلمة المرور</label>
+          <div class="relative">
+            <input id="loginPassword" type="password" autocomplete="current-password" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pl-11 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" placeholder="••••••••" />
+            <button type="button" class="pw-toggle absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-indigo-600" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button>
+          </div>
+        </div>
+        <p id="loginError" class="hidden rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-600"></p>
+        <button id="loginSubmit" type="submit" class="w-full rounded-xl bg-gradient-to-l from-indigo-700 to-violet-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/30 transition hover:-translate-y-0.5">
+          <i class="fa-solid fa-right-to-bracket ml-2"></i> دخول
+        </button>
+      </form>
+      <p class="mt-5 text-center text-xs font-semibold text-slate-400">
+        لا تملك حساباً؟
+        <a href="https://wa.me/9647905880479" target="_blank" rel="noopener" class="font-black text-emerald-600 transition hover:text-emerald-700">تواصل معنا للاشتراك</a>
+      </p>
+    </div>
+  </div>
+
   <!-- ==================== SCRIPTS ==================== -->
+  <script src="./assets/js/crypto.js"></script>
+  <script src="./supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./assets/js/supabase-client.js"></script>
+  <script src="./assets/js/landing.js"></script>
   <script>
     // Mobile menu toggle
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');

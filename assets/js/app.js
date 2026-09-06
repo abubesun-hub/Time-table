@@ -4665,4 +4665,24 @@
   // Hook fit/zoom controls if present
   const fitToggle = qs('#ttFitToggle'); if (fitToggle) fitToggle.addEventListener('change', () => renderTimetable());
   const zoomRange = qs('#ttZoomRange'); if (zoomRange) zoomRange.addEventListener('input', () => renderTimetable());
+
+  // ===== تكامل بوابة الدخول الإلكترونية (Supabase) =====
+  // عند نجاح تحقق البوابة من حساب العميل يتم تسجيل دخوله محلياً تلقائياً
+  window.JadwalyGate = {
+    onAuthorized: async (username) => {
+      try {
+        const db = Store.getDB();
+        if (!(db.auth.users || []).some(u => u.user === username)) {
+          db.auth.users.push({ user: username, passHash: '__online__' });
+        }
+        db.auth.currentUser = username;
+        Store.setDB(db);
+        await updateAccountUI();
+        await ensureAdminSetup();
+        await hydrate();
+        try { initializeLessonAlerts(); } catch {}
+      } catch {}
+    },
+    onLogout: () => { try { logout(); updateAccountUI(); } catch {} }
+  };
 })();

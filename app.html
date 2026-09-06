@@ -14,6 +14,16 @@
     <div class="no-js">هذا التطبيق يحتاج لتفعيل JavaScript.</div>
   </noscript>
 
+  <!-- بوابة الدخول الإلكترونية (Supabase) -->
+  <div id="online-gate" class="online-gate" role="dialog" aria-label="التحقق من الدخول">
+    <div class="online-gate-card">
+      <img src="./Jadwaly.png" alt="شعار جدولي" class="online-gate-logo" />
+      <div class="online-gate-title">جدولي</div>
+      <div class="online-gate-spinner"></div>
+      <div id="online-gate-status" class="online-gate-status">جارٍ التحقق من الدخول...</div>
+    </div>
+  </div>
+
   <!-- Welcome Overlay (Splash) -->
   <div id="welcome-overlay" class="overlay hidden" aria-hidden="true" role="dialog" aria-label="مرحباً بكم في جدولي">
     <div class="overlay-card welcome-card neo-surface" role="document">
@@ -1311,6 +1321,10 @@
     </div>
   </div>
 
+  <script src="./supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./assets/js/supabase-client.js"></script>
+  <script src="./assets/js/gate.js"></script>
   <script src="./assets/js/crypto.js"></script>
   <script src="./assets/js/storage.js"></script>
   <script src="./assets/js/ui.js"></script>

@@ -46,8 +46,8 @@ function createWindow() {
   if (isDev && process.env.ELECTRON_START_URL) {
     win.loadURL(process.env.ELECTRON_START_URL);
   } else {
-    // Load the landing page as the app entry point
-    win.loadFile(path.join(__dirname, 'Main page.html'));
+    // تحميل صفحة الهبوط (الصفحة الرئيسية) — سطح المكتب يفتح مباشرة دون بوابة إلكترونية
+    win.loadFile(path.join(__dirname, 'index.html'));
   }
 
   if (isDev) {

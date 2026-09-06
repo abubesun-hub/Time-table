@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>جدولي | إدارة الموقع</title>
+  <meta name="robots" content="noindex" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Font: Cairo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    * { font-family: 'Cairo', sans-serif; }
+    body { background: #f1f5f9; }
+    ::selection { background: #4338ca; color: #fff; }
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: #e2e8f0; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #4338ca, #8b5cf6); border-radius: 10px; }
+    .tab-active { background: linear-gradient(to left, #4338ca, #6d28d9) !important; color: #fff !important; }
+  </style>
+</head>
+
+<body class="text-slate-800 antialiased">
+
+  <!-- ==================== شاشة تسجيل دخول الإدارة ==================== -->
+  <div id="adminLogin" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-4">
+    <div class="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+      <div class="mb-6 text-center">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-700 to-violet-600 text-white shadow-lg shadow-indigo-600/40">
+          <i class="fa-solid fa-user-shield text-2xl"></i>
+        </div>
+        <h1 class="text-2xl font-black text-slate-900">إدارة موقع جدولي</h1>
+        <p class="mt-1 text-sm text-slate-500">سجّل الدخول بمعلومات المسؤول</p>
+      </div>
+      <form id="adminLoginForm" class="space-y-4">
+        <div>
+          <label class="mb-1 block text-sm font-bold text-slate-700">اسم المستخدم</label>
+          <input id="adminUser" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" placeholder="اسم المستخدم" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-bold text-slate-700">كلمة المرور</label>
+          <div class="relative">
+            <input id="adminPass" type="password" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pl-11 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" placeholder="••••••••" />
+            <button type="button" id="adminPassToggle" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-indigo-600" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button>
+          </div>
+        </div>
+        <p id="adminLoginError" class="hidden rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-600"></p>
+        <button type="submit" class="w-full rounded-xl bg-gradient-to-l from-indigo-700 to-violet-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/30 transition hover:-translate-y-0.5">
+          <i class="fa-solid fa-right-to-bracket ml-2"></i> دخول
+        </button>
+      </form>
+      <div class="mt-4 text-center">
+        <a href="index.html" class="text-xs font-bold text-slate-400 transition hover:text-indigo-700">→ العودة للصفحة الرئيسية</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== لوحة الإدارة ==================== -->
+  <div id="adminPanel" class="hidden min-h-screen">
+
+    <!-- رأس الصفحة -->
+    <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-700 to-violet-600 text-white">
+            <i class="fa-solid fa-table-columns"></i>
+          </div>
+          <div>
+            <div class="text-lg font-black text-slate-900">إدارة موقع <span class="bg-gradient-to-l from-indigo-700 to-violet-600 bg-clip-text text-transparent">جدولي</span></div>
+            <div class="text-xs font-semibold text-slate-400">العملاء والاشتراكات والأسعار</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="index.html" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50">
+            <i class="fa-solid fa-house ml-1"></i> الموقع
+          </a>
+          <button id="adminLogout" class="rounded-xl bg-rose-50 px-4 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-100">
+            <i class="fa-solid fa-right-from-bracket ml-1"></i> خروج
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+
+      <!-- تنبيه قاعدة البيانات -->
+      <div id="dbBanner" class="mb-6 hidden rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+        <i class="fa-solid fa-triangle-exclamation ml-2"></i>
+        قاعدة البيانات الإلكترونية (Supabase) غير مهيأة بعد — افتح ملف <span dir="ltr" class="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">supabase-config.js</span> واملأ الرابط والمفتاح، ثم نفّذ ملف <span dir="ltr" class="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">setup-supabase.sql</span> في مشروعك.
+      </div>
+
+      <!-- الإحصائيات -->
+      <div class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-2xl bg-white p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs font-bold text-slate-400">إجمالي العملاء</div>
+              <div id="statTotal" class="mt-1 text-3xl font-black text-slate-900">0</div>
+            </div>
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700"><i class="fa-solid fa-users text-xl"></i></div>
+          </div>
+        </div>
+        <div class="rounded-2xl bg-white p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs font-bold text-slate-400">حسابات مفعّلة</div>
+              <div id="statActive" class="mt-1 text-3xl font-black text-emerald-600">0</div>
+            </div>
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><i class="fa-solid fa-circle-check text-xl"></i></div>
+          </div>
+        </div>
+        <div class="rounded-2xl bg-white p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs font-bold text-slate-400">موقوفة / منتهية</div>
+              <div id="statBlocked" class="mt-1 text-3xl font-black text-rose-600">0</div>
+            </div>
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 text-rose-500"><i class="fa-solid fa-circle-xmark text-xl"></i></div>
+          </div>
+        </div>
+        <div class="rounded-2xl bg-white p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs font-bold text-slate-400">تنتهي خلال 7 أيام</div>
+              <div id="statExpiring" class="mt-1 text-3xl font-black text-amber-500">0</div>
+            </div>
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-500"><i class="fa-solid fa-hourglass-half text-xl"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- التبويبات -->
+      <div class="mb-6 flex flex-wrap gap-2">
+        <button data-tab="clients" class="tab-btn rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:text-indigo-700">
+          <i class="fa-solid fa-users ml-1"></i> العملاء والاشتراكات
+        </button>
+        <button data-tab="plans" class="tab-btn rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:text-indigo-700">
+          <i class="fa-solid fa-tags ml-1"></i> الأسعار والباقات
+        </button>
+      </div>
+
+      <!-- ==================== تبويب العملاء ==================== -->
+      <section id="tab-clients" class="space-y-6">
+
+        <!-- إضافة عميل -->
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
+          <h2 class="mb-4 text-lg font-black text-slate-900"><i class="fa-solid fa-user-plus ml-2 text-indigo-700"></i>إضافة عميل جديد</h2>
+          <form id="clientForm" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <label class="mb-1 block text-xs font-bold text-slate-600">اسم المستخدم *</label>
+              <input id="clUsername" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" placeholder="مثال: alimajeed" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-bold text-slate-600">كلمة المرور *</label>
+              <input id="clPassword" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" placeholder="••••••••" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-bold text-slate-600">الاسم الكامل</label>
+              <input id="clName" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" placeholder="اسم العميل" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-bold text-slate-600">رقم الهاتف</label>
+              <input id="clPhone" dir="ltr" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" placeholder="07xxxxxxxxx" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-bold text-slate-600">الباقة *</label>
+              <select id="clPlan" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white">
+                <option value="weekly">اشتراك أسبوعي</option>
+                <option value="monthly">اشتراك شهري</option>
+                <option value="yearly">اشتراك سنوي</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <button type="submit" class="w-full rounded-xl bg-gradient-to-l from-indigo-700 to-violet-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-600/30 transition hover:-translate-y-0.5">
+                <i class="fa-solid fa-plus ml-1"></i> إضافة العميل
+              </button>
+            </div>
+          </form>
+          <p id="clientFormError" class="mt-3 hidden rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-600"></p>
+        </div>
+
+        <!-- قائمة العملاء -->
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-black text-slate-900"><i class="fa-solid fa-list ml-2 text-indigo-700"></i>قائمة العملاء</h2>
+            <input id="clSearch" class="w-full max-w-xs rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" placeholder="بحث بالاسم أو اسم المستخدم..." />
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[760px] text-sm">
+              <thead>
+                <tr class="border-b border-slate-100 text-right text-xs font-black text-slate-400">
+                  <th class="py-3 pr-2">العميل</th>
+                  <th class="py-3">الباقة</th>
+                  <th class="py-3">بداية الاشتراك</th>
+                  <th class="py-3">نهاية الاشتراك</th>
+                  <th class="py-3">الحالة</th>
+                  <th class="py-3 pl-2">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="clientsTable"></tbody>
+            </table>
+          </div>
+          <p id="clientsEmpty" class="hidden py-8 text-center text-sm font-bold text-slate-400">لا يوجد عملاء بعد — أضف أول عميل من النموذج أعلاه.</p>
+        </div>
+      </section>
+
+      <!-- ==================== تبويب الأسعار ==================== -->
+      <section id="tab-plans" class="hidden space-y-6">
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
+          <h2 class="mb-1 text-lg font-black text-slate-900"><i class="fa-solid fa-tags ml-2 text-indigo-700"></i>أسعار الباقات</h2>
+          <p class="mb-5 text-xs font-semibold text-slate-400">تظهر هذه الأسعار مباشرة في قسم الأسعار بالصفحة الرئيسية.</p>
+          <div id="plansEditor" class="space-y-4"></div>
+          <div class="mt-5 flex items-center gap-3">
+            <button id="savePlansBtn" class="rounded-xl bg-gradient-to-l from-indigo-700 to-violet-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-600/30 transition hover:-translate-y-0.5">
+              <i class="fa-solid fa-floppy-disk ml-1"></i> حفظ الأسعار
+            </button>
+            <span id="plansMsg" class="text-sm font-bold text-emerald-600"></span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ==================== نافذة تعديل عميل ==================== -->
+  <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-lg rounded-3xl bg-white p-7 shadow-2xl">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-xl font-black text-slate-900">تعديل بيانات العميل</h3>
+        <button id="editModalClose" class="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="editForm" class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="mb-1 block text-xs font-bold text-slate-600">اسم المستخدم</label>
+          <input id="edUsername" class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm" readonly />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-bold text-slate-600">كلمة مرور جديدة (اتركها فارغة للتجاهل)</label>
+          <input id="edPassword" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" placeholder="••••••••" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-bold text-slate-600">الاسم الكامل</label>
+          <input id="edName" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-bold text-slate-600">رقم الهاتف</label>
+          <input id="edPhone" dir="ltr" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-bold text-slate-600">الباقة</label>
+          <select id="edPlan" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white">
+            <option value="weekly">اشتراك أسبوعي</option>
+            <option value="monthly">اشتراك شهري</option>
+            <option value="yearly">اشتراك سنوي</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <label class="flex w-full cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold">
+            <input id="edActive" type="checkbox" class="h-4 w-4 accent-indigo-600" />
+            الحساب مفعّل
+          </label>
+        </div>
+        <div class="sm:col-span-2">
+          <label class="mb-1 block text-xs font-bold text-slate-600">تاريخ نهاية الاشتراك</label>
+          <input id="edExpires" type="datetime-local" dir="ltr" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:bg-white" />
+        </div>
+        <p id="editError" class="hidden rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-600 sm:col-span-2"></p>
+        <button type="submit" class="rounded-xl bg-gradient-to-l from-indigo-700 to-violet-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-600/30 sm:col-span-2">
+          <i class="fa-solid fa-floppy-disk ml-1"></i> حفظ التعديلات
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== السكربتات ==================== -->
+  <script src="./assets/js/crypto.js"></script>
+  <script src="./supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./assets/js/supabase-client.js"></script>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // ===== تسجيل دخول الإدارة =====
+      const adminLogin = document.getElementById('adminLogin');
+      const adminPanel = document.getElementById('adminPanel');
+      const adminLoginForm = document.getElementById('adminLoginForm');
+      const adminLoginError = document.getElementById('adminLoginError');
+      const ADMIN_KEY = 'jadwaly_admin';
+
+      if (sessionStorage.getItem(ADMIN_KEY) === '1') { adminLogin.classList.add('hidden'); adminPanel.classList.remove('hidden'); }
+
+      adminLoginForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        // تنظيف قوي: توحيد الأرقام وإزالة الحروف الخفية وكل الفراغات
+        const clean = function (s) {
+          return String(s == null ? '' : s)
+            .replace(/[\u0660-\u0669]/g, function (d) { return String.fromCharCode(d.charCodeAt(0) - 0x0660 + 48); })
+            .replace(/[\u06F0-\u06F9]/g, function (d) { return String.fromCharCode(d.charCodeAt(0) - 0x06F0 + 48); })
+            .replace(/[\u200B-\u200F\u2028-\u202E\u2060\uFEFF]/g, '')
+            .replace(/\s+/g, '')
+            .trim();
+        };
+        const user = clean(document.getElementById('adminUser').value);
+        const pass = clean(document.getElementById('adminPass').value);
+        const creds = window.ADMIN_CREDENTIALS || { user: 'Ahmed', pass: '1985@1985' };
+        if (user.toLowerCase() === clean(creds.user).toLowerCase() && pass === clean(creds.pass)) {
+          sessionStorage.setItem(ADMIN_KEY, '1');
+          adminLogin.classList.add('hidden');
+          adminPanel.classList.remove('hidden');
+          refreshAll();
+        } else {
+          adminLoginError.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة (استخدم أرقام إنجليزية: 1985@1985)';
+          adminLoginError.classList.remove('hidden');
+        }
+      });
+
+      // زر إظهار كلمة المرور
+      document.getElementById('adminPassToggle').addEventListener('click', function () {
+        const inp = document.getElementById('adminPass');
+        const show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        this.querySelector('i').className = show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+      });
+
+      document.getElementById('adminLogout').addEventListener('click', function () {
+        sessionStorage.removeItem(ADMIN_KEY);
+        location.reload();
+      });
+
+      // ===== حالة قاعدة البيانات =====
+      const supabaseReady = !!(window.SUPABASE_ENABLED && window.SBSession && window.SBSession.configured);
+      if (!supabaseReady) document.getElementById('dbBanner').classList.remove('hidden');
+
+      // ===== البيانات =====
+      let clients = [];
+      let plans = [];
+
+      const planNames = { weekly: 'اشتراك أسبوعي', monthly: 'اشتراك شهري', yearly: 'اشتراك سنوي' };
+
+      function fmtDate(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return '—';
+        return d.toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
+      }
+
+      function daysLeft(iso) {
+        if (!iso) return null;
+        const diff = new Date(iso).getTime() - Date.now();
+        return Math.ceil(diff / 86400000);
+      }
+
+      function statusOf(c) {
+        if (!c.active) return { label: 'موقوف', cls: 'bg-slate-100 text-slate-500' };
+        const left = daysLeft(c.expires_at);
+        if (left === null) return { label: 'غير معروف', cls: 'bg-slate-100 text-slate-500' };
+        if (left <= 0) return { label: 'منتهي', cls: 'bg-rose-100 text-rose-600' };
+        if (left <= 7) return { label: 'ينتهي قريباً', cls: 'bg-amber-100 text-amber-700' };
+        return { label: 'مفعّل', cls: 'bg-emerald-100 text-emerald-700' };
+      }
+
+      // ===== التبويبات =====
+      document.querySelectorAll('.tab-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('tab-active'); });
+          btn.classList.add('tab-active');
+          const tab = btn.dataset.tab;
+          document.getElementById('tab-clients').classList.toggle('hidden', tab !== 'clients');
+          document.getElementById('tab-plans').classList.toggle('hidden', tab !== 'plans');
+        });
+      });
+      document.querySelector('[data-tab="clients"]').classList.add('tab-active');
+
+      // ===== إضافة عميل =====
+      document.getElementById('clientForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const errEl = document.getElementById('clientFormError');
+        errEl.classList.add('hidden');
+        if (!supabaseReady) {
+          errEl.textContent = 'قاعدة البيانات غير مهيأة — راجع ملف supabase-config.js';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        const plan = document.getElementById('clPlan').value;
+        const planInfo = plans.find(function (p) { return p.id === plan; }) || { days: 7 };
+        const now = new Date();
+        const expires = new Date(now.getTime() + (planInfo.days || 7) * 86400000);
+        try {
+          await window.SBSession.createClient({
+            username: document.getElementById('clUsername').value,
+            password: document.getElementById('clPassword').value,
+            full_name: document.getElementById('clName').value,
+            phone: document.getElementById('clPhone').value,
+            plan: plan,
+            starts_at: now.toISOString(),
+            expires_at: expires.toISOString(),
+            active: true
+          });
+          document.getElementById('clientForm').reset();
+          await refreshAll();
+          toast('تمت إضافة العميل وتفعيل اشتراكه بنجاح 🎉');
+        } catch (err) {
+          errEl.textContent = (err && err.message) ? err.message : 'تعذر إضافة العميل';
+          errEl.classList.remove('hidden');
+        }
+      });
+
+      // ===== البحث =====
+      document.getElementById('clSearch').addEventListener('input', renderClients);
+
+      // ===== عرض العملاء =====
+      function renderClients() {
+        const tbody = document.getElementById('clientsTable');
+        const emptyEl = document.getElementById('clientsEmpty');
+        const q = (document.getElementById('clSearch').value || '').trim().toLowerCase();
+        const filtered = clients.filter(function (c) {
+          return !q || (c.username || '').toLowerCase().includes(q) || (c.full_name || '').toLowerCase().includes(q);
+        });
+        emptyEl.classList.toggle('hidden', filtered.length > 0);
+        tbody.innerHTML = filtered.map(function (c) {
+          const st = statusOf(c);
+          const left = daysLeft(c.expires_at);
+          const leftText = st.label === 'مفعّل' || st.label === 'ينتهي قريباً'
+            ? 'متبقي ' + left + ' يوم'
+            : (left !== null && left < 0 ? 'منذ ' + Math.abs(left) + ' يوم' : '—');
+          return `
+          <tr class="border-b border-slate-50 transition hover:bg-slate-50/60">
+            <td class="py-3 pr-2">
+              <div class="font-black text-slate-900">${c.full_name || '—'}</div>
+              <div class="text-xs font-bold text-slate-400" dir="ltr">@${c.username}</div>
+              ${c.phone ? '<div class="text-xs font-semibold text-slate-400" dir="ltr">' + c.phone + '</div>' : ''}
+            </td>
+            <td class="py-3">
+              <span class="rounded-lg bg-indigo-50 px-3 py-1 text-xs font-black text-indigo-700">${planNames[c.plan] || c.plan || '—'}</span>
+            </td>
+            <td class="py-3 text-xs font-bold text-slate-500">${fmtDate(c.starts_at)}</td>
+            <td class="py-3">
+              <div class="text-xs font-bold text-slate-600">${fmtDate(c.expires_at)}</div>
+              <div class="text-[11px] font-semibold text-slate-400">${leftText}</div>
+            </td>
+            <td class="py-3"><span class="rounded-lg px-3 py-1 text-xs font-black ${st.cls}">${st.label}</span></td>
+            <td class="py-3 pl-2">
+              <div class="flex flex-wrap gap-1.5">
+                <button data-act="edit" data-id="${c.id}" class="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100"><i class="fa-solid fa-pen"></i> تعديل</button>
+                <button data-act="renew" data-id="${c.id}" class="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"><i class="fa-solid fa-rotate"></i> تجديد</button>
+                <button data-act="toggle" data-id="${c.id}" class="rounded-lg px-3 py-1.5 text-xs font-bold transition ${c.active ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}">${c.active ? 'إيقاف' : 'تفعيل'}</button>
+                <button data-act="delete" data-id="${c.id}" class="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-600 transition hover:bg-rose-100"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </td>
+          </tr>`;
+        }).join('');
+      }
+
+      // ===== أحداث الجدول =====
+      document.getElementById('clientsTable').addEventListener('click', async function (e) {
+        const btn = e.target.closest('button[data-act]');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        const act = btn.dataset.act;
+        const c = clients.find(function (x) { return x.id === id; });
+        if (!c) return;
+        try {
+          if (act === 'toggle') {
+            await window.SBSession.updateClient(id, { active: !c.active });
+            toast(c.active ? 'تم إيقاف الحساب' : 'تم تفعيل الحساب ✅');
+          } else if (act === 'renew') {
+            const planInfo = plans.find(function (p) { return p.id === c.plan; }) || { days: 7 };
+            const base = Math.max(Date.now(), new Date(c.expires_at || Date.now()).getTime());
+            const expires = new Date(base + (planInfo.days || 7) * 86400000);
+            await window.SBSession.updateClient(id, { expires_at: expires.toISOString(), starts_at: new Date().toISOString(), active: true });
+            toast('تم تجديد الاشتراك بنجاح 🎉');
+          } else if (act === 'delete') {
+            if (!confirm('هل تريد حذف العميل "' + (c.full_name || c.username) + '" نهائياً؟')) return;
+            await window.SBSession.deleteClient(id);
+            toast('تم حذف العميل');
+          } else if (act === 'edit') {
+            openEditModal(c);
+            return;
+          }
+          await refreshAll();
+        } catch (err) {
+          toast('خطأ: ' + ((err && err.message) || 'تعذر تنفيذ العملية'), true);
+        }
+      });
+
+      // ===== نافذة التعديل =====
+      const editModal = document.getElementById('editModal');
+      let editingId = null;
+      function openEditModal(c) {
+        editingId = c.id;
+        document.getElementById('edUsername').value = c.username || '';
+        document.getElementById('edPassword').value = '';
+        document.getElementById('edName').value = c.full_name || '';
+        document.getElementById('edPhone').value = c.phone || '';
+        document.getElementById('edPlan').value = c.plan || 'weekly';
+        document.getElementById('edActive').checked = !!c.active;
+        const d = new Date(c.expires_at || Date.now());
+        if (!isNaN(d.getTime())) {
+          const pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+          document.getElementById('edExpires').value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+        }
+        document.getElementById('editError').classList.add('hidden');
+        editModal.classList.remove('hidden');
+      }
+      document.getElementById('editModalClose').addEventListener('click', function () { editModal.classList.add('hidden'); });
+      editModal.addEventListener('click', function (e) { if (e.target === editModal) editModal.classList.add('hidden'); });
+
+      document.getElementById('editForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const errEl = document.getElementById('editError');
+        errEl.classList.add('hidden');
+        const patch = {
+          full_name: document.getElementById('edName').value,
+          phone: document.getElementById('edPhone').value,
+          plan: document.getElementById('edPlan').value,
+          active: document.getElementById('edActive').checked
+        };
+        const pass = document.getElementById('edPassword').value;
+        if (pass) patch.password = pass;
+        const expVal = document.getElementById('edExpires').value;
+        if (expVal) patch.expires_at = new Date(expVal).toISOString();
+        try {
+          await window.SBSession.updateClient(editingId, patch);
+          editModal.classList.add('hidden');
+          await refreshAll();
+          toast('تم حفظ التعديلات ✅');
+        } catch (err) {
+          errEl.textContent = (err && err.message) ? err.message : 'تعذر الحفظ';
+          errEl.classList.remove('hidden');
+        }
+      });
+
+      // ===== محرر الأسعار =====
+      function renderPlansEditor() {
+        const host = document.getElementById('plansEditor');
+        host.innerHTML = plans.map(function (p) {
+          return `
+          <div class="grid gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-4 md:grid-cols-4 md:items-end">
+            <div>
+              <label class="mb-1 block text-xs font-bold text-slate-500">اسم الباقة</label>
+              <input data-plan-field="name" data-id="${p.id}" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold outline-none focus:border-indigo-500" value="${p.name}" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-bold text-slate-500">السعر (د.ع)</label>
+              <input data-plan-field="price" data-id="${p.id}" type="number" min="0" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500" value="${p.price}" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-bold text-slate-500">المدة (أيام)</label>
+              <input data-plan-field="days" data-id="${p.id}" type="number" min="1" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500" value="${p.days}" />
+            </div>
+            <div class="md:col-span-4">
+              <label class="mb-1 block text-xs font-bold text-slate-500">وصف المميزات</label>
+              <input data-plan-field="features" data-id="${p.id}" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500" value="${p.features || ''}" />
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      document.getElementById('savePlansBtn').addEventListener('click', async function () {
+        if (!supabaseReady) {
+          document.getElementById('plansMsg').textContent = 'قاعدة البيانات غير مهيأة';
+          return;
+        }
+        const rows = plans.map(function (p) {
+          const get = function (field) {
+            const el = document.querySelector('[data-plan-field="' + field + '"][data-id="' + p.id + '"]');
+            return el ? el.value : p[field];
+          };
+          return { id: p.id, name: get('name'), price: get('price'), days: get('days'), features: get('features') };
+        });
+        try {
+          await window.SBSession.savePlans(rows);
+          document.getElementById('plansMsg').textContent = 'تم حفظ الأسعار بنجاح ✅';
+          setTimeout(function () { document.getElementById('plansMsg').textContent = ''; }, 3000);
+          await loadPlans();
+        } catch (err) {
+          document.getElementById('plansMsg').textContent = 'خطأ: ' + ((err && err.message) || 'تعذر الحفظ');
+        }
+      });
+
+      // ===== التحميل =====
+      async function loadClients() {
+        clients = await window.SBSession.listClients();
+        renderClients();
+        const now = Date.now();
+        document.getElementById('statTotal').textContent = clients.length;
+        document.getElementById('statActive').textContent = clients.filter(function (c) {
+          return c.active && daysLeft(c.expires_at) !== null && daysLeft(c.expires_at) > 0;
+        }).length;
+        document.getElementById('statBlocked').textContent = clients.length - clients.filter(function (c) {
+          return c.active && daysLeft(c.expires_at) !== null && daysLeft(c.expires_at) > 0;
+        }).length;
+        document.getElementById('statExpiring').textContent = clients.filter(function (c) {
+          const l = daysLeft(c.expires_at);
+          return c.active && l !== null && l >= 0 && l <= 7;
+        }).length;
+      }
+
+      async function loadPlans() {
+        const remote = await window.SBSession.loadPlans();
+        if (remote && remote.length) {
+          plans = remote;
+        } else {
+          plans = [
+            { id: 'weekly', name: 'اشتراك أسبوعي', price: 5000, days: 7, features: 'استخدام كامل للنظام لمدة أسبوع' },
+            { id: 'monthly', name: 'اشتراك شهري', price: 15000, days: 30, features: 'استخدام كامل للنظام + دعم فني' },
+            { id: 'yearly', name: 'اشتراك سنوي', price: 120000, days: 365, features: 'استخدام كامل + دعم فني + تحديثات مستمرة' }
+          ];
+        }
+        renderPlansEditor();
+      }
+
+      async function refreshAll() {
+        if (!supabaseReady) return;
+        try { await loadPlans(); } catch {}
+        try { await loadClients(); } catch {}
+      }
+
+      function toast(msg, isError) {
+        const el = document.createElement('div');
+        el.className = 'fixed bottom-6 left-6 z-[300] rounded-xl px-5 py-3 text-sm font-bold text-white shadow-2xl ' + (isError ? 'bg-rose-600' : 'bg-slate-900');
+        el.textContent = msg;
+        document.body.appendChild(el);
+        setTimeout(function () { el.remove(); }, 3000);
+      }
+
+      refreshAll();
+    })();
+  </script>
+</body>
+</html>
