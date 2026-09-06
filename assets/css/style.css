@@ -331,23 +331,84 @@ body {
 .container { max-width: 100%; margin: 88px auto 48px; padding: 0 16px; }
 .container.narrow { max-width: 1100px; }
 
-/* Topbar */
+/* Topbar — تصميم عصري أنيق */
 .topbar {
   position: fixed; inset-inline: 0; top: 0;
-  background: var(--surface);
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; z-index: 10;
-  border-radius: 0 0 var(--radius) var(--radius);
-  box-shadow: -6px -6px 16px var(--shadow-light), 6px 6px 16px var(--shadow-dark);
+  gap: 10px;
+  padding: 10px 18px;
+  z-index: 60;
+  background:
+    radial-gradient(1200px 300px at 85% -60%, rgba(255, 255, 255, 0.18), transparent 60%),
+    linear-gradient(135deg, #312e81 0%, #4338ca 45%, #6d28d9 100%);
+  color: #fff;
+  box-shadow: 0 8px 28px rgba(49, 46, 129, 0.35), 0 2px 8px rgba(0, 0, 0, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
-.brand { display: flex; align-items: center; gap: 10px; }
-.brand-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 8px; box-shadow: -2px -2px 6px var(--shadow-light), 2px 2px 6px var(--shadow-dark); background: #ffffff; padding: 2px; }
-.brand-title { font-weight: 700; letter-spacing: 0.2px; }
-.nav { display: flex; gap: 6px; flex-wrap: wrap; }
-.nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; border: none; background: transparent; color: var(--fg); border-radius: 10px; cursor: pointer; }
-.nav-btn:hover { background: #00000008; }
-.account { display: inline-flex; align-items: center; gap: 8px; position: relative; cursor: pointer; user-select: none; }
-.account-chevron { font-size: 10px; opacity: 0.6; transition: transform 0.2s; }
+.brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.brand-logo {
+  width: 40px; height: 40px; object-fit: contain;
+  border-radius: 12px; background: #ffffff; padding: 5px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.25; }
+.brand-title {
+  font-weight: 900; font-size: 19px; letter-spacing: 0.2px;
+  color: #fff; font-family: 'Tajawal', var(--font);
+}
+.brand-sub { font-size: 10.5px; font-weight: 600; color: rgba(255, 255, 255, 0.75); }
+.nav {
+  display: flex; gap: 3px; align-items: center;
+  overflow-x: auto; flex: 1; justify-content: center;
+  scrollbar-width: none; padding: 2px;
+}
+.nav::-webkit-scrollbar { display: none; }
+.nav-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: 'Tajawal', var(--font);
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.nav-btn i { font-size: 14px; }
+.nav-btn:hover { background: rgba(255, 255, 255, 0.14); transform: translateY(-1px); }
+.nav-btn.active {
+  background: #ffffff;
+  color: #4338ca;
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+.nav-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.account {
+  display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+  position: relative; cursor: pointer; user-select: none;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  padding: 5px 12px 5px 5px;
+  color: #fff;
+  transition: background 0.2s;
+}
+.account:hover { background: rgba(255, 255, 255, 0.24); }
+.account .bi-person-circle { font-size: 22px; color: #fff; }
+.account #currentUser { font-weight: 800; font-size: 13.5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-chevron { font-size: 10px; opacity: 0.75; transition: transform 0.2s; }
+.topbar #btnLogout.btn.ghost {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border: none;
+  box-shadow: none;
+  border-radius: 999px;
+  padding: 7px 9px;
+}
+.topbar #btnLogout.btn.ghost:hover { background: rgba(255, 255, 255, 0.3); }
 .account.open .account-chevron { transform: rotate(180deg); }
 .account-menu {
   position: absolute;
@@ -395,6 +456,17 @@ body {
 .account-menu-row .am-value.warn { color: #d97706; }
 .account-menu-row .am-value.ok { color: #059669; }
 .account-menu-row .am-value.bad { color: #dc2626; }
+
+/* استجابة الشريط العلوي للشاشات الصغيرة */
+@media (max-width: 900px) {
+  .topbar { padding: 8px 10px; }
+  .brand-sub { display: none; }
+  .brand-title { font-size: 17px; }
+  .brand-logo { width: 34px; height: 34px; }
+  .nav { justify-content: flex-start; }
+  .nav-btn { padding: 7px 11px; font-size: 13px; }
+  .account #currentUser { max-width: 90px; }
+}
 
 /* Views */
 .view { display: none; }
