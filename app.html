@@ -61,10 +61,15 @@
       <button class="nav-btn" data-route="#/settings"><i class="bi bi-gear"></i><span>الإعدادات</span></button>
       <button class="nav-btn" data-route="#/about"><i class="bi bi-info-circle"></i><span>حول</span></button>
     </nav>
-    <div class="account">
+    <div class="account" id="accountBox" role="button" tabindex="0" title="عرض معلومات الحساب والاشتراك">
       <span class="bi bi-person-circle"></span>
       <span id="currentUser">غير مسجل</span>
+      <span class="bi bi-chevron-down account-chevron"></span>
       <button id="btnLogout" class="btn ghost" title="تسجيل الخروج"><i class="bi bi-box-arrow-right"></i></button>
+      <div id="accountMenu" class="account-menu hidden" role="menu" aria-label="معلومات الاشتراك">
+        <div class="account-menu-title">معلومات الحساب والاشتراك</div>
+        <div id="accountMenuBody" class="account-menu-body">جارٍ التحميل...</div>
+      </div>
     </div>
   </header>
 

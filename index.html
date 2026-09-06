@@ -14,6 +14,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
+  <!-- Google Font: Tajawal (شريط التنقل العلوي) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
+
   <!-- Font Awesome 6 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
@@ -25,6 +30,12 @@
     }
 
     * { font-family: 'Cairo', sans-serif; }
+
+    /* الشريط التنقلي العلوي: خط Tajawal وبحجم أكبر */
+    #mainHeader nav a,
+    #mobileMenu a { font-family: 'Tajawal', 'Cairo', sans-serif !important; }
+    #mainHeader .nav-link,
+    #mobileMenu a { font-size: 1.15rem !important; font-weight: 700 !important; }
 
     body {
       background-color: #f8fafc;
@@ -699,15 +710,12 @@
         <p class="mt-2 text-xs text-slate-500">
           صُنع بحب <i class="fa-solid fa-heart text-rose-500 mx-1"></i> لتطوير التعليم في العراق
         </p>
-        <a href="admin.html" class="mt-4 inline-block rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-slate-500 transition hover:border-indigo-500 hover:text-indigo-400">
-          <i class="fa-solid fa-user-shield ml-1"></i> صفحة الإدارة
-        </a>
       </div>
     </div>
   </footer>
 
   <!-- ==================== نافذة تسجيل الدخول ==================== -->
-  <div id="loginModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+  <div id="loginModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
     <div class="relative w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
       <button id="loginModalClose" class="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200">
         <i class="fa-solid fa-xmark"></i>
