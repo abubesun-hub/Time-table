@@ -328,7 +328,8 @@ body {
   line-height: 1.6;
 }
 
-.container { max-width: 100%; margin: 88px auto 48px; padding: 0 16px; }
+.container { max-width: 1360px; margin: 88px auto 48px; padding: 0 16px; }
+.container.wide { max-width: none; }
 .container.narrow { max-width: 1100px; }
 
 /* Topbar — تصميم عصري أنيق */
@@ -545,8 +546,9 @@ body {
 /* Neumorphic surfaces */
 .neo-surface {
   background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: -10px -10px 20px var(--shadow-light), 10px 10px 20px var(--shadow-dark);
+  border-radius: 14px;
+  border: 1px solid #0000000a;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   padding: var(--pad);
 }
 
@@ -712,7 +714,8 @@ body {
 .small { font-size: 12px; }
 
 /* Buttons */
-.btn { background: linear-gradient(180deg, #ffffff0a, #00000011); color: var(--fg); border: 0; border-radius: 12px; padding: 10px 14px; cursor: pointer; box-shadow: -6px -6px 12px var(--shadow-light), 6px 6px 12px var(--shadow-dark); display: inline-flex; align-items: center; gap: 8px; }
+.btn { background: var(--surface); color: var(--fg); border: 1px solid #00000014; border-radius: 10px; padding: 9px 14px; cursor: pointer; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); display: inline-flex; align-items: center; gap: 8px; transition: box-shadow 0.15s ease, transform 0.15s ease; }
+.btn:hover { box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12); }
 .btn.primary { background: linear-gradient(180deg, #60a5fa, #3b82f6); color: #fff; }
 .btn.danger { background: linear-gradient(180deg, #f87171, #ef4444); color: #fff; }
 .btn.ghost { background: transparent; box-shadow: none; border: 1px dashed #00000022; }
@@ -830,18 +833,18 @@ body {
 
 /* Lists */
 .list { display: grid; gap: 10px; padding: 12px; }
-.list-item { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; background: var(--bg); box-shadow: inset -6px -6px 12px var(--shadow-light), inset 6px 6px 12px var(--shadow-dark); }
+.list-item { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--surface); border: 1px solid #0000000d; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); }
 .list-title { font-weight: 600; }
 .list-sub { color: var(--muted); font-size: 12px; }
 .item-actions { display: flex; gap: 6px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.chip { padding: 4px 8px; border-radius: 999px; background: var(--bg); box-shadow: inset -3px -3px 6px var(--shadow-light), inset 3px 3px 6px var(--shadow-dark); font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+.chip { padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid #00000010; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
 .chip .x { cursor: pointer; opacity: 0.7; }
 
 /* Mini dashboard table (الحصة الحالية حسب الصفوف) */
 table.mini-list { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
 table.mini-list thead th { background: linear-gradient(180deg, #ffffff11, #00000011); font-weight: 800; text-align: center; }
-table.mini-list th, table.mini-list td { border: 1px solid #00000012; padding: 10px 12px; vertical-align: middle; }
+table.mini-list th, table.mini-list td { border: 1px solid #00000012; padding: 7px 10px; vertical-align: middle; font-size: 13.5px; }
 table.mini-list tbody td { background: var(--bg); }
 table.mini-list tbody tr:hover td { background: #00000006; }
 /* Column widths via colgroup */
@@ -1146,19 +1149,19 @@ body.modal-open { overflow: hidden; }
 .sidepanel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .side-overlay.hidden { display: none; }
 
-/* Teacher stats table */
-#teacherStatsTable { padding: 8px; display: grid; gap: 8px; }
-.trow { display: grid; grid-template-columns: 1.3fr 0.7fr 0.7fr 1fr auto; align-items: center; gap: 8px; padding: 10px; border-radius: 12px; background: var(--bg); box-shadow: inset -6px -6px 12px var(--shadow-light), inset 6px 6px 12px var(--shadow-dark); }
-.trow.head { font-weight: 800; background: linear-gradient(180deg, #ffffff11, #00000011); }
-.tcell { font-size: 14px; }
-.tact { display: flex; gap: 6px; justify-content: flex-end; }
-.trow .btn { padding: 8px 10px; }
+/* Teacher stats table — تصميم حديث مضغوط */
+#teacherStatsTable { padding: 8px; display: grid; gap: 6px; }
+.trow { display: grid; grid-template-columns: minmax(130px, 1.2fr) 0.5fr 1fr 1.6fr auto; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--surface); border: 1px solid #0000000d; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); }
+.trow.head { font-weight: 800; background: linear-gradient(135deg, #eef2ff, #e0e7ff); color: #312e81; border: 0; }
+.tcell { font-size: 13.5px; }
+.tact { display: flex; gap: 4px; justify-content: flex-end; }
+.trow .btn { padding: 6px 10px; font-size: 12.5px; }
 @media (max-width: 720px) { .trow { grid-template-columns: 1fr; } .tact { justify-content: flex-start; } }
 
 /* mini table inside details cell */
-.tmini { display: grid; gap: 6px; }
-.tmini-row { display: grid; grid-template-columns: 1fr 1fr 80px; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 10px; background: var(--bg); box-shadow: inset -4px -4px 8px var(--shadow-light), inset 4px 4px 8px var(--shadow-dark); }
-.tmini-row.head { font-weight: 700; background: linear-gradient(180deg, #ffffff11, #00000011); box-shadow: none; }
+.tmini { display: grid; gap: 3px; }
+.tmini-row { display: grid; grid-template-columns: 1fr 1fr 64px; gap: 6px; align-items: center; padding: 4px 8px; border-radius: 8px; background: transparent; border: 1px solid #0000000a; box-shadow: none; }
+.tmini-row.head { font-weight: 700; background: #f1f5f9; border: 0; }
 .tmini-row .cnt { text-align: center; font-variant-numeric: tabular-nums; }
 
 /* Light theme – ensure teacher stats text is dark and readable */

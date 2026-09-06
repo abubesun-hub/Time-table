@@ -64,7 +64,8 @@
   }
 
   const state = { voiceOn: true, micActive: false };
-  const ONBOARD_KEY = 'school-timetable:assistant-onboarded:v1';
+  // المساعد لا يعمل تلقائياً — يتفعّل فقط عند ضغط المستخدم على الزر العائم
+  let activated = false;
 
   // DOM
   function el(id){ return document.getElementById(id); }
@@ -128,8 +129,8 @@
     chips.push({ text: 'المواد', icon: 'bi-book', onClick: () => { UI.routeTo('#/catalog'); togglePanel(false); } });
     chips.push({ text: 'تخصيص', icon: 'bi-sliders', onClick: () => { UI.routeTo('#/subjects'); togglePanel(false); } });
     setSuggest(chips);
-    // Also show a status banner message once (not in bubbles to avoid spam)
-    const body = el('assistant-body'); if (body && !body.__welcomed) {
+    // رسالة الترحيب تظهر فقط بعد تفعيل المساعد يدوياً من المستخدم
+    const body = el('assistant-body'); if (activated && body && !body.__welcomed) {
       addMsg('مرحبًا! أنا مرشدك الإلكتروني. ' + nextText, 'bot');
       body.__welcomed = true;
     }
@@ -174,7 +175,7 @@
   function setMicActive(on){ state.micActive = !!on; const btn = el('assistant-mic'); if (btn) btn.classList.toggle('active', state.micActive); }
 
   function bindEvents() {
-    const fab = el('assistant-fab'); if (fab) fab.addEventListener('click', () => togglePanel());
+    const fab = el('assistant-fab'); if (fab) fab.addEventListener('click', () => { activated = true; togglePanel(); });
     const close = el('assistant-close'); if (close) close.addEventListener('click', () => togglePanel(false));
     const send = el('assistant-send'); if (send) send.addEventListener('click', sendMessage);
     const input = el('assistant-input'); if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
@@ -192,31 +193,6 @@
     const ov = document.getElementById(id);
     return !!(ov && !ov.classList.contains('hidden'));
   }
-  function shouldRunOnboarding(){
-    if (localStorage.getItem(ONBOARD_KEY)) return false;
-    // لا تفتح الجولة إذا كانت نوافذ الدخول/إعداد المشرف ظاهرة
-    if (isOverlayShown('login-overlay')) return false;
-    if (isOverlayShown('setup-overlay')) return false;
-    return true;
-  }
-  function runOnboarding(){
-    try {
-      const db = Store.getDB();
-      const step = computeSetupStepLocal(db);
-      const nextText = stepToText(step);
-      openPanel();
-      const body = el('assistant-body'); if (body) body.__welcomed = true; // تجنّب رسالة الترحيب التلقائية الثانية
-      addMsg('مرحبًا! أنا مرشدك الإلكتروني لمساعدتك في إعداد الجدول.', 'bot');
-      setTimeout(() => addMsg('أرشدك حسب الأولوية خطوة بخطوة، ويمكنني التنقّل بك مباشرة.', 'bot'), 700);
-      setTimeout(() => addMsg('الخطوة التالية الآن: ' + nextText, 'bot'), 1400);
-      setTimeout(() => {
-        // اعرض اقتراح الانتقال للخطوة التالية بشكل بارز
-        updateSuggestions();
-        speak('الخطوة التالية الآن');
-      }, 2000);
-      localStorage.setItem(ONBOARD_KEY, '1');
-    } catch {}
-  }
 
   function init() {
     if (!ensureDOM()) return;
@@ -224,8 +200,6 @@
     updateSuggestions();
     // Refresh guide status periodically (low overhead)
     setInterval(updateSuggestions, 4000);
-    // Onboarding tour on first run
-    setTimeout(() => { if (shouldRunOnboarding()) runOnboarding(); }, 700);
   }
 
   // Wait for DOM
