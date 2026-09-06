@@ -46,8 +46,8 @@ function createWindow() {
   if (isDev && process.env.ELECTRON_START_URL) {
     win.loadURL(process.env.ELECTRON_START_URL);
   } else {
-    // Load the existing app entry point
-    win.loadFile(path.join(__dirname, 'index.html'));
+    // Load the landing page as the app entry point
+    win.loadFile(path.join(__dirname, 'Main page.html'));
   }
 
   if (isDev) {

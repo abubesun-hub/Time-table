@@ -1,4 +1,4 @@
-// منطق التطبيق: التفعيل، CRUD، الفواتير، النسخ الاحتياطي، الإعدادات
+// منطق التطبيق: CRUD، الفواتير، النسخ الاحتياطي، الإعدادات
 (async function () {
   'use strict';
   const { qs, qsa, routeTo, showToast, renderList, printHtml } = UI;
@@ -85,237 +85,19 @@
     });
   }
 
-  // Activation
-  const deviceId = Store.getDeviceId();
-  const deviceIdField = qs('#deviceIdField');
-  if (deviceIdField) deviceIdField.value = deviceId;
-  const setupDeviceIdField = qs('#setupDeviceIdField');
-  if (setupDeviceIdField) setupDeviceIdField.value = deviceId;
-  qs('#copyDeviceIdBtn').addEventListener('click', async (e) => {
-    e.preventDefault();
-    await navigator.clipboard.writeText(deviceId);
-    showToast('تم نسخ معرّف الجهاز');
-  });
-  const copyDeviceIdSetup = qs('#copyDeviceIdBtnSetup');
-  if (copyDeviceIdSetup) copyDeviceIdSetup.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await navigator.clipboard.writeText(deviceId);
-    showToast('تم نسخ معرّف الجهاز');
-  });
 
-  async function isActivated() {
-    const blob = Store.getLicenseBlob();
-    if (!blob) return false;
-    try {
-      const json = await CryptoLite.unprotect(blob, deviceId);
-      const lic = JSON.parse(json);
-      // basic checks
-      if (lic.deviceId !== deviceId) return false;
-      if (lic.expiresAt && Date.now() > lic.expiresAt) return false;
-      return true;
-    } catch { return false; }
-  }
 
-  async function getLicenseInfo() {
-    const blob = Store.getLicenseBlob();
-    if (!blob) return null;
-    try {
-      const json = await CryptoLite.unprotect(blob, deviceId);
-      return JSON.parse(json);
-    } catch { return null; }
-  }
 
-  async function updateActivationUI() {
-    const ok = await isActivated();
-    const overlay = qs('#activation-overlay');
-    overlay.classList.toggle('hidden', ok);
-    overlay.setAttribute('aria-hidden', ok ? 'true' : 'false');
-    const status = qs('#licenseStatus');
-    const infoPre = qs('#licenseInfo');
-    const msgBanner = qs('#licenseActivatedMsg');
-    const expiryNote = qs('#expiryNote');
-    const expiryCountdown = qs('#expiryCountdown');
-    const info = await getLicenseInfo();
-    status.textContent = ok ? 'مُفعّل' : 'غير مُفعّل';
-    // Privacy: لا نعرض تفاصيل الرخصة افتراضيًا
-    if (infoPre) {
-      infoPre.textContent = '';
-      infoPre.style.display = 'none';
-    }
-    // Show a friendly activation message instead of raw license
-    if (ok && info?.expiresAt) {
-      try {
-        const dt = new Date(info.expiresAt);
-        if (msgBanner) {
-          msgBanner.textContent = `تم التفعيل حتى ${dt.toLocaleString('ar-EG')}`;
-          msgBanner.classList.remove('hidden');
-        }
-      } catch { if (msgBanner) msgBanner.classList.add('hidden'); }
-    } else {
-      if (msgBanner) msgBanner.classList.add('hidden');
-    }
-    // Handle expiry countdown visibility and alert
-    stopExpiryCountdown();
-    if (ok && info?.expiresAt && info.expiresAt > Date.now()) {
-      const msLeft = info.expiresAt - Date.now();
-      const TEN_HOURS = 10 * 60 * 60 * 1000;
-      const alertKey = `jadwaly.expiryAlertShown.${info.expiresAt}`;
-      const shown = localStorage.getItem(alertKey) === '1';
-      if (msLeft <= TEN_HOURS) {
-        // Show persistent note with live countdown
-        if (expiryNote) expiryNote.classList.remove('hidden');
-        if (expiryCountdown) startExpiryCountdown(info.expiresAt, expiryCountdown);
-        // One-time pre-expiry alert
-        if (!shown) {
-          try { showExpiryAlert(info, () => localStorage.setItem(alertKey, '1')); } catch {}
-        }
-      } else {
-        // Hide note until we're within 10 hours
-        if (expiryNote) expiryNote.classList.add('hidden');
-      }
-    } else {
-      // Not activated or already expired
-      if (expiryNote) expiryNote.classList.add('hidden');
-    }
-    // lock views if not activated
-    qsa('.nav-btn').forEach(btn => {
-      const route = btn.dataset.route;
-      const allowed = ['#/activation', '#/about'];
-      btn.disabled = !ok && !allowed.includes(route);
-    });
-    // Only force redirect to activation if not activated AND not already on allowed pages
-    if (!ok) {
-      const currentRoute = location.hash || '#/dashboard';
-      const allowedRoutes = ['#/activation', '#/about'];
-      if (!allowedRoutes.includes(currentRoute)) {
-        routeTo('#/activation');
-      }
-    }
-  }
-
-  // ===== Activation: expiry helpers =====
-  let expiryTimerId = null;
-  function stopExpiryCountdown() { if (expiryTimerId) { clearInterval(expiryTimerId); expiryTimerId = null; } }
-  function formatRemainArabic(ms) {
-    const s = Math.max(0, Math.floor(ms / 1000));
-    const d = Math.floor(s / 86400);
-    const h = Math.floor((s % 86400) / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    const two = (n) => (n < 10 ? '0' + n : '' + n);
-    if (d > 0) return `${d} يوم ${h} ساعة`;
-    return `${two(h)}:${two(m)}:${two(sec)}`;
-  }
-  function startExpiryCountdown(expiresAt, targetEl) {
-    if (!targetEl) return;
-    const tick = () => {
-      const left = Math.max(0, expiresAt - Date.now());
-      targetEl.textContent = formatRemainArabic(left);
-      if (left <= 0) {
-        stopExpiryCountdown();
-        // Force UI refresh to lock app
-        updateActivationUI();
-        updateAccountUI();
-      }
-    };
-    tick();
-    stopExpiryCountdown();
-    expiryTimerId = setInterval(tick, 1000);
-  }
-  function showExpiryAlert(info, onDismiss = () => {}) {
-    const id = 'expiry-alert-overlay';
-    let ov = document.getElementById(id);
-    if (!ov) {
-      ov = document.createElement('div');
-      ov.id = id;
-      ov.className = 'overlay';
-      ov.setAttribute('role', 'dialog');
-      const card = document.createElement('div'); card.className = 'overlay-card neo-surface expiry-alert';
-      const dt = new Date(info.expiresAt);
-      card.innerHTML = `
-        <div class="alert-brand">
-          <img src="./Jadwaly.png" alt="شعار جدولي" />
-          <div class="alert-title">سينتهي التفعيل قريبًا</div>
-          <div class="alert-desc">ينتهي التفعيل بتاريخ ${dt.toLocaleString('ar-EG')} — ننصحك بالتواصل للتجديد الآن.</div>
-        </div>
-        <div class="activation-contact" style="justify-content:center; margin-top:10px">
-          <img src="./Jadwaly.png" alt="" />
-          <div class="rows">
-            <a href="mailto:itechanbar@gmail.com" class="contact-link"><i class="bi bi-envelope"></i> itechanbar@gmail.com</a>
-            <a href="tel:07905880479" class="contact-link"><i class="bi bi-telephone"></i> 07905880479</a>
-            <a href="tel:07817823680" class="contact-link"><i class="bi bi-telephone"></i> 07817823680</a>
-            <a href="https://wa.me/9647905880479" target="_blank" rel="noopener" class="contact-link"><i class="bi bi-whatsapp"></i> تواصل واتساب</a>
-          </div>
-        </div>
-        <div class="alert-actions">
-          <button class="btn ghost" id="expDismiss">تخطي</button>
-          <a class="btn primary" id="expWhatsApp" href="https://wa.me/9647905880479" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> التواصل عبر واتساب</a>
-        </div>`;
-      ov.appendChild(card);
-      document.body.appendChild(ov);
-    }
-    const close = () => { ov.classList.add('hidden'); ov.setAttribute('aria-hidden','true'); document.body.classList.remove('modal-open'); try { onDismiss(); } catch {} };
-    ov.classList.remove('hidden'); ov.setAttribute('aria-hidden','false');
-    document.body.classList.add('modal-open');
-    // Wire actions once per show
-    const dis = ov.querySelector('#expDismiss'); if (dis) dis.onclick = close;
-    const wa = ov.querySelector('#expWhatsApp'); if (wa) wa.addEventListener('click', () => { try { onDismiss(); } catch {} });
-    // Clicking outside should not close automatically; keep focused experience
-  }
-
-  qs('#activateBtn').addEventListener('click', async () => {
-    const text = qs('#licenseInput').value.trim();
-    if (!text) return showToast('الرجاء لصق نص الرخصة');
-    try {
-      // Validate structure by trying to decrypt using deviceId as key
-      const json = await CryptoLite.unprotect(text, deviceId);
-      const lic = JSON.parse(json);
-      if (lic.deviceId !== deviceId) throw new Error('wrong-device');
-      Store.setLicenseBlob(text);
-      showToast('تم التفعيل بنجاح');
-      await updateActivationUI();
-      await updateAccountUI();
-      // Navigate to dashboard after successful activation
-      routeTo('#/dashboard');
-    } catch (e) {
-      showToast('فشل التفعيل. تحقق من الرخصة ومعرّف الجهاز.');
-    }
-  });
-
-  qs('#pasteLicenseBtn').addEventListener('click', async () => {
-    try {
-      qs('#licenseInput').value = await navigator.clipboard.readText();
-    } catch { showToast('تعذر الوصول إلى الحافظة'); }
-  });
-
-  qs('#btnShowActivation').addEventListener('click', () => {
-    qs('#activation-overlay').classList.remove('hidden');
-  });
-
-  qs('#btnRemoveActivation').addEventListener('click', async () => {
-    if (!confirm('هل تريد إلغاء التفعيل؟')) return;
-    Store.removeLicense();
-    await updateActivationUI();
-  });
 
   // Router with strict guards
   window.addEventListener('hashchange', async () => {
     const route = location.hash || '#/dashboard';
-    const activated = await isActivated();
     const loggedIn = !!Store.getDB().auth.currentUser;
+    const allowedWithoutLogin = ['#/about'];
     
-    const allowedWithoutActivation = ['#/activation', '#/about'];
-    const allowedWithoutLogin = ['#/activation', '#/about'];
-    
-    // Block if not activated
-    if (!activated && !allowedWithoutActivation.includes(route)) {
-      location.hash = '#/activation';
-      return;
-    }
-    
-    // Block if activated but not logged in
-    if (activated && !loggedIn && !allowedWithoutLogin.includes(route)) {
-      location.hash = '#/activation';
+    // Block if not logged in
+    if (!loggedIn && !allowedWithoutLogin.includes(route)) {
+      location.hash = '#/dashboard';
       return;
     }
     
@@ -332,20 +114,12 @@
     const r = a.getAttribute('data-route-link');
     
     // Check guards before allowing navigation
-    const activated = await isActivated();
     const loggedIn = !!Store.getDB().auth.currentUser;
-    const allowedWithoutActivation = ['#/activation', '#/about'];
-    const allowedWithoutLogin = ['#/activation', '#/about'];
+    const allowedWithoutLogin = ['#/about'];
     
-    if (!activated && !allowedWithoutActivation.includes(r)) {
-      showToast('يجب تفعيل البرنامج أولاً');
-      location.hash = '#/activation';
-      return;
-    }
-    
-    if (activated && !loggedIn && !allowedWithoutLogin.includes(r)) {
+    if (!loggedIn && !allowedWithoutLogin.includes(r)) {
       showToast('يجب تسجيل الدخول أولاً');
-      location.hash = '#/activation';
+      location.hash = '#/dashboard';
       return;
     }
     
@@ -355,20 +129,12 @@
     const route = b.dataset.route;
     
     // Check guards before allowing navigation
-    const activated = await isActivated();
     const loggedIn = !!Store.getDB().auth.currentUser;
-    const allowedWithoutActivation = ['#/activation', '#/about'];
-    const allowedWithoutLogin = ['#/activation', '#/about'];
+    const allowedWithoutLogin = ['#/about'];
     
-    if (!activated && !allowedWithoutActivation.includes(route)) {
-      showToast('يجب تفعيل البرنامج أولاً');
-      location.hash = '#/activation';
-      return;
-    }
-    
-    if (activated && !loggedIn && !allowedWithoutLogin.includes(route)) {
+    if (!loggedIn && !allowedWithoutLogin.includes(route)) {
       showToast('يجب تسجيل الدخول أولاً');
-      location.hash = '#/activation';
+      location.hash = '#/dashboard';
       return;
     }
     
@@ -680,10 +446,7 @@
   async function updateAccountUI() {
     const db = Store.getDB();
     const user = db.auth.currentUser;
-    const activated = await isActivated();
     const loggedIn = !!user;
-    
-    console.log('UpdateAccountUI - Activated:', activated, 'Logged In:', loggedIn, 'User:', user);
     
     // Update display
     qs('#currentUser').textContent = user || 'غير مسجل';
@@ -691,11 +454,9 @@
     // STRICT button locking
     qsa('.nav-btn').forEach(btn => {
       const route = btn.dataset.route;
-      const allowedIfNotActivated = ['#/activation', '#/about'];
-      const allowedIfLoggedOut = ['#/activation', '#/about'];
-      const blockedByActivation = !activated && !allowedIfNotActivated.includes(route);
+      const allowedIfLoggedOut = ['#/about'];
       const blockedByLogin = !loggedIn && !allowedIfLoggedOut.includes(route);
-      btn.disabled = blockedByActivation || blockedByLogin;
+      btn.disabled = blockedByLogin;
       
       // Visual indication of blocking
       if (btn.disabled) {
@@ -709,36 +470,22 @@
     
     // Handle overlays
     const loginOverlay = UI.qs('#login-overlay');
-    const activationOverlay = qs('#activation-overlay');
     
-    if (!activated) {
-      // Show activation overlay, hide login overlay
-      if (activationOverlay) activationOverlay.classList.remove('hidden');
-      if (loginOverlay) loginOverlay.classList.add('hidden');
-    } else if (!loggedIn) {
-      // Hide activation overlay, show login overlay
-      if (activationOverlay) activationOverlay.classList.add('hidden');
+    if (!loggedIn) {
+      // Show login overlay
       if (loginOverlay) loginOverlay.classList.remove('hidden');
     } else {
-      // Hide both overlays
-      if (activationOverlay) activationOverlay.classList.add('hidden');
+      // Hide login overlay
       if (loginOverlay) loginOverlay.classList.add('hidden');
     }
     
     // FORCE route validation
     const currentRoute = location.hash || '#/dashboard';
-    const allowedWithoutActivation = ['#/activation', '#/about'];
-    const allowedWithoutLogin = ['#/activation', '#/about'];
+    const allowedWithoutLogin = ['#/about'];
     
-    if (!activated && !allowedWithoutActivation.includes(currentRoute)) {
-      console.log('FORCING REDIRECT: Not activated');
-      routeTo('#/activation');
-      return;
-    }
-    
-    if (activated && !loggedIn && !allowedWithoutLogin.includes(currentRoute)) {
+    if (!loggedIn && !allowedWithoutLogin.includes(currentRoute)) {
       console.log('FORCING REDIRECT: Not logged in');
-      routeTo('#/activation');
+      routeTo('#/dashboard');
       return;
     }
   }
@@ -776,6 +523,7 @@
     UI.qs('#setup-overlay').classList.add('hidden');
     showToast('تم إنشاء حساب المسؤول');
     updateAccountUI();
+    await hydrate();
   });
 
   qs('#btnLogin').addEventListener('click', async () => {
@@ -787,6 +535,7 @@
     if (!ok) return showToast('بيانات الدخول غير صحيحة. تأكد من اسم المستخدم وكلمة المرور (استخدم أرقام 0-9).');
     UI.qs('#login-overlay').classList.add('hidden');
     updateAccountUI();
+    await hydrate();
   });
 
   // Submit on Enter
@@ -3838,8 +3587,8 @@
         Store.restoreBackup(b.name);
         showToast('تمت الاستعادة');
         hydrate();
-        // تحديث حرس الدخول/التفعيل بعد الاستعادة
-        setTimeout(async ()=>{ try { await updateAccountUI(); await ensureAdminSetup(); await updateActivationUI(); } catch {} }, 0);
+        // تحديث حرس الدخول بعد الاستعادة
+        setTimeout(async ()=>{ try { await updateAccountUI(); await ensureAdminSetup(); } catch {} }, 0);
       });
       actions.append(restore); item.append(left, actions); return item;
     });
@@ -3853,7 +3602,7 @@
   const btnExportPkg = qs('#btnExportPkg'); if (btnExportPkg) btnExportPkg.addEventListener('click', () => Store.exportPackage());
   qs('#fileImport').addEventListener('change', async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
-  try { await Store.importData(file); showToast('تم الاستيراد'); hydrate(); await updateAccountUI(); await ensureAdminSetup(); await updateActivationUI(); }
+  try { await Store.importData(file); showToast('تم الاستيراد'); hydrate(); await updateAccountUI(); await ensureAdminSetup(); }
     catch { showToast('فشل الاستيراد. الملف غير صالح.'); }
     e.target.value = '';
   });
@@ -3876,7 +3625,7 @@
     openCard.addEventListener('click', (e) => { e.preventDefault(); fileEl.click(); });
     fileEl.addEventListener('change', async (e) => {
       const file = e.target.files?.[0]; if (!file) return;
-  try { await Store.importData(file); showToast('تم فتح الملف بنجاح'); hydrate(); await updateAccountUI(); await ensureAdminSetup(); await updateActivationUI(); }
+  try { await Store.importData(file); showToast('تم فتح الملف بنجاح'); hydrate(); await updateAccountUI(); await ensureAdminSetup(); }
       catch { showToast('فشل فتح الملف. تأكد من أنه STT صحيح.'); }
       finally { e.target.value=''; }
     });
@@ -3888,7 +3637,7 @@
     if (!newCard) return;
   newCard.addEventListener('click', async (e) => {
       e.preventDefault();
-      if (!confirm('سيتم تصفير جميع البيانات الحالية والبدء من جديد. لن يتأثر التفعيل أو النسخ الاحتياطية. متابعة؟')) return;
+      if (!confirm('سيتم تصفير جميع البيانات الحالية والبدء من جديد. لن تتأثر النسخ الاحتياطية. متابعة؟')) return;
   try {
         const old = Store.getDB();
         const iso = new Date().toISOString();
@@ -3924,10 +3673,10 @@
         // أعِد بناء الواجهات بدون إعادة تحميل كاملة
         routeTo('#/dashboard');
   hydrate();
-  await updateAccountUI(); await ensureAdminSetup(); await updateActivationUI();
+  await updateAccountUI(); await ensureAdminSetup();
         showToast('تم البدء من جديد');
       } catch {
-        // في حال حدوث مشكلة غير متوقعة، fallback لإعادة التهيئة الشاملة مع الحفاظ على الرخصة خارج هذا المفتاح
+        // في حال حدوث مشكلة غير متوقعة، fallback لإعادة التهيئة الشاملة
         try { localStorage.removeItem('school-timetable:data:v1'); } catch {}
         location.reload();
       }
@@ -4734,25 +4483,13 @@
 
   // Hydrate all views (with STRICT security check)
   async function hydrate() {
-    // STRICT Security check before hydrating - BLOCK EVERYTHING if not properly authenticated
-    const activated = await isActivated();
+    // STRICT Security check before hydrating - BLOCK EVERYTHING if not logged in
     const db = Store.getDB();
     const loggedIn = !!db.auth.currentUser;
     
-    console.log('Security Check - Activated:', activated, 'Logged In:', loggedIn, 'Current User:', db.auth.currentUser);
+    console.log('Security Check - Logged In:', loggedIn, 'Current User:', db.auth.currentUser);
     
-    // FORCE activation check first
-    if (!activated) {
-      console.log('BLOCKING: Not activated');
-      // Hide all content and show only activation
-      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      const activationView = document.querySelector('#view-activation');
-      if (activationView) activationView.classList.add('active');
-      routeTo('#/activation');
-      return;
-    }
-    
-    // FORCE login check second
+    // FORCE login check
     if (!loggedIn) {
       console.log('BLOCKING: Not logged in');
       // Show login overlay and block content
@@ -4760,9 +4497,6 @@
       if (loginOverlay) loginOverlay.classList.remove('hidden');
       // Hide all main content
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      const activationView = document.querySelector('#view-activation');
-      if (activationView) activationView.classList.add('active');
-      routeTo('#/activation');
       return;
     }
     
@@ -4859,36 +4593,26 @@
   
   // Add to global scope for console access
   window.debugSecurity = async function() {
-    const activated = await isActivated();
     const db = Store.getDB();
     const loggedIn = !!db.auth.currentUser;
     console.log('=== Security Debug ===');
-    console.log('Activated:', activated);
     console.log('Logged In:', loggedIn);
     console.log('Current User:', db.auth.currentUser);
     console.log('Users Array:', db.auth.users);
-    console.log('License Blob:', Store.getLicenseBlob() ? 'EXISTS' : 'MISSING');
     console.log('Current Route:', location.hash);
     console.log('===================');
   };
 
   // Security monitor - check every second
   setInterval(async () => {
-    const activated = await isActivated();
     const loggedIn = !!Store.getDB().auth.currentUser;
     const currentRoute = location.hash || '#/dashboard';
-    const allowedRoutes = ['#/activation', '#/about'];
+    const allowedRoutes = ['#/about'];
     
     // Force redirect if security violated
-    if (!activated && !allowedRoutes.includes(currentRoute)) {
-      console.log('SECURITY VIOLATION: Not activated, forcing redirect');
-      location.hash = '#/activation';
-      return;
-    }
-    
-    if (activated && !loggedIn && !allowedRoutes.includes(currentRoute)) {
+    if (!loggedIn && !allowedRoutes.includes(currentRoute)) {
       console.log('SECURITY VIOLATION: Not logged in, forcing redirect');
-      location.hash = '#/activation';
+      location.hash = '#/dashboard';
       return;
     }
     
@@ -4898,16 +4622,12 @@
 
   // Initialize with strict guards
   const initialRoute = location.hash || '#/dashboard';
-  const initialActivated = await isActivated();
   const initialLoggedIn = !!Store.getDB().auth.currentUser;
   
-  const allowedWithoutActivation = ['#/activation', '#/about'];
-  const allowedWithoutLogin = ['#/activation', '#/about'];
+  const allowedWithoutLogin = ['#/about'];
   
-  if (!initialActivated && !allowedWithoutActivation.includes(initialRoute)) {
-    routeTo('#/activation');
-  } else if (initialActivated && !initialLoggedIn && !allowedWithoutLogin.includes(initialRoute)) {
-    routeTo('#/activation');
+  if (!initialLoggedIn && !allowedWithoutLogin.includes(initialRoute)) {
+    routeTo('#/dashboard');
   } else {
     routeTo(initialRoute);
   }
@@ -4938,7 +4658,6 @@
   } catch {}
   await hydrate();
   Store.scheduleAutoBackup();
-  await updateActivationUI();
   await ensureAdminSetup();
   await updateAccountUI();
   try { initializeLessonAlerts(); } catch {}

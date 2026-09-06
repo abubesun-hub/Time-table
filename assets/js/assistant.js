@@ -153,10 +153,9 @@
     if (/طباعة|اطبع|معاينة|print|preview/.test(t)) { return { reply: 'سأفتح الجدول وأعرض المعاينة.', action: () => { routeTo('#/timetable'); setTimeout(()=>{ const btn = UI.qs('#btnPreviewTT'); if (btn) btn.click(); }, 250); } }; }
     if (/نسخ احتياطي|backup/.test(t)) { return { reply: 'سأفتح النسخ الاحتياطي.', action: () => routeTo('#/backup') }; }
     if (/إعدادات|settings?/.test(t)) { return { reply: 'سأفتح الإعدادات.', action: () => routeTo('#/settings') }; }
-    if (/تفعيل|license|رخصة/.test(t)) { return { reply: 'سأفتح إدارة التفعيل.', action: () => routeTo('#/activation') }; }
-    if (/جديد|reset|ابدأ من جديد/.test(t)) { return { reply: 'يمكنك البدء من جديد من بطاقة "جديد" في الرئيسية. لن نمسّ التفعيل والنسخ الاحتياطية.', action: () => routeTo('#/dashboard') }; }
+    if (/جديد|reset|ابدأ من جديد/.test(t)) { return { reply: 'يمكنك البدء من جديد من بطاقة "جديد" في الرئيسية. لن نمسّ النسخ الاحتياطية.', action: () => routeTo('#/dashboard') }; }
     // Fallbacks
-  if (/(مساعدة|help|\?)/.test(t)) { return { reply: 'اسألني عن: الخطوة التالية، إضافة المعلمين/الصفوف/المواد، التخصيص، الجدول، الطباعة، النسخ الاحتياطي، التفعيل.', action: null }; }
+  if (/(مساعدة|help|\?)/.test(t)) { return { reply: 'اسألني عن: الخطوة التالية، إضافة المعلمين/الصفوف/المواد، التخصيص، الجدول، الطباعة، النسخ الاحتياطي.', action: null }; }
     return { reply: 'أنا مرشد بسيط دون اتصال. اسألني عن الخطوة التالية أو اطلب فتح صفحة محددة (المعلمين، الصفوف، المواد، التخصيص، الجدول، الإعدادات).', action: null };
   }
 
@@ -195,8 +194,7 @@
   }
   function shouldRunOnboarding(){
     if (localStorage.getItem(ONBOARD_KEY)) return false;
-    // لا تفتح الجولة إذا كانت نوافذ التفعيل/الدخول/إعداد المشرف ظاهرة
-    if (isOverlayShown('activation-overlay')) return false;
+    // لا تفتح الجولة إذا كانت نوافذ الدخول/إعداد المشرف ظاهرة
     if (isOverlayShown('login-overlay')) return false;
     if (isOverlayShown('setup-overlay')) return false;
     return true;

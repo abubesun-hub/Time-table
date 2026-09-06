@@ -3,7 +3,6 @@
   'use strict';
 
   const LS_KEY = 'school-timetable:data:v1';
-  const LS_LICENSE = 'school-timetable:license';
   const LS_BACKUPS = 'school-timetable:backups';
   const BACKUP_INTERVAL_MS = 60 * 60 * 1000; // كل ساعة
 
@@ -96,21 +95,6 @@
     localStorage.setItem(LS_KEY, JSON.stringify(db));
   }
 
-  // License
-  function getLicenseBlob() { return localStorage.getItem(LS_LICENSE) || null; }
-  function setLicenseBlob(blob) { localStorage.setItem(LS_LICENSE, blob); }
-  function removeLicense() { localStorage.removeItem(LS_LICENSE); }
-
-  // Device ID (stable per browser profile)
-  function getDeviceId() {
-    let id = localStorage.getItem('school-timetable:device-id');
-    if (!id) {
-      id = 'DEV-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36);
-      localStorage.setItem('school-timetable:device-id', id);
-    }
-    return id;
-  }
-
   // Backups
   function listBackups() {
     const raw = localStorage.getItem(LS_BACKUPS);
@@ -171,7 +155,7 @@
   }
 
   function exportPackage() {
-    // New portable package (does not include license/device bindings or user auth)
+    // New portable package (does not include user auth)
     const db = getDB();
     // Remove sensitive authentication data before export
     const exportDB = { ...db };
@@ -218,8 +202,6 @@
 
   global.Store = {
     getDB, setDB,
-    getLicenseBlob, setLicenseBlob, removeLicense,
-    getDeviceId,
     listBackups, createBackup, restoreBackup, scheduleAutoBackup,
     exportData, exportPackage, saveAsPackage, importData,
   };

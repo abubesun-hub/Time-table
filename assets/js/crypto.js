@@ -97,28 +97,5 @@
     return result;
   }
 
-  // Base64 helpers
-  function b64encode(str) { return btoa(unescape(encodeURIComponent(str))); }
-  function b64decode(b64) { return decodeURIComponent(escape(atob(b64))); }
-
-  // Simple XOR + HMAC-like tag using SHA-256 for local obfuscation
-  async function protect(plain, key) {
-    const text = typeof plain === 'string' ? plain : JSON.stringify(plain);
-    const tag = await sha256(key + '|' + text);
-    const payload = { t: tag.slice(0, 16), d: text };
-    return b64encode(JSON.stringify(payload));
-  }
-
-  async function unprotect(blob, key) {
-    try {
-      const { t, d } = JSON.parse(b64decode(blob));
-      const tag = await sha256(key + '|' + d);
-      if (t !== tag.slice(0, 16)) throw new Error('bad-tag');
-      return d;
-    } catch (e) {
-      throw new Error('decrypt-failed');
-    }
-  }
-
-  global.CryptoLite = { sha256, protect, unprotect };
+  global.CryptoLite = { sha256 };
 })(window);

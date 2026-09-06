@@ -14,50 +14,6 @@
     <div class="no-js">هذا التطبيق يحتاج لتفعيل JavaScript.</div>
   </noscript>
 
-  <!-- Activation Overlay -->
-  <div id="activation-overlay" class="overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="activationTitle">
-    <div class="overlay-card neo-surface">
-      <div class="overlay-header">
-        <span class="bi bi-shield-lock"></span>
-        <h2 id="activationTitle">تفعيل البرنامج</h2>
-      </div>
-      <p class="muted">الرجاء إدخال السيريال نمبر (رخصة التفعيل) لتشغيل البرنامج. يمكن الحصول عليه من المسؤول.</p>
-      <div class="device-id-box">
-        <label class="label">معرّف الجهاز</label>
-        <div class="row gap-8">
-          <input id="deviceIdField" class="input mono" dir="ltr" readonly />
-          <button id="copyDeviceIdBtn" class="btn ghost" title="نسخ"><span class="bi bi-clipboard"></span></button>
-        </div>
-        <small class="muted">أرسل هذا المعرّف للمسؤول ليصدر لك رخصة مخصّصة لجهازك.</small>
-      </div>
-      <label for="licenseInput" class="label">نص الرخصة</label>
-      <textarea id="licenseInput" dir="ltr" placeholder="ألصق الرخصة هنا" class="input mono" rows="6"></textarea>
-      <div class="row gap-8">
-        <button id="activateBtn" class="btn primary">
-          <span class="bi bi-check2-circle"></span>
-          تفعيل
-        </button>
-        <button id="pasteLicenseBtn" class="btn ghost" title="لصق من الحافظة">
-          <span class="bi bi-clipboard2-check"></span>
-          لصق
-        </button>
-      </div>
-      <div class="overlay-footer">
-        <small class="muted">الخصوصية: يتم حفظ الرخصة محلياً على هذا الجهاز فقط.</small>
-      </div>
-      <!-- Contact info for activation help -->
-      <div class="activation-contact">
-        <img src="./Jadwaly.png" alt="شعار" />
-        <div class="rows">
-          <a href="mailto:itechanbar@gmail.com" class="contact-link"><i class="bi bi-envelope"></i> itechanbar@gmail.com</a>
-          <a href="tel:07905880479" class="contact-link"><i class="bi bi-telephone"></i> 07905880479</a>
-          <a href="tel:07817823680" class="contact-link"><i class="bi bi-telephone"></i> 07817823680</a>
-          <a href="https://wa.me/9647905880479" target="_blank" rel="noopener" class="contact-link"><i class="bi bi-whatsapp"></i> تواصل واتساب</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Welcome Overlay (Splash) -->
   <div id="welcome-overlay" class="overlay hidden" aria-hidden="true" role="dialog" aria-label="مرحباً بكم في جدولي">
     <div class="overlay-card welcome-card neo-surface" role="document">
@@ -92,7 +48,6 @@
       <button class="nav-btn" data-route="#/timetable"><i class="bi bi-calendar-week"></i><span>الجدول الأسبوعي</span></button>
       <button class="nav-btn" data-route="#/invoices"><i class="bi bi-receipt"></i><span>الفواتير</span></button>
       <button class="nav-btn" data-route="#/backup"><i class="bi bi-cloud-arrow-up"></i><span>نسخ احتياطي</span></button>
-      <button class="nav-btn" data-route="#/activation"><i class="bi bi-key"></i><span>التفعيل</span></button>
       <button class="nav-btn" data-route="#/settings"><i class="bi bi-gear"></i><span>الإعدادات</span></button>
       <button class="nav-btn" data-route="#/about"><i class="bi bi-info-circle"></i><span>حول</span></button>
     </nav>
@@ -156,7 +111,7 @@
         <a id="cardNew" class="card neo-surface card-ac12" href="#">
           <div class="card-icon"><i class="bi bi-file-earmark-plus"></i></div>
           <div class="card-title">جديد</div>
-          <div class="card-desc">ابدأ عملاً جديدًا (يمسح البيانات الحالية دون المساس بالتفعيل والنسخ الاحتياطية).</div>
+          <div class="card-desc">ابدأ عملاً جديدًا (يمسح البيانات الحالية دون المساس بالنسخ الاحتياطية).</div>
         </a>
         <a id="cardOpen" class="card neo-surface card-ac11" href="#">
           <div class="card-icon"><i class="bi bi-folder2-open"></i></div>
@@ -605,23 +560,6 @@
         </div>
         <h3 class="sub-title">النسخ المتوفرة</h3>
         <div id="backupsList" class="list"></div>
-      </div>
-    </section>
-
-    <!-- Activation management -->
-    <section id="view-activation" class="view">
-      <h2 class="section-title">إدارة التفعيل</h2>
-      <div class="neo-surface pad-16">
-          <p class="muted">الحالة: <span id="licenseStatus">غير مُفعّل</span></p>
-          <div id="licenseActivatedMsg" class="info-banner hidden"></div>
-        <div class="row gap-8">
-          <button id="btnShowActivation" class="btn primary"><i class="bi bi-key"></i> إدخال رخصة جديدة</button>
-          <button id="btnRemoveActivation" class="btn danger"><i class="bi bi-x-circle"></i> إلغاء التفعيل</button>
-        </div>
-          <pre id="licenseInfo" class="mono small"></pre>
-          <div id="expiryNote" class="expiry-note hidden">
-            <div class="label"><i class="bi bi-exclamation-triangle"></i> ملاحظة: ينتهي التفعيل خلال <span id="expiryCountdown">—</span></div>
-          </div>
       </div>
     </section>
 
@@ -1145,7 +1083,6 @@
             <li>تصنيف: تنظيم وإدارة الجداول المدرسية</li>
             <li>لغة الواجهة: العربية (RTL)</li>
             <li>وضع العمل: دون اتصال + حفظ/استيراد/تصدير</li>
-            <li>التفعيل: رخصة مرتبطة بمعرّف الجهاز</li>
           </ul>
         </div>
         <div class="panel glass">
@@ -1367,14 +1304,6 @@
           <label class="label" for="setupPass">كلمة المرور</label>
           <input id="setupPass" class="input" type="password" autocomplete="new-password" />
         </div>
-      </div>
-      <div class="device-id-box" style="margin-top:8px">
-        <label class="label">معرّف الجهاز</label>
-        <div class="row gap-8">
-          <input id="setupDeviceIdField" class="input mono" dir="ltr" readonly />
-          <button id="copyDeviceIdBtnSetup" class="btn ghost" title="نسخ"><span class="bi bi-clipboard"></span></button>
-        </div>
-        <small class="muted">أرسل هذا المعرّف للمسؤول للحصول على رخصة التفعيل.</small>
       </div>
       <div class="row gap-8">
         <button id="btnSetupAdmin" class="btn primary"><i class="bi bi-person-check"></i> إنشاء</button>
