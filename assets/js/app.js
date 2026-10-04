@@ -1059,15 +1059,29 @@
     const s = (c.sections && c.sections.length) ? c.sections[sectionIndex] : { name: '—', _virtual: true };
     const title = `${c.name}${s._virtual ? '' : ' — ' + s.name}`;
     const overlay = qs('#sidepanel-overlay'); const spTitle = qs('#spTitle');
+    const spStats = qs('#spStats');
     const assignedList = qs('#spAssignedList'); const unassignedList = qs('#spUnassignedList');
     if (!overlay || !spTitle || !assignedList || !unassignedList) return;
     sidePanelState = { classIndex, sectionIndex };
     spTitle.textContent = title;
     assignedList.innerHTML = ''; unassignedList.innerHTML = '';
 
-    // بناء قوائم قابلة للتعديل: قائمة منسدلة للمعلم + حقل عدد الحصص لكل مادة
     const csKey = keyCS(classIndex, sectionIndex);
     const asgForCS = db.assignments?.[csKey] || {};
+
+    // شريط معلومات أسفل اسم الصف: إجمالي الحصص • الشاغرة • عدد المعلمين
+    const totalAlloc = Object.values(db.allocations || {}).reduce((sum, m) => sum + (parseInt(m?.[classIndex], 10) || 0), 0);
+    const assignedTotal = Object.values(asgForCS).reduce((sum, subjMap) => sum + Object.values(subjMap || {}).reduce((a, v) => a + (parseInt(v, 10) || 0), 0), 0);
+    const vacant = Math.max(0, totalAlloc - assignedTotal);
+    const teacherSet = new Set();
+    Object.values(asgForCS).forEach(subjMap => Object.keys(subjMap || {}).forEach(t => { if ((parseInt(subjMap[t], 10) || 0) > 0) teacherSet.add(t); }));
+    if (spStats) spStats.innerHTML = `
+      <span class="sp-stat">إجمالي الحصص: <b>${totalAlloc}</b></span>
+      <span class="sp-stat">الحصص الشاغرة: <b>${vacant}</b></span>
+      <span class="sp-stat">عدد المعلمين: <b>${teacherSet.size}</b></span>
+    `;
+
+    // بناء قوائم قابلة للتعديل: قائمة منسدلة للمعلم + حقل عدد الحصص لكل مادة
     const subjects = db.subjectsCatalog || [];
     subjects.forEach((subj, subjIdx) => {
       const alloc = parseInt(db.allocations?.[subjIdx]?.[classIndex], 10) || 0;
@@ -1088,9 +1102,18 @@
         </div>
         <div class="sp-controls">
           <select class="input sp-teacher" aria-label="المعلم لمادة ${subj.name}">${sideTeacherOptions(currentT)}</select>
-          <input class="input sp-periods" type="number" min="0" max="${alloc}" value="${currentCnt == null ? '' : currentCnt}" placeholder="${alloc}" aria-label="عدد حصص ${subj.name}">
+          <input class="input sp-periods" type="number" min="0" max="${alloc}" value="${currentCnt == null ? alloc : currentCnt}" placeholder="${alloc}" aria-label="عدد حصص ${subj.name}">
         </div>
       `;
+      // منع تجاوز الحد الأقصى: يمكن التقليل فقط وليس الزيادة
+      const perInp = row.querySelector('.sp-periods');
+      if (perInp) perInp.addEventListener('input', () => {
+        const max = parseInt(perInp.max, 10);
+        const v = parseInt(perInp.value, 10);
+        if (Number.isNaN(v)) return;
+        if (v > max) { perInp.value = String(max); showToast(`الحد الأقصى لمادة «${subj.name}» هو ${max} حصة`); }
+        else if (v < 0) perInp.value = '0';
+      });
       (assigned ? assignedList : unassignedList).appendChild(row);
     });
 
@@ -1113,7 +1136,6 @@
     const csKey = keyCS(classIndex, sectionIndex);
     const overlay = qs('#sidepanel-overlay');
     const rows = overlay ? Array.from(overlay.querySelectorAll('.sp-row')) : [];
-    const label = (UI && UI.Terms) ? UI.Terms.get('t-s') : 'معلم';
     const newSubjMap = {};
     for (const row of rows) {
       const subjIdx = parseInt(row.dataset.subjIdx, 10);
@@ -1123,10 +1145,7 @@
       const tVal = tSel ? tSel.value : '';
       const rawCnt = perInp ? perInp.value : '';
       const alloc = parseInt(db.allocations?.[subjIdx]?.[classIndex], 10) || 0;
-      if (tVal === '') {
-        if (rawCnt !== '' && (parseInt(rawCnt, 10) || 0) > 0) { showToast(`اختر ${label} لمادة «${subjName}»`); return; }
-        continue; // لا معلم ولا حصص → إزالة تعيين هذه المادة
-      }
+      if (tVal === '') continue; // لم يُختر معلم → لا تعيين لهذه المادة (عدد الحصص معبأ تلقائيًا)
       // اختار معلمًا دون تحديد عدد → التخصيص الكامل لهذه المادة تلقائيًا
       const cnt = rawCnt === '' ? alloc : parseInt(rawCnt, 10);
       if (Number.isNaN(cnt) || cnt <= 0) { showToast(`أدخل عدد حصص أكبر من صفر لمادة «${subjName}»`); return; }
@@ -1147,6 +1166,19 @@
   const spCloseBtn = qs('#spClose'); if (spCloseBtn) spCloseBtn.addEventListener('click', closeSidePanel);
   const btnSpSave = qs('#spSave'); if (btnSpSave) btnSpSave.addEventListener('click', saveSidePanel);
   const btnSpCancel = qs('#spCancel'); if (btnSpCancel) btnSpCancel.addEventListener('click', closeSidePanel);
+  const btnSpDeleteAll = qs('#spDeleteAll');
+  if (btnSpDeleteAll) btnSpDeleteAll.addEventListener('click', () => {
+    if (!sidePanelState) return;
+    if (!confirm('سيتم حذف جميع تعيينات المعلمين لهذا الصف/الشعبة وإعادته إلى نقطة البداية لتخصيصه من جديد. هل تريد المتابعة؟')) return;
+    const db = Store.getDB();
+    const csKey = keyCS(sidePanelState.classIndex, sidePanelState.sectionIndex);
+    if (db.assignments && db.assignments[csKey]) delete db.assignments[csKey];
+    Store.setDB(db);
+    renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); renderTeacherSidebar(); updateAssignRemaining();
+    try { refreshPriorityCards(); } catch {}
+    closeSidePanel();
+    showToast('تم حذف تخصيص هذا الصف وإعادته لنقطة البداية');
+  });
   const spOverlay = qs('#sidepanel-overlay'); if (spOverlay) spOverlay.addEventListener('click', (e) => { if (e.target === spOverlay) closeSidePanel(); });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
