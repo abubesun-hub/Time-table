@@ -362,46 +362,25 @@
     try { sanitizeDBIntegrity(); } catch {}
     const stats = computeTeacherStats();
     host.innerHTML = '';
-    // header
-  const head = document.createElement('div'); head.className = 'trow head';
-  const thTeacher = (UI && UI.Terms) ? UI.Terms.get('t-s-def') : 'المعلم';
-  head.innerHTML = `<div class="tcell">${thTeacher}</div><div class="tcell">إجمالي الحصص</div><div class="tcell">مواد</div><div class="tcell">تفاصيل</div><div class="tcell"></div>`;
-    host.appendChild(head);
-    stats.forEach(st => {
-      const row = document.createElement('div'); row.className = 'trow';
-      const name = document.createElement('div'); name.className = 'tcell'; name.textContent = st.name || '—';
-      const total = document.createElement('div'); total.className = 'tcell'; total.textContent = String(st.total);
-      const subjectsSet = [...new Set(st.items.map(it => it.subjectName))];
-      const subjCount = document.createElement('div'); subjCount.className = 'tcell'; subjCount.textContent = subjectsSet.length ? subjectsSet.join('، ') : '—';
-      const details = document.createElement('div'); details.className = 'tcell';
-      if (st.items.length) {
-        const wrap = document.createElement('div'); wrap.className = 'tmini';
-        const headRow = document.createElement('div'); headRow.className = 'tmini-row head';
-        headRow.innerHTML = '<div>المادة</div><div>الصف</div><div class="cnt">الحصص</div>';
-        wrap.appendChild(headRow);
-        st.items.forEach(it => {
-          const r = document.createElement('div'); r.className = 'tmini-row';
-          const clsLabel = `${it.className}${it.sectionName ? ' — ' + it.sectionName : ''}`;
-          r.innerHTML = `<div>${it.subjectName}</div><div>${clsLabel}</div><div class="cnt">${it.count}</div>`;
-          wrap.appendChild(r);
-        });
-        details.appendChild(wrap);
-      } else {
-        details.textContent = '—';
-      }
-      const actions = document.createElement('div'); actions.className = 'tact';
-      const editBtn = document.createElement('button'); editBtn.className = 'btn'; editBtn.textContent = 'تعديل';
-      editBtn.addEventListener('click', () => {
-        if (!st.items.length) return;
-        const it = st.items[0];
-        routeTo('#/subjects');
-        setTimeout(() => {
-          openAssignEditBar({ ci: it.classIndex, si: it.sectionIndex, subjIdx: it.subjectIndex, tIdx: st.teacherIndex, cnt: it.count });
-        }, 50);
-      });
-      actions.appendChild(editBtn);
-      row.append(name, total, subjCount, details, actions);
-      host.appendChild(row);
+    const thTeacher = (UI && UI.Terms) ? UI.Terms.get('t-s-def') : 'المعلم';
+    const body = stats.map(st => {
+      const subjects = [...new Set(st.items.map(it => it.subjectName))];
+      const initial = escHtml(String(st.name || '—').trim().charAt(0) || '—');
+      const chips = subjects.length ? `<div class="t-chips">${subjects.map(s => `<span class="t-chip">${escHtml(s)}</span>`).join('')}</div>` : '<span class="t-muted">—</span>';
+      const details = st.items.length
+        ? `<table class="tmini-t"><thead><tr><th>المادة</th><th>الصف</th><th class="cnt">الحصص</th></tr></thead><tbody>${st.items.map(it => `<tr><td>${escHtml(it.subjectName)}</td><td>${escHtml(it.className)}${it.sectionName ? ' — ' + escHtml(it.sectionName) : ''}</td><td class="cnt">${it.count}</td></tr>`).join('')}</tbody></table>`
+        : '<span class="t-muted">—</span>';
+      return `<tr data-t="${st.teacherIndex}">
+        <td><div class="t-name"><span class="t-avatar">${initial}</span><span>${escHtml(st.name || '—')}</span></div></td>
+        <td><span class="t-total${st.total ? '' : ' zero'}">${st.total}</span></td>
+        <td>${chips}</td>
+        <td>${details}</td>
+        <td><button class="btn t-edit"><i class="bi bi-pencil-square"></i> تعديل</button></td>
+      </tr>`;
+    }).join('');
+    host.innerHTML = `<table class="tstats"><thead><tr><th>${escHtml(thTeacher)}</th><th>إجمالي الحصص</th><th>المواد</th><th>التفاصيل</th><th></th></tr></thead><tbody>${body}</tbody></table>`;
+    host.querySelectorAll('tr[data-t] .t-edit').forEach(btn => {
+      btn.addEventListener('click', () => openEntityPanel('teacher', parseInt(btn.closest('tr').dataset.t, 10)));
     });
   }
 
@@ -429,6 +408,7 @@
       const cnt = document.createElement('div'); cnt.className = 'count'; cnt.textContent = String(st.total);
       actions.appendChild(cnt);
       item.append(left, actions);
+      item.addEventListener('click', () => openEntityPanel('teacher', st.teacherIndex));
       list.appendChild(item);
     });
     if (totalEl) totalEl.textContent = String(total);
@@ -960,61 +940,12 @@
     renderAssignList();
     renderAssignStats();
     renderTeacherStatsTable();
-    updateAssignRemaining(true);
     renderTeacherSidebar();
     renderTimetable();
     try { refreshPriorityCards(); } catch {}
   });
 
-  // Assign lessons to teachers per class/section/subject
-  function populateAssignSelectors() {
-    const db = Store.getDB();
-    const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect');
-    const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect');
-    if (classSel) classSel.innerHTML = '<option value="">— اختر صف —</option>' + (db.classes || []).map((c, i) => `<option value="${i}">${c.name}</option>`).join('');
-    if (subjSel) subjSel.innerHTML = '<option value="">— اختر مادة —</option>' + (db.subjectsCatalog || []).map((s, i) => `<option value="${i}">${s.name}</option>`).join('');
-  if (teachSel) { const lab = (UI && UI.Terms) ? UI.Terms.get('t-s') : 'معلم'; teachSel.innerHTML = `<option value="">— اختر ${lab} —</option>` + (db.teachers || []).map((t, i) => `<option value="${i}">${t.name}</option>`).join(''); }
-    if (sectSel) sectSel.innerHTML = '<option value="">— اختر شعبة —</option>';
-    if (classSel) classSel.onchange = () => {
-      const idx = classSel.value; const sections = idx === '' ? [] : (db.classes[idx].sections || []);
-      if (sectSel) sectSel.innerHTML = '<option value="">— اختر شعبة —</option>' + sections.map((s, si) => `<option value="${si}">${s.name}</option>`).join('');
-      updateAssignRemaining(true);
-    };
-    if (subjSel) subjSel.onchange = () => updateAssignRemaining(true);
-    if (sectSel) sectSel.onchange = () => updateAssignRemaining(true);
-  }
-
   function keyCS(cIdx, sIdx) { return `${cIdx}:${sIdx}`; }
-
-  function calcAssignedFor(db, cIdx, sIdx, subjIdx) {
-    const map = db.assignments?.[keyCS(cIdx, sIdx)]?.[subjIdx] || {};
-    return Object.values(map).reduce((a, v) => a + (parseInt(v, 10) || 0), 0);
-  }
-
-  function updateAssignRemaining(force = false, preserveInput = false) {
-    const db = Store.getDB();
-    const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect'); const subjSel = qs('#asSubjectSelect');
-    const remainingEl = qs('#asRemaining'); const periodsInput = qs('#asPeriods');
-    if (!classSel || !sectSel || !subjSel || !remainingEl) return;
-    const cVal = classSel.value; const sVal = sectSel.value; const subVal = subjSel.value;
-    if (cVal === '' || sVal === '' || subVal === '') { remainingEl.textContent = 'المتبقي: 0'; if (periodsInput) periodsInput.value = 0; return; }
-    const cIdx = parseInt(cVal, 10); const sIdx = parseInt(sVal, 10); const subjIdx = parseInt(subVal, 10);
-    const allocForSubject = (db.allocations?.[subjIdx]?.[cIdx]) || 0;
-    const already = calcAssignedFor(db, cIdx, sIdx, subjIdx);
-    const remaining = Math.max(0, allocForSubject - already);
-    remainingEl.textContent = `المتبقي: ${remaining}`;
-    if (periodsInput && !preserveInput) {
-      const cur = parseInt(periodsInput.value, 10) || 0;
-      // إذا كان التغيير ناتجًا عن تبديل الصف/الشعبة/المادة، حدّثه قسرًا
-      if (force) {
-        periodsInput.value = remaining;
-      } else {
-        // وإلا املأ فقط إن كان صفرًا أو قلّم إذا تجاوز المتبقي
-        if (cur === 0) periodsInput.value = remaining;
-        else if (cur > remaining) periodsInput.value = remaining;
-      }
-    }
-  }
 
   function renderAssignStats() {
     const list = qs('#assignStatsList'); if (!list) return;
@@ -1038,6 +969,7 @@
         row.addEventListener('click', () => openSidePanelFor(ci, si));
       });
     });
+    renderSubjectStats();
   }
 
   // لوح جانبي قابل للتعديل: عرض وتحرير المخصصة وغير المخصصة لصف/شعبة
@@ -1157,7 +1089,7 @@
     else db.assignments[csKey] = newSubjMap;
     Store.setDB(db);
     normalizeAssignmentsUniquePerSubject();
-    renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); renderTeacherSidebar(); updateAssignRemaining();
+    renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); renderTeacherSidebar();
     try { refreshPriorityCards(); } catch {}
     closeSidePanel();
     showToast('تم حفظ تعديلات التخصيص');
@@ -1174,7 +1106,7 @@
     const csKey = keyCS(sidePanelState.classIndex, sidePanelState.sectionIndex);
     if (db.assignments && db.assignments[csKey]) delete db.assignments[csKey];
     Store.setDB(db);
-    renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); renderTeacherSidebar(); updateAssignRemaining();
+    renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); renderTeacherSidebar();
     try { refreshPriorityCards(); } catch {}
     closeSidePanel();
     showToast('تم حذف تخصيص هذا الصف وإعادته لنقطة البداية');
@@ -1184,6 +1116,224 @@
     if (e.key !== 'Escape') return;
     const ov = qs('#sidepanel-overlay');
     if (ov && !ov.classList.contains('hidden')) closeSidePanel();
+  });
+
+  // ===== نافذة تفاصيل المعلم / المادة =====
+  let entityState = null; // { type: 'teacher'|'subject', index, rows: [{ ci, si, subjIdx, tIdx, cnt }] }
+
+  function escHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  function sectionLabel(db, ci, si) {
+    const c = db.classes?.[ci]; if (!c) return '—';
+    const hasSecs = c.sections && c.sections.length;
+    return `${c.name}${hasSecs ? ' — ' + (c.sections[si]?.name || '—') : ''}`;
+  }
+
+  function allocOf(db, subjIdx, ci) { return parseInt(db.allocations?.[subjIdx]?.[ci], 10) || 0; }
+
+  // إجمالي حصص المادة في المدرسة = تخصيص كل صف × عدد شعبه
+  function subjectTotals(db, subjIdx) {
+    let total = 0, assigned = 0;
+    (db.classes || []).forEach((c, ci) => {
+      const alloc = allocOf(db, subjIdx, ci);
+      if (alloc <= 0) return;
+      const nSec = (c.sections && c.sections.length) || 1;
+      total += alloc * nSec;
+      for (let si = 0; si < nSec; si++) {
+        const map = db.assignments?.[keyCS(ci, si)]?.[subjIdx] || {};
+        assigned += Object.values(map).reduce((a, v) => a + (parseInt(v, 10) || 0), 0);
+      }
+    });
+    return { total, assigned, vacant: Math.max(0, total - assigned) };
+  }
+
+  function renderSubjectStats() {
+    const list = qs('#subjectStatsList'); if (!list) return;
+    const db = Store.getDB(); list.innerHTML = '';
+    (db.subjectsCatalog || []).forEach((subj, subjIdx) => {
+      const t = subjectTotals(db, subjIdx);
+      const item = document.createElement('div'); item.className = 'list-item';
+      item.innerHTML = `<div class="list-title">${escHtml(subj.name)}</div><div class="list-sub">الإجمالي: ${t.total} • المشغولة: ${t.assigned} • الشاغر: ${t.vacant}</div>`;
+      item.addEventListener('click', () => openEntityPanel('subject', subjIdx));
+      list.appendChild(item);
+    });
+    if (!list.children.length) list.innerHTML = '<div class="list-sub ent-empty">لا توجد مواد معتمدة بعد</div>';
+  }
+
+  function refreshAssignViews() {
+    renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); renderTeacherSidebar();
+    try { refreshPriorityCards(); } catch {}
+  }
+
+  function openEntityPanel(type, index) {
+    const db = Store.getDB();
+    const overlay = qs('#entity-overlay'); if (!overlay) return;
+    const rows = [];
+    if (type === 'teacher') {
+      if (!db.teachers?.[index]) return;
+      (computeTeacherStats()[index]?.items || []).forEach(it => rows.push({ ci: it.classIndex, si: it.sectionIndex, subjIdx: it.subjectIndex, tIdx: index, cnt: it.count }));
+    } else {
+      if (!db.subjectsCatalog?.[index]) return;
+      (db.classes || []).forEach((c, ci) => {
+        const alloc = allocOf(db, index, ci); if (alloc <= 0) return;
+        const nSec = (c.sections && c.sections.length) || 1;
+        for (let si = 0; si < nSec; si++) {
+          const entry = Object.entries(db.assignments?.[keyCS(ci, si)]?.[index] || {}).map(([t, n]) => [parseInt(t, 10), parseInt(n, 10) || 0]).find(([, n]) => n > 0);
+          rows.push({ ci, si, subjIdx: index, tIdx: entry ? entry[0] : null, cnt: entry ? entry[1] : alloc });
+        }
+      });
+    }
+    entityState = { type, index, rows };
+    const tl = (UI && UI.Terms) ? UI.Terms.get('t-s') : 'معلم';
+    qs('#entTitle').textContent = type === 'teacher' ? (db.teachers[index].name || '—') : (db.subjectsCatalog[index].name || '—');
+    qs('#entDeleteAllLabel').textContent = type === 'teacher' ? `حذف كل تخصيصات ال${tl}` : 'حذف كل تخصيصات المادة';
+    renderEntityPanel();
+    overlay.classList.remove('hidden'); overlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function renderEntityStats() {
+    const st = entityState; const box = qs('#entStats'); if (!st || !box) return;
+    const db = Store.getDB();
+    const chip = (label, val) => `<span class="sp-stat">${label}: <b>${val}</b></span>`;
+    if (st.type === 'teacher') {
+      const active = st.rows.filter(r => r.cnt > 0);
+      const total = active.reduce((a, r) => a + r.cnt, 0);
+      const subjects = new Set(active.map(r => r.subjIdx)).size;
+      const classes = new Set(active.map(r => keyCS(r.ci, r.si))).size;
+      box.innerHTML = chip('إجمالي الحصص', total) + chip('عدد المواد', subjects) + chip('عدد الصفوف/الشعب', classes);
+    } else {
+      const total = st.rows.reduce((a, r) => a + allocOf(db, r.subjIdx, r.ci), 0);
+      const assigned = st.rows.filter(r => r.tIdx !== null).reduce((a, r) => a + (r.cnt || 0), 0);
+      const teachers = new Set(st.rows.filter(r => r.tIdx !== null).map(r => r.tIdx)).size;
+      box.innerHTML = chip('إجمالي حصص المادة', total) + chip('الحصص المشغولة', assigned) + chip('الحصص الشاغرة', Math.max(0, total - assigned)) + chip('عدد المعلمين', teachers);
+    }
+  }
+
+  function renderEntityPanel() {
+    const st = entityState; if (!st) return;
+    const db = Store.getDB();
+    const table = qs('#entTable'); const addBar = qs('#entAddBar'); const addSel = qs('#entAddSelect');
+    const isT = st.type === 'teacher';
+    const tLab = (UI && UI.Terms) ? UI.Terms.get('t-s-def') : 'المعلم';
+    table.innerHTML = '';
+    const head = document.createElement('div'); head.className = 'ent-row head';
+    head.innerHTML = isT
+      ? '<div>المادة</div><div>الصف / الشعبة</div><div>عدد الحصص</div><div></div>'
+      : `<div>الصف / الشعبة</div><div>${escHtml(tLab)}</div><div>عدد الحصص</div><div></div>`;
+    table.appendChild(head);
+    st.rows.forEach((row, ri) => {
+      const alloc = allocOf(db, row.subjIdx, row.ci);
+      const label = escHtml(sectionLabel(db, row.ci, row.si));
+      const subjName = escHtml(db.subjectsCatalog?.[row.subjIdx]?.name || '—');
+      const cntHtml = `<input class="input ent-cnt" type="number" min="0" max="${alloc}" value="${row.cnt}" aria-label="عدد الحصص">`;
+      const el = document.createElement('div'); el.className = 'ent-row';
+      el.innerHTML = isT
+        ? `<div>${subjName}</div><div>${label}</div>${cntHtml}<button class="btn danger ent-del" title="حذف هذا التخصيص"><i class="bi bi-trash3"></i></button>`
+        : `<div>${label}</div><select class="input ent-teacher">${sideTeacherOptions(row.tIdx)}</select>${cntHtml}<button class="btn ent-del" title="إزالة التخصيص"><i class="bi bi-x-circle"></i></button>`;
+      const cnt = el.querySelector('.ent-cnt');
+      cnt.addEventListener('input', () => {
+        let v = parseInt(cnt.value, 10);
+        if (Number.isNaN(v) || v < 0) { row.cnt = 0; return renderEntityStats(); }
+        if (v > alloc) { v = alloc; cnt.value = String(alloc); showToast(`الحد الأقصى ${alloc} حصة`); }
+        row.cnt = v; renderEntityStats();
+      });
+      const sel = el.querySelector('.ent-teacher');
+      if (sel) sel.addEventListener('change', () => { row.tIdx = sel.value === '' ? null : parseInt(sel.value, 10); renderEntityStats(); });
+      el.querySelector('.ent-del').addEventListener('click', () => {
+        if (isT) st.rows.splice(ri, 1); else { row.tIdx = null; row.cnt = alloc; }
+        renderEntityPanel();
+      });
+      table.appendChild(el);
+    });
+    if (!st.rows.length) { const e = document.createElement('div'); e.className = 'ent-empty'; e.textContent = isT ? 'لا توجد تخصيصات لهذا المعلم' : 'لا توجد صفوف مخصصة لهذه المادة'; table.appendChild(e); }
+
+    // شريط الإضافة (للمعلم فقط): الخانات التي لا معلم لها أو كانت له
+    if (addBar && addSel) {
+      let opts = '';
+      if (isT) {
+        const used = new Set(st.rows.map(r => `${r.ci}:${r.si}:${r.subjIdx}`));
+        (db.classes || []).forEach((c, ci) => {
+          const nSec = (c.sections && c.sections.length) || 1;
+          for (let si = 0; si < nSec; si++) {
+            (db.subjectsCatalog || []).forEach((subj, subjIdx) => {
+              const alloc = allocOf(db, subjIdx, ci);
+              if (alloc <= 0 || used.has(`${ci}:${si}:${subjIdx}`)) return;
+              const owners = Object.entries(db.assignments?.[keyCS(ci, si)]?.[subjIdx] || {}).filter(([, n]) => (parseInt(n, 10) || 0) > 0).map(([t]) => parseInt(t, 10));
+              if (owners.length && !owners.includes(st.index)) return;
+              opts += `<option value="${ci}:${si}:${subjIdx}">${escHtml(subj.name)} — ${escHtml(sectionLabel(db, ci, si))} (${alloc} حصة)</option>`;
+            });
+          }
+        });
+      }
+      addSel.innerHTML = opts;
+      addBar.classList.toggle('hidden', !isT || !opts);
+    }
+    renderEntityStats();
+  }
+
+  function closeEntityPanel() {
+    const overlay = qs('#entity-overlay');
+    if (overlay) { overlay.classList.add('hidden'); overlay.setAttribute('aria-hidden', 'true'); }
+    entityState = null;
+  }
+
+  function saveEntityPanel(message) {
+    const st = entityState; if (!st) return;
+    const db = Store.getDB(); db.assignments = db.assignments || {};
+    const setSlot = (ci, si, subjIdx, tIdx, cnt) => { const k = keyCS(ci, si); db.assignments[k] = db.assignments[k] || {}; db.assignments[k][subjIdx] = { [tIdx]: cnt }; };
+    const clearSlot = (ci, si, subjIdx) => {
+      const k = keyCS(ci, si); if (!db.assignments[k]) return;
+      delete db.assignments[k][subjIdx];
+      if (!Object.keys(db.assignments[k]).length) delete db.assignments[k];
+    };
+    if (st.type === 'teacher') {
+      for (const r of st.rows) { if (r.cnt > allocOf(db, r.subjIdx, r.ci)) { showToast('عدد الحصص يتجاوز التخصيص لهذا الصف'); return; } }
+      // أزل كل تعيينات هذا المعلم ثم اكتب المسودة الحالية
+      Object.keys(db.assignments).forEach(k => {
+        Object.keys(db.assignments[k]).forEach(sj => {
+          delete db.assignments[k][sj][st.index];
+          if (!Object.keys(db.assignments[k][sj]).length) delete db.assignments[k][sj];
+        });
+        if (!Object.keys(db.assignments[k]).length) delete db.assignments[k];
+      });
+      st.rows.forEach(r => { if (r.cnt > 0) setSlot(r.ci, r.si, r.subjIdx, st.index, r.cnt); });
+    } else {
+      for (const r of st.rows) {
+        if (r.tIdx === null) continue;
+        const alloc = allocOf(db, r.subjIdx, r.ci);
+        if (!(r.cnt > 0)) { showToast(`أدخل عدد حصص أكبر من صفر لـ ${sectionLabel(db, r.ci, r.si)}`); return; }
+        if (r.cnt > alloc) { showToast(`عدد حصص ${sectionLabel(db, r.ci, r.si)} يتجاوز التخصيص (${alloc})`); return; }
+      }
+      st.rows.forEach(r => { if (r.tIdx === null) clearSlot(r.ci, r.si, r.subjIdx); else setSlot(r.ci, r.si, r.subjIdx, r.tIdx, r.cnt); });
+    }
+    Store.setDB(db);
+    normalizeAssignmentsUniquePerSubject();
+    refreshAssignViews();
+    closeEntityPanel();
+    showToast(message || 'تم حفظ التعديلات');
+  }
+
+  const entOverlay = qs('#entity-overlay');
+  if (entOverlay) entOverlay.addEventListener('click', (e) => { if (e.target === entOverlay) closeEntityPanel(); });
+  qs('#entClose')?.addEventListener('click', closeEntityPanel);
+  qs('#entCancel')?.addEventListener('click', closeEntityPanel);
+  qs('#entSave')?.addEventListener('click', () => saveEntityPanel());
+  qs('#entAddBtn')?.addEventListener('click', () => {
+    const st = entityState; const sel = qs('#entAddSelect'); if (!st || !sel || !sel.value) return;
+    const [ci, si, subjIdx] = sel.value.split(':').map(n => parseInt(n, 10));
+    st.rows.push({ ci, si, subjIdx, tIdx: st.index, cnt: allocOf(Store.getDB(), subjIdx, ci) });
+    renderEntityPanel();
+  });
+  qs('#entDeleteAll')?.addEventListener('click', () => {
+    const st = entityState; if (!st) return;
+    if (!confirm(st.type === 'teacher' ? 'سيتم حذف جميع التخصيصات الخاصة بهذا المعلم. هل تريد المتابعة؟' : 'سيتم حذف جميع تعيينات المعلمين لهذه المادة في كل الصفوف. هل تريد المتابعة؟')) return;
+    if (st.type === 'teacher') st.rows = []; else st.rows.forEach(r => { r.tIdx = null; });
+    saveEntityPanel('تم حذف التخصيصات');
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && entityState) closeEntityPanel();
   });
 
   function renderAssignList() {
@@ -1222,7 +1372,7 @@
               if (map && map[tIdx] != null) delete map[tIdx];
               if (map && Object.keys(map).length === 0) delete db2.assignments[csKey][subjIdx];
               if (db2.assignments[csKey] && Object.keys(db2.assignments[csKey]).length === 0) delete db2.assignments[csKey];
-              Store.setDB(db2); renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); updateAssignRemaining(); renderTeacherSidebar();
+              Store.setDB(db2); renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); renderTeacherSidebar();
             });
             actions.append(edit, del); item.append(left, actions); list.appendChild(item);
           });
@@ -1296,40 +1446,6 @@
     normalizeAssignmentsUniquePerSubject();
     return changed;
   }
-
-  function saveAssignment() {
-    const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect'); const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect'); const per = qs('#asPeriods');
-    if (!classSel || !sectSel || !subjSel || !teachSel || !per) return;
-  if (classSel.value === '' || sectSel.value === '' || subjSel.value === '' || teachSel.value === '') { const t = (UI && UI.Terms) ? UI.Terms.get('t-s') : 'معلم'; showToast(`أكمل الاختيارات: صف، شعبة، مادة، ${t}`); return; }
-    const cIdx = parseInt(classSel.value, 10); const sIdx = parseInt(sectSel.value, 10);
-    const subjIdx = parseInt(subjSel.value, 10); const tIdx = parseInt(teachSel.value, 10);
-    const count = Math.max(0, parseInt(per.value, 10) || 0);
-    if (count <= 0) { showToast('أدخل عدد حصص أكبر من صفر'); return; }
-  const db = Store.getDB();
-  const allocForSubject = (db.allocations?.[subjIdx]?.[cIdx]) || 0;
-  // عند الاستبدال ب${(UI&&UI.Terms)?UI.Terms.get('t-s'):'معلم'} واحد لكل مادة، نقارن مباشرة بالحد الأقصى المخصص للصف
-  if (count > allocForSubject) { showToast('عدد الحصص يتجاوز التخصيص لهذا الصف'); return; }
-    db.assignments = db.assignments || {}; const csKey = keyCS(cIdx, sIdx);
-    db.assignments[csKey] = db.assignments[csKey] || {};
-  // فرض ${(UI&&UI.Terms)?UI.Terms.get('t-s'):'معلم'} واحد فقط لكل مادة ضمن (صف/شعبة): إزالة أي مخصصات سابقة لنفس المادة ثم تعيين المعلم الحالي
-    db.assignments[csKey][subjIdx] = {};
-    db.assignments[csKey][subjIdx][tIdx] = count;
-    Store.setDB(db);
-  renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); updateAssignRemaining(); renderTeacherSidebar();
-    try { refreshPriorityCards(); } catch {}
-  try { showToast((UI && UI.Terms && UI.Terms.isPrimary()) ? 'تم حفظ التخصيص للمعلم' : 'تم حفظ التخصيص للمدرس'); } catch { showToast('تم الحفظ'); }
-  }
-
-  const btnAsSave = qs('#btnAsSave'); if (btnAsSave) btnAsSave.addEventListener('click', saveAssignment);
-  const btnAsClear = qs('#btnAsClear'); if (btnAsClear) btnAsClear.addEventListener('click', () => {
-    const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect'); const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect'); const per = qs('#asPeriods');
-    if (classSel) classSel.value = '';
-    if (sectSel) sectSel.innerHTML = '<option value="">— اختر شعبة —</option>';
-    if (subjSel) subjSel.value = '';
-    if (teachSel) teachSel.value = '';
-    if (per) per.value = '0';
-    updateAssignRemaining();
-  });
 
   // البحث في قائمة التخصيصات
   const assignSearchInput = qs('#assignSearchInput');
@@ -4598,10 +4714,8 @@
     try { reconcileAssignmentsWithAllocations(); } catch {}
   // Assignments (teachers per class/section/subject)
   const normalized = normalizeAssignmentsUniquePerSubject();
-  populateAssignSelectors();
   renderAssignStats();
   renderAssignList();
-  updateAssignRemaining();
   if (normalized) { showToast('تم توحيد التخصيص: معلم واحد لكل مادة في كل شعبة'); }
   // تحديث الشريط الجانبي للمعلمين في هذا الوقت أيضًا
   renderTeacherSidebar();

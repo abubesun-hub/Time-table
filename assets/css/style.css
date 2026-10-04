@@ -1153,6 +1153,7 @@ body.modal-open { overflow: hidden; }
 .sp-stat b { font-weight: 800; }
 .sidepanel-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding: 2px; }
 .sidepanel-body .sub-title { margin: 10px 0 4px; }
+.sidepanel-body > * { flex-shrink: 0; }
 .sidepanel-list { padding: 4px 2px !important; gap: 8px !important; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 @media (max-width: 640px) { .sidepanel-list { grid-template-columns: 1fr; } }
 .sidepanel .list-item.sp-row { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 12px; }
@@ -1163,35 +1164,49 @@ body.modal-open { overflow: hidden; }
 .sp-footer-actions { display: flex; gap: 8px; margin-inline-start: auto; flex-wrap: wrap; }
 .sidepanel-footer .btn { justify-content: center; }
 
-/* Teacher stats table — تصميم حديث مضغوط */
-#teacherStatsTable { padding: 8px; display: grid; gap: 6px; }
-.trow { display: grid; grid-template-columns: minmax(130px, 1.2fr) 0.5fr 1fr 1.6fr auto; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--surface); border: 1px solid #0000000d; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); }
-.trow.head { font-weight: 800; background: linear-gradient(135deg, #eef2ff, #e0e7ff); color: #312e81; border: 0; }
-.tcell { font-size: 13.5px; }
-.tact { display: flex; gap: 4px; justify-content: flex-end; }
-.trow .btn { padding: 6px 10px; font-size: 12.5px; }
-@media (max-width: 720px) { .trow { grid-template-columns: 1fr; } .tact { justify-content: flex-start; } }
+/* نافذة تفاصيل المعلم/المادة */
+.ent-table { display: grid; gap: 6px; }
+.ent-row { display: grid; grid-template-columns: 1.3fr 1.3fr 96px auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--surface); border: 1px solid #0000000d; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); }
+.ent-row.head { font-weight: 800; background: linear-gradient(135deg, #eef2ff, #e0e7ff); color: #312e81; border: 0; }
+.ent-row .input { padding: 6px 8px; font-size: 13px; border-radius: 9px; }
+.ent-row .btn { padding: 6px 10px; font-size: 12.5px; }
+.ent-empty { padding: 12px; text-align: center; opacity: 0.75; }
+.ent-add { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+.ent-add .input { flex: 1; }
+@media (max-width: 640px) { .ent-row { grid-template-columns: 1fr 1fr; } .ent-row.head { display: none; } }
 
-/* mini table inside details cell */
-.tmini { display: grid; gap: 3px; }
-.tmini-row { display: grid; grid-template-columns: 1fr 1fr 64px; gap: 6px; align-items: center; padding: 4px 8px; border-radius: 8px; background: transparent; border: 1px solid #0000000a; box-shadow: none; }
-.tmini-row.head { font-weight: 700; background: #f1f5f9; border: 0; }
-.tmini-row .cnt { text-align: center; font-variant-numeric: tabular-nums; }
+/* بطاقات المواد وعناصر ملخص المعلمين القابلة للنقر */
+#subjectStatsList { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--gap); padding: 8px; }
+#subjectStatsList .list-item { cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; transition: transform 0.15s ease, box-shadow 0.2s ease; }
+#subjectStatsList .list-item:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1); }
+#teacherSidebarList .list-item { cursor: pointer; transition: box-shadow 0.15s ease; }
+#teacherSidebarList .list-item:hover { box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12); }
 
-/* Light theme – ensure teacher stats text is dark and readable */
-[data-theme="light"] #teacherStatsTable .trow,
-[data-theme="light"] #teacherStatsTable .trow.head,
-[data-theme="light"] #teacherStatsTable .tcell,
-[data-theme="light"] #teacherStatsTable .tmini,
-[data-theme="light"] #teacherStatsTable .tmini-row,
-[data-theme="light"] #teacherStatsTable .tmini-row.head,
-[data-theme="light"] #teacherStatsTable .tmini-row .cnt,
-[data-theme="light"] #teacherStatsTable .trow .btn,
-[data-theme="light"] #teacherStatsTable .list-title,
-[data-theme="light"] #teacherStatsTable .list-sub {
-  color: #111827 !important;
-}
-[data-theme="light"] #teacherStatsTable .list-sub { color: #6b7280 !important; }
+/* جدول إحصاءات المعلمين — عرض الأعمدة حسب محتواها */
+.tstats-card { width: fit-content; max-width: 100%; margin-inline: auto; box-sizing: border-box; }
+#teacherStatsTable { display: block; padding: 0; overflow-x: auto; }
+.tstats { width: max-content; max-width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+.tstats th { text-align: start; font-size: 12.5px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #4f46e5, #7c3aed); padding: 10px 16px; white-space: nowrap; }
+.tstats th:first-child { border-start-start-radius: 12px; border-end-start-radius: 12px; }
+.tstats th:last-child { border-start-end-radius: 12px; border-end-end-radius: 12px; }
+.tstats td { background: var(--surface); color: var(--fg); padding: 10px 16px; vertical-align: middle; font-size: 13.5px; border-block: 1px solid #0000000d; transition: background 0.15s ease; }
+.tstats td:first-child { border-inline-start: 1px solid #0000000d; border-start-start-radius: 12px; border-end-start-radius: 12px; }
+.tstats td:last-child { border-inline-end: 1px solid #0000000d; border-start-end-radius: 12px; border-end-end-radius: 12px; }
+.tstats tbody tr:hover td { background: color-mix(in srgb, var(--surface) 88%, #6366f1); }
+.t-name { display: flex; align-items: center; gap: 10px; font-weight: 700; white-space: nowrap; }
+.t-avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 14px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #6366f1, #a855f7); flex: none; }
+.t-total { display: inline-block; min-width: 34px; text-align: center; padding: 3px 12px; border-radius: 999px; font-weight: 800; background: #6366f11f; color: #4f46e5; font-variant-numeric: tabular-nums; }
+.t-total.zero { background: #9ca3af22; color: var(--muted); }
+.t-chips { display: flex; flex-wrap: wrap; gap: 4px; max-width: 220px; }
+.t-chip { padding: 2px 10px; border-radius: 999px; font-size: 12px; background: #0ea5e91a; color: #0369a1; white-space: nowrap; }
+.tmini-t { border-collapse: collapse; font-size: 12.5px; }
+.tmini-t th { background: none; color: var(--muted); font-weight: 700; padding: 2px 10px; text-align: start; border-radius: 0; }
+.tmini-t td { background: none; padding: 2px 10px; border: 0; border-top: 1px dashed #00000014; font-size: 12.5px; }
+.tmini-t td.cnt, .tmini-t th.cnt { text-align: center; font-variant-numeric: tabular-nums; }
+.t-edit { padding: 6px 12px; font-size: 12.5px; white-space: nowrap; }
+.t-muted { color: var(--muted); }
+[data-theme="dark"] .t-total { color: #a5b4fc; }
+[data-theme="dark"] .t-chip { color: #7dd3fc; }
 
 
 /* Accent stats (colorful elegant cards) */
