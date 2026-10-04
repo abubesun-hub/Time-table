@@ -1144,10 +1144,19 @@ body.modal-open { overflow: hidden; }
 #assignStatsList .list-sub { font-size: 13px; opacity: 0.9; }
 
 /* Side Panel */
-.side-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: grid; place-items: stretch end; z-index: 30; }
-.sidepanel { width: min(420px, 92vw); height: 100%; border-radius: 16px 0 0 16px; display: flex; flex-direction: column; gap: 10px; padding: 16px; box-shadow: -10px -10px 20px var(--shadow-light), 0 0 0 1px #00000010; }
+.side-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: grid; place-items: stretch end; z-index: 1000; }
+.sidepanel { width: min(420px, 92vw); height: 100%; min-height: 0; max-height: 100%; overflow: hidden; box-sizing: border-box; border-radius: 16px 0 0 16px; display: flex; flex-direction: column; gap: 10px; padding: 16px; box-shadow: -10px -10px 20px var(--shadow-light), 0 0 0 1px #00000010; }
 .sidepanel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .side-overlay.hidden { display: none; }
+.sidepanel-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding: 2px; }
+.sidepanel-body .sub-title { margin: 10px 0 4px; }
+.sidepanel-list { padding: 4px 2px !important; gap: 8px !important; }
+.sidepanel .list-item.sp-row { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 12px; }
+.sidepanel .sp-controls { display: grid; grid-template-columns: 1fr 88px; gap: 8px; }
+.sidepanel .sp-controls .input { padding: 7px 9px; font-size: 13px; border-radius: 9px; }
+.sidepanel .sp-empty { padding: 6px 4px; opacity: 0.75; }
+.sidepanel-footer { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid #00000012; flex-wrap: wrap; }
+.sidepanel-footer .btn { flex: 1 1 0; justify-content: center; min-width: 120px; }
 
 /* Teacher stats table — تصميم حديث مضغوط */
 #teacherStatsTable { padding: 8px; display: grid; gap: 6px; }

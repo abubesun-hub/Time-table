@@ -1040,7 +1040,19 @@
     });
   }
 
-  // لوح جانبي: عرض المخصصة وغير المخصصة لصف/شعبة
+  // لوح جانبي قابل للتعديل: عرض وتحرير المخصصة وغير المخصصة لصف/شعبة
+  let sidePanelState = null; // { classIndex, sectionIndex }
+
+  function sideTeacherOptions(currentTIdx) {
+    const db = Store.getDB();
+    const label = (UI && UI.Terms) ? UI.Terms.get('t-s') : 'معلم';
+    let opts = `<option value="">— اختر ${label} —</option>`;
+    (db.teachers || []).forEach((t, i) => {
+      opts += `<option value="${i}"${i === currentTIdx ? ' selected' : ''}>${t.name || '—'}</option>`;
+    });
+    return opts;
+  }
+
   function openSidePanelFor(classIndex, sectionIndex) {
     const db = Store.getDB();
     const c = db.classes?.[classIndex]; if (!c) return;
@@ -1049,10 +1061,11 @@
     const overlay = qs('#sidepanel-overlay'); const spTitle = qs('#spTitle');
     const assignedList = qs('#spAssignedList'); const unassignedList = qs('#spUnassignedList');
     if (!overlay || !spTitle || !assignedList || !unassignedList) return;
+    sidePanelState = { classIndex, sectionIndex };
     spTitle.textContent = title;
     assignedList.innerHTML = ''; unassignedList.innerHTML = '';
 
-    // بناء قوائم: المخصصة وغير المخصصة بناءً على allocations و assignments
+    // بناء قوائم قابلة للتعديل: قائمة منسدلة للمعلم + حقل عدد الحصص لكل مادة
     const csKey = keyCS(classIndex, sectionIndex);
     const asgForCS = db.assignments?.[csKey] || {};
     const subjects = db.subjectsCatalog || [];
@@ -1060,50 +1073,85 @@
       const alloc = parseInt(db.allocations?.[subjIdx]?.[classIndex], 10) || 0;
       if (alloc <= 0) return; // هذه المادة غير مخصصة للصف
       const teachMap = asgForCS?.[subjIdx] || {};
-      const entries = Object.entries(teachMap).map(([tIdx, cnt]) => [parseInt(tIdx,10), parseInt(cnt,10)||0]).filter(([,c])=>c>0);
-      if (entries.length > 0) {
-        // بحسب منطقنا: معلم واحد فقط لكل مادة، ولكن لو وجد أكثر من واحد قديمًا نعرضهم
-        entries.forEach(([tIdx, cnt]) => {
-          const tName = db.teachers?.[tIdx]?.name || '—';
-          const item = document.createElement('div'); item.className = 'list-item';
-          const left = document.createElement('div'); left.innerHTML = `<div class="list-title">${subj.name}</div><div class="list-sub">${tName} • حصص: ${cnt}</div>`;
-          item.append(left, document.createElement('div'));
-          assignedList.appendChild(item);
-        });
-      } else {
-        const item = document.createElement('div'); item.className = 'list-item';
-        const left = document.createElement('div'); left.innerHTML = `<div class="list-title">${subj.name}</div><div class="list-sub">غير مخصصة بعد</div>`;
-        const actions = document.createElement('div'); actions.className = 'item-actions';
-        const btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = 'تعيين الآن';
-        btn.addEventListener('click', () => {
-          // الانتقال إلى بطاقة "تخصيص" مع ملء الحقول تلقائيًا
-          const classSel = qs('#asClassSelect'); const sectSel = qs('#asSectionSelect');
-          const subjSel = qs('#asSubjectSelect'); const teachSel = qs('#asTeacherSelect'); const per = qs('#asPeriods');
-          if (classSel) classSel.value = String(classIndex);
-          if (sectSel && classSel) { const ev = new Event('change'); classSel.dispatchEvent(ev); sectSel.value = String(sectionIndex); }
-          if (subjSel) subjSel.value = String(subjIdx);
-          // اضبط الحصص إلى المتبقي تلقائيًا
-          if (per) per.value = String(alloc);
-          // حدّث المتبقي (مع فرض التعيين من التخصيص الحالي)
-          if (typeof updateAssignRemaining === 'function') updateAssignRemaining(true);
-          // ركّز على اختيار المعلم لتسريع الإدخال
-          if (teachSel) teachSel.focus();
-          // أغلق اللوح الجانبي
-          const overlay2 = qs('#sidepanel-overlay'); if (overlay2) { overlay2.classList.add('hidden'); overlay2.setAttribute('aria-hidden','true'); }
-          // انتقل إلى تبويب التخصيص إن وُجدت آلية توجيه
-          if (window.location && window.location.hash !== '#assign') { window.location.hash = '#assign'; }
-        });
-        actions.appendChild(btn);
-        item.append(left, actions);
-        unassignedList.appendChild(item);
-      }
+      const entries = Object.entries(teachMap).map(([tIdx, cnt]) => [parseInt(tIdx, 10), parseInt(cnt, 10) || 0]).filter(([, c2]) => c2 > 0);
+      const assigned = entries.length > 0;
+      const currentT = assigned ? entries[0][0] : null;
+      const currentCnt = assigned ? entries[0][1] : null;
+
+      const row = document.createElement('div');
+      row.className = 'list-item sp-row';
+      row.dataset.subjIdx = String(subjIdx);
+      row.innerHTML = `
+        <div>
+          <div class="list-title">${subj.name}</div>
+          <div class="list-sub">إجمالي التخصيص لهذا الصف: ${alloc} حصة</div>
+        </div>
+        <div class="sp-controls">
+          <select class="input sp-teacher" aria-label="المعلم لمادة ${subj.name}">${sideTeacherOptions(currentT)}</select>
+          <input class="input sp-periods" type="number" min="0" max="${alloc}" value="${currentCnt == null ? '' : currentCnt}" placeholder="${alloc}" aria-label="عدد حصص ${subj.name}">
+        </div>
+      `;
+      (assigned ? assignedList : unassignedList).appendChild(row);
     });
+
+    if (!assignedList.children.length) assignedList.innerHTML = '<div class="list-sub sp-empty">لا توجد مواد مخصصة بعد</div>';
+    if (!unassignedList.children.length) unassignedList.innerHTML = '<div class="list-sub sp-empty">كل المواد مخصصة ✔</div>';
 
     overlay.classList.remove('hidden'); overlay.setAttribute('aria-hidden', 'false');
   }
 
-  const spCloseBtn = qs('#spClose'); if (spCloseBtn) spCloseBtn.addEventListener('click', () => {
-    const overlay = qs('#sidepanel-overlay'); if (overlay) { overlay.classList.add('hidden'); overlay.setAttribute('aria-hidden','true'); }
+  function closeSidePanel() {
+    const overlay = qs('#sidepanel-overlay');
+    if (overlay) { overlay.classList.add('hidden'); overlay.setAttribute('aria-hidden', 'true'); }
+    sidePanelState = null;
+  }
+
+  function saveSidePanel() {
+    if (!sidePanelState) return;
+    const db = Store.getDB();
+    const { classIndex, sectionIndex } = sidePanelState;
+    const csKey = keyCS(classIndex, sectionIndex);
+    const overlay = qs('#sidepanel-overlay');
+    const rows = overlay ? Array.from(overlay.querySelectorAll('.sp-row')) : [];
+    const label = (UI && UI.Terms) ? UI.Terms.get('t-s') : 'معلم';
+    const newSubjMap = {};
+    for (const row of rows) {
+      const subjIdx = parseInt(row.dataset.subjIdx, 10);
+      const subjName = db.subjectsCatalog?.[subjIdx]?.name || '—';
+      const tSel = row.querySelector('.sp-teacher');
+      const perInp = row.querySelector('.sp-periods');
+      const tVal = tSel ? tSel.value : '';
+      const rawCnt = perInp ? perInp.value : '';
+      const alloc = parseInt(db.allocations?.[subjIdx]?.[classIndex], 10) || 0;
+      if (tVal === '') {
+        if (rawCnt !== '' && (parseInt(rawCnt, 10) || 0) > 0) { showToast(`اختر ${label} لمادة «${subjName}»`); return; }
+        continue; // لا معلم ولا حصص → إزالة تعيين هذه المادة
+      }
+      // اختار معلمًا دون تحديد عدد → التخصيص الكامل لهذه المادة تلقائيًا
+      const cnt = rawCnt === '' ? alloc : parseInt(rawCnt, 10);
+      if (Number.isNaN(cnt) || cnt <= 0) { showToast(`أدخل عدد حصص أكبر من صفر لمادة «${subjName}»`); return; }
+      if (cnt > alloc) { showToast(`عدد حصص مادة «${subjName}» يتجاوز التخصيص (${alloc})`); return; }
+      newSubjMap[subjIdx] = { [parseInt(tVal, 10)]: cnt };
+    }
+    db.assignments = db.assignments || {};
+    if (Object.keys(newSubjMap).length === 0) delete db.assignments[csKey];
+    else db.assignments[csKey] = newSubjMap;
+    Store.setDB(db);
+    normalizeAssignmentsUniquePerSubject();
+    renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); renderTeacherSidebar(); updateAssignRemaining();
+    try { refreshPriorityCards(); } catch {}
+    closeSidePanel();
+    showToast('تم حفظ تعديلات التخصيص');
+  }
+
+  const spCloseBtn = qs('#spClose'); if (spCloseBtn) spCloseBtn.addEventListener('click', closeSidePanel);
+  const btnSpSave = qs('#spSave'); if (btnSpSave) btnSpSave.addEventListener('click', saveSidePanel);
+  const btnSpCancel = qs('#spCancel'); if (btnSpCancel) btnSpCancel.addEventListener('click', closeSidePanel);
+  const spOverlay = qs('#sidepanel-overlay'); if (spOverlay) spOverlay.addEventListener('click', (e) => { if (e.target === spOverlay) closeSidePanel(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const ov = qs('#sidepanel-overlay');
+    if (ov && !ov.classList.contains('hidden')) closeSidePanel();
   });
 
   function renderAssignList() {

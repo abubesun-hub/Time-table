@@ -514,17 +514,24 @@
           </div>
         </div>
         <div id="assignList" class="list" style="margin-top:10px"></div>
-        <!-- Side Panel for Class/Section Details -->
+        <!-- Side Panel for Class/Section Details (قابل للتعديل) -->
         <div id="sidepanel-overlay" class="side-overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="spTitle">
           <div class="sidepanel neo-surface">
             <div class="sidepanel-header">
               <h3 id="spTitle" style="margin:0">—</h3>
               <button id="spClose" class="btn ghost" aria-label="إغلاق"><i class="bi bi-x-lg"></i></button>
             </div>
-            <h4 class="sub-title">المخصصة ل<span data-term="t-pl-gen-def">لمعلمين</span></h4>
-            <div id="spAssignedList" class="list"></div>
-            <h4 class="sub-title">غير المخصصة</h4>
-            <div id="spUnassignedList" class="list"></div>
+            <div class="sidepanel-body">
+              <small class="muted">اختر المعلم وعدد الحصص لكل مادة، ثم اضغط «حفظ التعديلات».</small>
+              <h4 class="sub-title">المخصصة ل<span data-term="t-pl-gen-def">لمعلمين</span></h4>
+              <div id="spAssignedList" class="list sidepanel-list"></div>
+              <h4 class="sub-title">غير المخصصة</h4>
+              <div id="spUnassignedList" class="list sidepanel-list"></div>
+            </div>
+            <div class="sidepanel-footer">
+              <button id="spCancel" class="btn"><i class="bi bi-x-circle"></i> إلغاء</button>
+              <button id="spSave" class="btn primary"><i class="bi bi-check2-circle"></i> حفظ التعديلات</button>
+            </div>
           </div>
         </div>
       </div>
