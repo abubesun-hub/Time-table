@@ -1164,6 +1164,7 @@
 
   function refreshAssignViews() {
     renderAssignList(); renderAssignStats(); renderTeacherStatsTable(); renderTeacherSidebar();
+     renderTimetable();
     try { refreshPriorityCards(); } catch {}
   }
 
@@ -2214,11 +2215,96 @@
     return `${cIdx}:${sIdx}`;
   }
 
+  function reconcileTimetableGridWithAssignments() {
+    const db = Store.getDB();
+    const grid = db.timetable?.grid;
+    if (!grid) return false;
+    let changed = false;
+    const teacherOccupancy = new Set();
+    const assignmentUsage = {};
+    const scheduled = Object.entries(grid)
+      .filter(([, value]) => value && String(value).trim())
+      .map(([key, value]) => {
+        const meta = getTeacherAndSubjectByCellValue(db, value);
+        if (!meta) return { key, value, meta: null };
+        const slotMeta = parseGridKey(key);
+        const csKey = `${slotMeta.ci}:${slotMeta.si}`;
+        const assignedPair = Object.entries(db.assignments?.[csKey]?.[meta.subjIdx] || {})
+          .map(([teacherIdx, count]) => [parseInt(teacherIdx, 10), parseInt(count, 10) || 0])
+          .filter(([, count]) => count > 0)
+          .sort((a, b) => b[1] - a[1])[0] || null;
+        return {
+          key,
+          value,
+          meta,
+          csKey,
+          ci: slotMeta.ci,
+          day: slotMeta.day,
+          slot: slotMeta.slot,
+          assignedTeacherIdx: assignedPair ? assignedPair[0] : null,
+          assignedCount: assignedPair ? assignedPair[1] : 0
+        };
+      });
+
+    scheduled.sort((a, b) => {
+      const aRank = !a.meta ? 2 : (a.assignedTeacherIdx === a.meta.teacherIdx ? 0 : 1);
+      const bRank = !b.meta ? 2 : (b.assignedTeacherIdx === b.meta.teacherIdx ? 0 : 1);
+      if (aRank !== bRank) return aRank - bRank;
+      return String(a.key).localeCompare(String(b.key));
+    });
+
+    scheduled.forEach((entry) => {
+      if (!entry.meta) return;
+      const subjIdx = entry.meta.subjIdx;
+      const alloc = parseInt(db.allocations?.[subjIdx]?.[entry.ci], 10) || 0;
+      if (alloc <= 0 || entry.assignedTeacherIdx == null || entry.assignedCount <= 0) {
+        grid[entry.key] = '';
+        changed = true;
+        return;
+      }
+
+      const desiredTeacherIdx = entry.assignedTeacherIdx;
+      const teacherBusyKey = `${desiredTeacherIdx}|${entry.day}|${entry.slot}`;
+      if (teacherOccupancy.has(teacherBusyKey)) {
+        grid[entry.key] = '';
+        changed = true;
+        return;
+      }
+
+      const quotaKey = `${entry.csKey}|${subjIdx}|${desiredTeacherIdx}`;
+      const usedCount = assignmentUsage[quotaKey] || 0;
+      if (usedCount >= entry.assignedCount) {
+        grid[entry.key] = '';
+        changed = true;
+        return;
+      }
+
+      teacherOccupancy.add(teacherBusyKey);
+      assignmentUsage[quotaKey] = usedCount + 1;
+
+      const subjName = (db.subjectsCatalog?.[subjIdx]?.name || '').trim() || String(entry.value).split('•')[0].trim() || '—';
+      const teacherName = (db.teachers?.[desiredTeacherIdx]?.name || '').trim() || '—';
+      const desiredValue = `${subjName} • ${teacherName}`;
+      if (entry.value !== desiredValue) {
+        grid[entry.key] = desiredValue;
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      db.timetable = db.timetable || {};
+      db.timetable.grid = grid;
+      Store.setDB(db);
+    }
+    return changed;
+  }
+
   function renderTimetable() {
     // عرض شامل: جدول بكل الصفوف/الشعب مقابل الأيام وعدد الحصص حسب الإعدادات (افتراضياً 6)
     const host = qs('#ttGlobalContainer');
     if (!host) return;
     try { sanitizeDBIntegrity(); } catch {}
+    try { reconcileTimetableGridWithAssignments(); } catch {}
     const db = Store.getDB();
     const classes = db.classes || [];
     const allDays = db.timetable?.days || ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
