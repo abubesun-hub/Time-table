@@ -1681,7 +1681,13 @@
       const item = document.createElement('div');
       item.className = 'list-item';
       const left = document.createElement('div');
-      left.innerHTML = `<div class="list-title">${t.name}</div><div class="list-sub">${t.phone || ''} ${t.email ? ' • ' + t.email : ''}</div>`;
+      const shortLabel = (t?.short || '').trim();
+      const meta = [
+        shortLabel ? `الاسم المختصر: ${shortLabel}` : '',
+        t.phone || '',
+        t.email || ''
+      ].filter(Boolean).join(' • ');
+      left.innerHTML = `<div class="list-title">${t.name}</div><div class="list-sub">${meta}</div>`;
       const actions = document.createElement('div');
       actions.className = 'item-actions';
       const edit = document.createElement('button'); edit.className = 'btn'; edit.textContent = 'تعديل';
@@ -1901,6 +1907,7 @@
   function openTeacherModal(t = null, index = -1) {
     const dlg = qs('#modal-teacher');
     qs('#teacherName').value = t?.name || '';
+    qs('#teacherShort').value = t?.short || '';
     qs('#teacherPhone').value = t?.phone || '';
     qs('#teacherEmail').value = t?.email || '';
     dlg.returnValue = 'cancel';
@@ -1913,7 +1920,12 @@
       const name = qs('#teacherName').value.trim();
       if (!name) { showToast('أدخل اسم المعلم'); return; }
       const db = Store.getDB();
-      const item = { name, phone: qs('#teacherPhone').value.trim(), email: qs('#teacherEmail').value.trim() };
+      const item = {
+        name,
+        short: qs('#teacherShort')?.value.trim() || '',
+        phone: qs('#teacherPhone').value.trim(),
+        email: qs('#teacherEmail').value.trim()
+      };
       if (index >= 0) db.teachers[index] = item; else db.teachers.push(item);
       Store.setDB(db); renderTeachers(); refreshStats(); try { refreshPriorityCards(); } catch {} ; dlg.close('default');
     };
@@ -2602,6 +2614,14 @@
     return { ci, si, day, slot };
   }
 
+  function getTeacherPrintName(teacher) {
+    const shortName = (teacher?.short || '').trim();
+    if (shortName) return shortName;
+    const fullName = (teacher?.name || '').trim();
+    if (!fullName) return '';
+    return fullName.split(/\s+/)[0] || fullName;
+  }
+
   function getTeacherAndSubjectByCellValue(db, val) {
     // صيغة العرض: "المادة • المعلم"
     if (!val) return null;
@@ -2610,7 +2630,11 @@
     const teacherName = parts[1] || '';
     // طباعة الجدول العام قد تستخدم الاختصار؛ نحاول مطابقته على name أولًا ثم short
     const subjIdx = (db.subjectsCatalog || []).findIndex(s => (s.name || '').trim() === subjName || (s.short || '').trim() === subjName);
-    const teacherIdx = (db.teachers || []).findIndex(t => (t.name || '').trim() === teacherName);
+    const teacherIdx = (db.teachers || []).findIndex((t) => {
+      const fullName = (t?.name || '').trim();
+      const shortName = (t?.short || '').trim();
+      return fullName === teacherName || (!!shortName && shortName === teacherName);
+    });
     if (subjIdx < 0 || teacherIdx < 0) return null;
     return { subjIdx, teacherIdx };
   }
@@ -2911,8 +2935,7 @@
                 bigHtml += `<td>${val}</td>`;
               } else {
                 const subjName = (db.subjectsCatalog?.[meta.subjIdx]?.name || '').trim();
-                const teacherFull = (db.teachers?.[meta.teacherIdx]?.name || '').trim();
-                const teacherFirst = teacherFull.split(/\s+/)[0] || teacherFull;
+                const teacherFirst = getTeacherPrintName(db.teachers?.[meta.teacherIdx]);
                 const timeRange = calcSlotTimeRange(db, day, s);
                 bigHtml += `<td><div class="lesson-cell"><div class="lesson-subj">${subjName}</div><div class="lesson-teacher">${teacherFirst}</div><div class="lesson-time">${timeRange}</div></div></td>`;
               }
@@ -3198,8 +3221,7 @@
               if (meta) {
                 const subjObj = db.subjectsCatalog?.[meta.subjIdx] || {};
                 subj = (subjObj.short || subjObj.name || '').trim();
-                const tFull = (db.teachers?.[meta.teacherIdx]?.name || '').trim();
-                teach = tFull.split(/\s+/)[0] || tFull;
+                teach = getTeacherPrintName(db.teachers?.[meta.teacherIdx]);
               } else {
                 const parts = String(val).split('•');
                 subj = (parts[0]||'').trim(); teach = (parts[1]||'').trim();
@@ -3415,8 +3437,7 @@
                 if (meta) {
                   const subjObj = db.subjectsCatalog?.[meta.subjIdx] || {};
                   subj = (subjObj.short || subjObj.name || '').trim();
-                  const tFull = (db.teachers?.[meta.teacherIdx]?.name || '').trim();
-                  teach = tFull.split(/\s+/)[0] || tFull;
+                  teach = getTeacherPrintName(db.teachers?.[meta.teacherIdx]);
                 } else {
                   const parts = String(val).split('•');
                   subj = (parts[0]||'').trim(); teach = (parts[1]||'').trim();
@@ -3654,8 +3675,7 @@
               if (meta) {
                 const subjObj = db.subjectsCatalog?.[meta.subjIdx] || {};
                 subj = (subjObj.short || subjObj.name || '').trim();
-                const tFull = (db.teachers?.[meta.teacherIdx]?.name || '').trim();
-                teach = tFull.split(/\s+/)[0] || tFull;
+                teach = getTeacherPrintName(db.teachers?.[meta.teacherIdx]);
               } else {
                 const parts = String(val).split('•'); subj = (parts[0]||'').trim(); teach = (parts[1]||'').trim();
               }
